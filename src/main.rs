@@ -1,4 +1,7 @@
+use std::default;
+
 use bevy::prelude::*;
+use bevy_asset_loader::{loading_state::{LoadingStateAppExt, LoadingState}, asset_collection::AssetCollection};
 use entities::{camera::CameraComponentPlugin, player::PlayerPlugin, bullet::BulletPlugin};
 
 mod entities;
@@ -78,9 +81,27 @@ fn scene_setup_3d(
     });
 }
 
+#[derive(AssetCollection, Resource)]
+struct GameAssets {
+    #[asset(path = "spaceship.png")]
+    spaceship: Handle<Image>
+}
+
+#[derive(Clone, Eq, PartialEq, Debug, Hash, Default, States)]
+enum AppState {
+    #[default]
+    Loading, 
+    Running
+}
 
 fn main() {
     App::new()
         .add_plugins((DefaultPlugins, ScenePlugin3D, BulletPlugin))
+        .add_state::<AppState>()
+        .add_loading_state(
+            LoadingState::new(AppState::Loading)
+                .continue_to_state(AppState::Running)
+        )
+        .add_collection_to_loading_state::<_, GameAssets>(AppState::Loading)
         .run();
 }
