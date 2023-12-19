@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::Movement;
+use crate::{Movement, AppState};
 
 use super::player::Player;
 
@@ -44,7 +44,7 @@ pub struct CameraComponentPlugin;
 impl Plugin for CameraComponentPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_systems(Startup, camera_setup)
-            .add_systems(Update, camera_follow_system);
+            .add_systems(OnEnter(AppState::Running), camera_setup)
+            .add_systems(Update, camera_follow_system.run_if(in_state(AppState::Running)));
     }
 }

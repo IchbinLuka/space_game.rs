@@ -1,8 +1,9 @@
 use std::f32::consts::PI;
 
 use bevy::prelude::*;
+use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
 
-use crate::Movement;
+use crate::{Movement, AppState};
 
 use super::player::Player;
 
@@ -31,11 +32,12 @@ fn bullet_setup(
 
 fn bullet_shoot(
     keyboard_input: Res<Input<KeyCode>>, 
-    mut query: Query<(&Transform, &Movement, With<Player>)>, 
+    query: Query<(&Transform, &Movement, With<Player>)>, 
     mut commands: Commands,
     bullet_res: Res<BulletResource>,
+    assets: Res<BulletAssets>, 
 ) {
-    for (transform, movement, _) in &mut query {
+    for (transform, movement, _) in &query {
         if keyboard_input.just_pressed(KeyCode::Space) {
             let mut bullet_transform = Transform::from_xyz(transform.translation.x, transform.translation.y, transform.translation.z);
             bullet_transform.rotate_x(-PI * 0.5);
@@ -52,21 +54,35 @@ fn bullet_shoot(
                 }, 
                 Bullet,
             ));
+            commands.spawn(
+                AudioBundle {
+                    source: assets.test_sound.clone(), 
+                    ..default()
+                }
+            );
         }
     }
 }
+
+#[derive(Resource)]
 struct BulletResource {
     bullet_mesh: Handle<Mesh>,
     bullet_material: Handle<StandardMaterial>,
 }
-impl Resource for BulletResource {}
+
+#[derive(AssetCollection, Resource)]
+struct BulletAssets {
+    #[asset(path = "fire_sound.ogg")]
+    test_sound: Handle<AudioSource>
+}
 
 pub struct BulletPlugin;
 
 impl Plugin for BulletPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_systems(Startup, bullet_setup)
-            .add_systems(Update, bullet_shoot);
+            .add_collection_to_loading_state::<_, BulletAssets>(AppState::Loading)
+            .add_systems(OnEnter(AppState::Running), bullet_setup)
+            .add_systems(Update, bullet_shoot.run_if(in_state(AppState::Running)));
     }
 }

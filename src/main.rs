@@ -1,17 +1,21 @@
-use std::default;
 
 use bevy::prelude::*;
-use bevy_asset_loader::{loading_state::{LoadingStateAppExt, LoadingState}, asset_collection::AssetCollection};
-use entities::{camera::CameraComponentPlugin, player::PlayerPlugin, bullet::BulletPlugin};
+use bevy_asset_loader::loading_state::{LoadingStateAppExt, LoadingState};
+use entities::{camera::CameraComponentPlugin, player::PlayerPlugin, bullet::BulletPlugin, loading_screen::LoadingScreenPlugin};
 
 mod entities;
 
 
 #[derive(Component)]
 pub struct Movement {
+    /// Velocity
     pub vel: Vec3,
+    /// Acceleration
     pub acc: Vec3,
+    /// Maximum speed
     pub max_speed: Option<f32>,
+    /// Friction must be between 0 and 1
+    /// 0 means no friction, 1 that the object will stop immediately
     pub friction: f32,
 }
 
@@ -81,12 +85,6 @@ fn scene_setup_3d(
     });
 }
 
-#[derive(AssetCollection, Resource)]
-struct GameAssets {
-    #[asset(path = "spaceship.png")]
-    spaceship: Handle<Image>
-}
-
 #[derive(Clone, Eq, PartialEq, Debug, Hash, Default, States)]
 enum AppState {
     #[default]
@@ -96,12 +94,12 @@ enum AppState {
 
 fn main() {
     App::new()
-        .add_plugins((DefaultPlugins, ScenePlugin3D, BulletPlugin))
+        .add_plugins(DefaultPlugins)
         .add_state::<AppState>()
         .add_loading_state(
             LoadingState::new(AppState::Loading)
                 .continue_to_state(AppState::Running)
         )
-        .add_collection_to_loading_state::<_, GameAssets>(AppState::Loading)
+        .add_plugins((ScenePlugin3D, BulletPlugin, LoadingScreenPlugin))
         .run();
 }

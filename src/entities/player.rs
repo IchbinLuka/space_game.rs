@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::Movement;
+use crate::{Movement, AppState};
 
 #[derive(Component)]
 pub struct Player;
@@ -52,7 +52,7 @@ pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_systems(Startup, player_setup)
-            .add_systems(Update, player_input);
+            .add_systems(OnEnter(AppState::Running), player_setup)
+            .add_systems(Update, player_input.run_if(in_state(AppState::Running)));
     }
 }
