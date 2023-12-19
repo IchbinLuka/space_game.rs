@@ -1,4 +1,4 @@
-use std::f32::consts::PI;
+use std::{f32::consts::PI, time::Duration};
 
 use bevy::prelude::*;
 use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
@@ -8,7 +8,9 @@ use crate::{Movement, AppState};
 use super::player::Player;
 
 #[derive(Component)]
-pub struct Bullet;
+pub struct Bullet {
+    pub spawn_time: Duration
+}
 
 fn bullet_setup(
     mut commands: Commands, 
@@ -32,6 +34,7 @@ fn bullet_setup(
 
 fn bullet_shoot(
     keyboard_input: Res<Input<KeyCode>>, 
+    time: Res<Time>,
     query: Query<(&Transform, &Movement, With<Player>)>, 
     mut commands: Commands,
     bullet_res: Res<BulletResource>,
@@ -41,6 +44,7 @@ fn bullet_shoot(
         if keyboard_input.just_pressed(KeyCode::Space) {
             let mut bullet_transform = Transform::from_xyz(transform.translation.x, transform.translation.y, transform.translation.z);
             bullet_transform.rotate_x(-PI * 0.5);
+            debug!("Spawning bullet");
             commands.spawn((
                 PbrBundle {
                     mesh: bullet_res.bullet_mesh.clone(),
@@ -52,7 +56,9 @@ fn bullet_shoot(
                     vel: transform.forward().normalize() * 20.0 + movement.vel,
                     ..default()
                 }, 
-                Bullet,
+                Bullet {
+                    spawn_time: time.elapsed()
+                },
             ));
             commands.spawn(
                 AudioBundle {
@@ -60,6 +66,19 @@ fn bullet_shoot(
                     ..default()
                 }
             );
+        }
+    }
+}
+
+fn bullet_despawn(
+    time: Res<Time>,
+    mut commands: Commands,
+    query: Query<(Entity, &Bullet)>,
+) {
+    const BULLET_LIFETIME: Duration = Duration::from_secs(5);
+    for (entity, bullet) in &mut query.iter() {
+        if time.elapsed() - bullet.spawn_time > BULLET_LIFETIME {
+            commands.entity(entity).despawn_recursive();
         }
     }
 }
@@ -83,6 +102,9 @@ impl Plugin for BulletPlugin {
         app
             .add_collection_to_loading_state::<_, BulletAssets>(AppState::Loading)
             .add_systems(OnEnter(AppState::Running), bullet_setup)
-            .add_systems(Update, bullet_shoot.run_if(in_state(AppState::Running)));
+            .add_systems(Update, (
+                bullet_shoot, 
+                bullet_despawn
+            ).run_if(in_state(AppState::Running)));
     }
 }

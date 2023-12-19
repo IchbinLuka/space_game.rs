@@ -1,5 +1,5 @@
 
-use bevy::prelude::*;
+use bevy::{prelude::*, log::LogPlugin};
 use bevy_asset_loader::loading_state::{LoadingStateAppExt, LoadingState};
 use entities::{camera::CameraComponentPlugin, player::PlayerPlugin, bullet::BulletPlugin, loading_screen::LoadingScreenPlugin};
 
@@ -94,7 +94,12 @@ enum AppState {
 
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins)
+        .add_plugins(DefaultPlugins.set(
+            LogPlugin {
+                level: bevy::log::Level::DEBUG,
+                ..default()
+            }
+        ))
         .add_state::<AppState>()
         .add_loading_state(
             LoadingState::new(AppState::Loading)

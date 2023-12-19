@@ -6,7 +6,6 @@ use crate::AppState;
 pub struct LoadingScreen;
 
 fn loading_screen_setup(mut commands: Commands) {
-    println!("Loading screen setup");
     commands.spawn((Camera2dBundle::default(), LoadingScreen));
 
     commands.spawn((
@@ -31,8 +30,11 @@ fn loading_screen_setup(mut commands: Commands) {
     });
 }
 
-fn loading_screen_cleanup(mut commands: Commands, query: Query<Entity, With<LoadingScreen>>) {
-    for entity in &mut query.iter() {
+fn loading_screen_cleanup(
+    mut commands: Commands, 
+    query: Query<Entity, With<LoadingScreen>>
+) {
+    for entity in query.iter() {
         commands.entity(entity).despawn_recursive();
     }
 }
