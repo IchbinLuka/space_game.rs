@@ -4,6 +4,7 @@ use bevy_asset_loader::loading_state::{LoadingStateAppExt, LoadingState};
 use entities::{camera::CameraComponentPlugin, player::PlayerPlugin, bullet::BulletPlugin, loading_screen::LoadingScreenPlugin};
 
 mod entities;
+mod utils;
 
 
 #[derive(Component)]
@@ -96,7 +97,7 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(
             LogPlugin {
-                level: bevy::log::Level::DEBUG,
+                level: bevy::log::Level::INFO,
                 ..default()
             }
         ))

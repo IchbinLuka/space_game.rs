@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
 
 use crate::{Movement, AppState};
 
@@ -28,16 +29,15 @@ fn player_input(
 
 fn player_setup(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    assets: Res<PlayerAssets>,
 ) {
+
     commands.spawn((
-        PbrBundle {
-            mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
-            material: materials.add(Color::rgb_u8(124, 144, 255).into()),
-            transform: Transform::from_xyz(0.0, 0.5, 0.0),
+        SceneBundle {
+            scene: assets.spaceship.clone(),
+            transform: Transform::from_xyz(0.0, 0.0, 0.0).with_scale(Vec3::splat(0.2)), 
             ..default()
-        },
+        }, 
         Player, 
         Movement {
             max_speed: Some(10.0),
@@ -47,11 +47,18 @@ fn player_setup(
     ));
 }
 
+#[derive(AssetCollection, Resource)]
+struct PlayerAssets {
+    #[asset(path = "spaceship.glb#Scene0")]
+    spaceship: Handle<Scene>
+}
+
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app
+            .add_collection_to_loading_state::<_, PlayerAssets>(AppState::Loading)
             .add_systems(OnEnter(AppState::Running), player_setup)
             .add_systems(Update, player_input.run_if(in_state(AppState::Running)));
     }

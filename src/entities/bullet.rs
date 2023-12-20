@@ -30,6 +30,8 @@ fn bullet_setup(
         bullet_mesh,
         bullet_material,
     });
+
+    commands.insert_resource(LastBulletInfo::new());
 }
 
 fn bullet_shoot(
@@ -39,10 +41,20 @@ fn bullet_shoot(
     mut commands: Commands,
     bullet_res: Res<BulletResource>,
     assets: Res<BulletAssets>, 
+    mut last_bullet_info: ResMut<LastBulletInfo>,
 ) {
+    last_bullet_info.timer.tick(time.delta());
+    if !last_bullet_info.timer.finished() {
+        return;
+    }
     for (transform, movement, _) in &query {
-        if keyboard_input.just_pressed(KeyCode::Space) {
-            let mut bullet_transform = Transform::from_xyz(transform.translation.x, transform.translation.y, transform.translation.z);
+        if keyboard_input.pressed(KeyCode::Space) {
+            let side = last_bullet_info.side;
+
+            let pos = transform.translation + transform.rotation.mul_vec3(side.into());
+            let mut bullet_transform = Transform::from_translation(pos);
+            
+            
             bullet_transform.rotate_x(-PI * 0.5);
             debug!("Spawning bullet");
             commands.spawn((
@@ -66,6 +78,8 @@ fn bullet_shoot(
                     ..default()
                 }
             );
+            
+            last_bullet_info.side = side.other();
         }
     }
 }
@@ -76,7 +90,7 @@ fn bullet_despawn(
     query: Query<(Entity, &Bullet)>,
 ) {
     const BULLET_LIFETIME: Duration = Duration::from_secs(5);
-    for (entity, bullet) in &mut query.iter() {
+    for (entity, bullet) in &query {
         if time.elapsed() - bullet.spawn_time > BULLET_LIFETIME {
             commands.entity(entity).despawn_recursive();
         }
@@ -87,6 +101,55 @@ fn bullet_despawn(
 struct BulletResource {
     bullet_mesh: Handle<Mesh>,
     bullet_material: Handle<StandardMaterial>,
+}
+
+#[derive(Clone, Copy)]
+enum BulletSide {
+    Left,
+    Right,
+}
+
+impl BulletSide {
+    const LEFT_POSITION: Vec3 = Vec3::new(-0.6, 0.0, -0.24);
+    const RIGHT_POSITION: Vec3 = Vec3::new(0.6, 0.0, -0.24);
+
+    fn other(self) -> Self {
+        match self {
+            Self::Left => Self::Right,
+            Self::Right => Self::Left,
+        }
+    }
+}
+
+impl Into<Vec3> for BulletSide {
+    fn into(self) -> Vec3 {
+        match self {
+            BulletSide::Left => Self::LEFT_POSITION,
+            BulletSide::Right => Self::RIGHT_POSITION,
+        }
+    }
+}
+
+impl Default for BulletSide {
+    fn default() -> Self {
+        Self::Left
+    }
+}
+
+
+#[derive(Resource)]
+struct LastBulletInfo {
+    side: BulletSide,
+    timer: Timer,
+}
+
+impl LastBulletInfo {
+    fn new() -> Self {
+        Self {
+            side: BulletSide::default(),
+            timer: Timer::from_seconds(0.2, TimerMode::Repeating),
+        }
+    }
 }
 
 #[derive(AssetCollection, Resource)]

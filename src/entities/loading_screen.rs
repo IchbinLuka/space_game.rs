@@ -34,7 +34,7 @@ fn loading_screen_cleanup(
     mut commands: Commands, 
     query: Query<Entity, With<LoadingScreen>>
 ) {
-    for entity in query.iter() {
+    for entity in &query {
         commands.entity(entity).despawn_recursive();
     }
 }
