@@ -1,7 +1,8 @@
-use std::{f32::consts::PI, time::Duration};
+use std::time::Duration;
 
 use bevy::prelude::*;
 use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
+use bevy_mod_outline::{OutlineVolume, OutlineBundle};
 
 use crate::{Movement, AppState};
 
@@ -17,7 +18,10 @@ fn bullet_setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    let bullet_mesh = meshes.add(shape::Circle { radius: 0.1, vertices: 20 }.into());
+    let bullet_mesh = meshes.add(shape::Box::from_corners(
+        Vec3 { x: 0.02, y: 0.02, z: 0.4 }, 
+        Vec3 { x: -0.02, y: -0.02, z: 0.0 }, 
+    ).into());
     let bullet_material = materials.add(StandardMaterial {
         base_color: Color::WHITE, 
         emissive: Color::WHITE,
@@ -43,19 +47,21 @@ fn bullet_shoot(
     assets: Res<BulletAssets>, 
     mut last_bullet_info: ResMut<LastBulletInfo>,
 ) {
-    last_bullet_info.timer.tick(time.delta());
     if !last_bullet_info.timer.finished() {
+        last_bullet_info.timer.tick(time.delta());
         return;
     }
     for (transform, movement, _) in &query {
         if keyboard_input.pressed(KeyCode::Space) {
+            // If finished, the timer should wait for the player to shoot before ticking again 
+            last_bullet_info.timer.tick(time.delta());
             let side = last_bullet_info.side;
 
             let pos = transform.translation + transform.rotation.mul_vec3(side.into());
             let mut bullet_transform = Transform::from_translation(pos);
             
-            
-            bullet_transform.rotate_x(-PI * 0.5);
+            bullet_transform.rotate(transform.rotation);
+            // bullet_transform.rotate_x(-PI * 0.5);
             debug!("Spawning bullet");
             commands.spawn((
                 PbrBundle {
@@ -71,6 +77,15 @@ fn bullet_shoot(
                 Bullet {
                     spawn_time: time.elapsed()
                 },
+                OutlineBundle {
+                    outline: OutlineVolume {
+                        colour: Color::RED,
+                        width: 2.0,  
+                        visible: true,
+                        ..default()
+                    }, 
+                    ..default()
+                }
             ));
             commands.spawn(
                 AudioBundle {
@@ -110,8 +125,8 @@ enum BulletSide {
 }
 
 impl BulletSide {
-    const LEFT_POSITION: Vec3 = Vec3::new(-0.6, 0.0, -0.24);
-    const RIGHT_POSITION: Vec3 = Vec3::new(0.6, 0.0, -0.24);
+    const LEFT_POSITION: Vec3 = Vec3::new(-0.6, 0.0, -0.44);
+    const RIGHT_POSITION: Vec3 = Vec3::new(0.6, 0.0, -0.44);
 
     fn other(self) -> Self {
         match self {

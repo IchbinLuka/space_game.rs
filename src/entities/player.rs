@@ -1,5 +1,6 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, scene::SceneInstance};
 use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
+use bevy_mod_outline::{OutlineBundle, OutlineVolume, InheritOutlineBundle};
 
 use crate::{Movement, AppState};
 
@@ -44,8 +45,40 @@ fn player_setup(
             friction: 0.3,
             ..default()
         },
+        OutlineBundle {
+            outline: OutlineVolume {
+                visible: true,
+                colour: Color::BLACK, 
+                width: 3.0,
+                ..default()
+            }, 
+            ..default()
+        }
     ));
 }
+
+
+fn setup_scene_once_loaded(
+    mut commands: Commands,
+    scene_query: Query<&SceneInstance>,
+    scene_manager: Res<SceneSpawner>,
+    mut done: Local<bool>,
+) {
+    if !*done {
+        if let Ok(scene) = scene_query.get_single() {
+            if scene_manager.instance_is_ready(**scene) {
+                for entity in scene_manager.iter_instance_entities(**scene) {
+                    commands
+                        .entity(entity)
+                        .insert(InheritOutlineBundle::default());
+                }
+                *done = true;
+            }
+        }
+    }
+}
+
+
 
 #[derive(AssetCollection, Resource)]
 struct PlayerAssets {
@@ -60,6 +93,6 @@ impl Plugin for PlayerPlugin {
         app
             .add_collection_to_loading_state::<_, PlayerAssets>(AppState::Loading)
             .add_systems(OnEnter(AppState::Running), player_setup)
-            .add_systems(Update, player_input.run_if(in_state(AppState::Running)));
+            .add_systems(Update, (player_input, setup_scene_once_loaded).run_if(in_state(AppState::Running)));
     }
 }

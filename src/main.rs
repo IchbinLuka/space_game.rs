@@ -1,6 +1,7 @@
 
 use bevy::{prelude::*, log::LogPlugin};
 use bevy_asset_loader::loading_state::{LoadingStateAppExt, LoadingState};
+use bevy_mod_outline::{OutlinePlugin, AutoGenerateOutlineNormalsPlugin};
 use entities::{camera::CameraComponentPlugin, player::PlayerPlugin, bullet::BulletPlugin, loading_screen::LoadingScreenPlugin};
 
 mod entities;
@@ -101,6 +102,7 @@ fn main() {
                 ..default()
             }
         ))
+        .add_plugins((OutlinePlugin, AutoGenerateOutlineNormalsPlugin))
         .add_state::<AppState>()
         .add_loading_state(
             LoadingState::new(AppState::Loading)
