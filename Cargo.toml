@@ -10,6 +10,7 @@ bevy = { version = "0.12.1", features = ["dynamic_linking"] }
 bevy_asset_loader = "0.18.0"
 bevy_kira_audio = "0.18.0"
 bevy_mod_outline = "0.6.0"
+rand = "0.8.5"
 
 [workspace]
 resolver = "2"

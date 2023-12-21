@@ -3,9 +3,11 @@ use bevy::{prelude::*, log::LogPlugin};
 use bevy_asset_loader::loading_state::{LoadingStateAppExt, LoadingState};
 use bevy_mod_outline::{OutlinePlugin, AutoGenerateOutlineNormalsPlugin};
 use entities::{camera::CameraComponentPlugin, player::PlayerPlugin, bullet::BulletPlugin, loading_screen::LoadingScreenPlugin};
+use components::despawn_after::DespawnAfterPlugin;
 
 mod entities;
 mod utils;
+mod components;
 
 
 #[derive(Component)]
@@ -108,6 +110,6 @@ fn main() {
             LoadingState::new(AppState::Loading)
                 .continue_to_state(AppState::Running)
         )
-        .add_plugins((ScenePlugin3D, BulletPlugin, LoadingScreenPlugin))
+        .add_plugins((ScenePlugin3D, BulletPlugin, LoadingScreenPlugin, DespawnAfterPlugin))
         .run();
 }
