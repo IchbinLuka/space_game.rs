@@ -3,6 +3,7 @@ use std::time::Duration;
 use bevy::prelude::*;
 use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
 use bevy_mod_outline::{OutlineVolume, OutlineBundle};
+use bevy_rapier3d::prelude::*;
 
 use crate::{Movement, AppState};
 
@@ -13,14 +14,17 @@ pub struct Bullet {
     pub spawn_time: Duration
 }
 
+const BULLET_CORNER_1: Vec3 = Vec3::new(0.02, 0.02, 0.4);
+const BULLET_CORNER_2: Vec3 = Vec3::new(-0.02, -0.02, 0.0);
+
 fn bullet_setup(
     mut commands: Commands, 
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     let bullet_mesh = meshes.add(shape::Box::from_corners(
-        Vec3 { x: 0.02, y: 0.02, z: 0.4 }, 
-        Vec3 { x: -0.02, y: -0.02, z: 0.0 }, 
+        BULLET_CORNER_1,
+        BULLET_CORNER_2,
     ).into());
     let bullet_material = materials.add(StandardMaterial {
         base_color: Color::WHITE, 
@@ -51,6 +55,7 @@ fn bullet_shoot(
         last_bullet_info.timer.tick(time.delta());
         return;
     }
+    let bullet_size = BULLET_CORNER_1 - BULLET_CORNER_2;
     for (transform, movement, _) in &query {
         if keyboard_input.pressed(KeyCode::Space) {
             // If finished, the timer should wait for the player to shoot before ticking again 
@@ -85,7 +90,8 @@ fn bullet_shoot(
                         ..default()
                     }, 
                     ..default()
-                }
+                }, 
+                Collider::cuboid(bullet_size.x, bullet_size.y, bullet_size.z)
             ));
             commands.spawn(
                 AudioBundle {

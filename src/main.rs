@@ -2,6 +2,7 @@
 use bevy::{prelude::*, log::LogPlugin};
 use bevy_asset_loader::loading_state::{LoadingStateAppExt, LoadingState};
 use bevy_mod_outline::{OutlinePlugin, AutoGenerateOutlineNormalsPlugin};
+use bevy_rapier3d::plugin::{RapierPhysicsPlugin, NoUserData};
 use entities::{camera::CameraComponentPlugin, player::PlayerPlugin, bullet::BulletPlugin, loading_screen::LoadingScreenPlugin};
 use components::despawn_after::DespawnAfterPlugin;
 
@@ -105,6 +106,7 @@ fn main() {
             }
         ))
         .add_plugins((OutlinePlugin, AutoGenerateOutlineNormalsPlugin))
+        .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
         .add_state::<AppState>()
         .add_loading_state(
             LoadingState::new(AppState::Loading)

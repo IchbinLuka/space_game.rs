@@ -11,6 +11,7 @@ bevy_asset_loader = "0.18.0"
 bevy_kira_audio = "0.18.0"
 bevy_mod_outline = "0.6.0"
 rand = "0.8.5"
+bevy_rapier3d = { version = "0.23.0", features = ["parallel", "debug-render-3d"]}
 
 [workspace]
 resolver = "2"
