@@ -15,7 +15,6 @@ fn despawn_after_system(
 ) {
     for (entity, despawn_after) in &mut query.iter() {
         if despawn_after.spawn_time + despawn_after.time < time.elapsed() {
-            println!("Despawning entity {:?}", entity);
             commands.entity(entity).despawn_recursive();
         }
     }

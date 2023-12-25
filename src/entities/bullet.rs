@@ -5,7 +5,7 @@ use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::Loadin
 use bevy_mod_outline::{OutlineVolume, OutlineBundle};
 use bevy_rapier3d::prelude::*;
 
-use crate::{Movement, AppState};
+use crate::{Movement, AppState, components::gravity::GravityAffected};
 
 use super::player::Player;
 
@@ -75,10 +75,6 @@ fn bullet_shoot(
                     transform: bullet_transform,
                     ..default()
                 }, 
-                Movement {
-                    vel: transform.forward().normalize() * 20.0 + movement.vel,
-                    ..default()
-                }, 
                 Bullet {
                     spawn_time: time.elapsed()
                 },
@@ -91,7 +87,16 @@ fn bullet_shoot(
                     }, 
                     ..default()
                 }, 
-                Collider::cuboid(bullet_size.x, bullet_size.y, bullet_size.z)
+                Collider::cuboid(bullet_size.x, bullet_size.y, bullet_size.z), 
+                ActiveEvents::COLLISION_EVENTS, 
+                RigidBody::KinematicVelocityBased, 
+                Sensor, 
+                GravityAffected, 
+                Velocity {
+                    linvel: transform.forward().normalize() * 20.0 + movement.vel, 
+                    ..default()
+                }, 
+                CollidingEntities::default(), 
             ));
             commands.spawn(
                 AudioBundle {
@@ -115,6 +120,17 @@ fn bullet_despawn(
         if time.elapsed() - bullet.spawn_time > BULLET_LIFETIME {
             commands.entity(entity).despawn_recursive();
         }
+    }
+}
+
+fn bullet_collision(
+    query: Query<(Entity, &Bullet, &CollidingEntities)>,
+    mut commands: Commands,
+) {
+    for (entity, _, colliding_entities) in &query {
+        if colliding_entities.is_empty() { continue; }
+        debug!("Bullet collided with something");
+        commands.entity(entity).despawn_recursive();
     }
 }
 
@@ -188,7 +204,8 @@ impl Plugin for BulletPlugin {
             .add_systems(OnEnter(AppState::Running), bullet_setup)
             .add_systems(Update, (
                 bullet_shoot, 
-                bullet_despawn
+                bullet_despawn, 
+                bullet_collision,
             ).run_if(in_state(AppState::Running)));
     }
 }

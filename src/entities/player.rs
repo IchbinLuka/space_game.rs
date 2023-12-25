@@ -3,6 +3,7 @@ use std::time::Duration;
 use bevy::{prelude::*, scene::SceneInstance};
 use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
 use bevy_mod_outline::{OutlineBundle, OutlineVolume, InheritOutlineBundle};
+use bevy_rapier3d::prelude::*;
 use rand::{seq::SliceRandom, Rng};
 
 use crate::{Movement, AppState, components::despawn_after::DespawnAfter};
@@ -53,7 +54,7 @@ fn player_setup(
         }, 
         Player, 
         Movement {
-            max_speed: Some(10.0),
+            max_speed: Some(30.0),
             friction: 0.3,
             ..default()
         },
@@ -122,6 +123,7 @@ fn spawn_exhaust_particle(
 ) {
     let mut rng = rand::thread_rng();
     const RANDOM_VEL_RANGE: std::ops::Range<f32> = -0.7..0.7;
+    const RANDOM_ANG_RANGE: std::ops::Range<f32> = -0.7..0.7;
     for event in events.read() {
         commands.spawn((
             PbrBundle {
@@ -133,14 +135,19 @@ fn spawn_exhaust_particle(
                 ..default()
             }, 
             SpaceshipExhaustParticle,
-            Movement {
-                vel: event.vel + Vec3::new(
+            Velocity {
+                linvel: event.vel + Vec3::new(
                     rng.gen_range(RANDOM_VEL_RANGE.clone()), 
                     rng.gen_range(RANDOM_VEL_RANGE.clone()), 
                     rng.gen_range(RANDOM_VEL_RANGE.clone())
-                ),
-                ..default()
+                ), 
+                angvel: Vec3::new(
+                    rng.gen_range(RANDOM_ANG_RANGE.clone()), 
+                    rng.gen_range(RANDOM_ANG_RANGE.clone()), 
+                    rng.gen_range(RANDOM_ANG_RANGE.clone())
+                )
             }, 
+            RigidBody::KinematicVelocityBased, 
             DespawnAfter {
                 time: Duration::from_millis(500), 
                 spawn_time: time.elapsed()
@@ -157,15 +164,16 @@ fn setup_exhaust_particles(
     let mesh = meshes.add(shape::Cube::new(0.2).into());
     
     let colors = [
-        Color::hex("f79b22").unwrap(), 
-        Color::hex("f78442").unwrap(), 
-        Color::hex("cc4122").unwrap(), 
-        Color::hex("e5a029").unwrap(), 
+        Color::hex("ef8904").unwrap(), 
+        Color::hex("f2600c").unwrap(), 
+        Color::hex("cc2804").unwrap(), 
+        Color::hex("e89404").unwrap(), 
     ];
 
     let materials = colors.iter().map(|color| {
         materials.add(StandardMaterial {
             emissive: *color, 
+            base_color: *color,
             ..default()
         })
     }).collect::<Vec<_>>().try_into().unwrap();

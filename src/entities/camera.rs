@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, core_pipeline::clear_color::ClearColorConfig};
 
 use crate::{Movement, AppState};
 
@@ -26,12 +26,16 @@ fn camera_follow_system(
 fn camera_setup(
     mut commands: Commands,
 ) {
-    let mut camera_tranform = Transform::from_xyz(0.0, 15.0, 0.0);
+    let mut camera_tranform = Transform::from_xyz(0.0, 40.0, 0.0);
     camera_tranform.rotate(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2));
 
     commands.spawn((
         Camera3dBundle {
             transform: camera_tranform,
+            camera_3d: Camera3d {
+                clear_color: ClearColorConfig::Custom(Color::MIDNIGHT_BLUE), 
+                ..default()
+            }, 
             ..default()
         }, 
         CameraComponent, 
