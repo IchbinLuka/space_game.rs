@@ -1,8 +1,10 @@
 use bevy::prelude::*;
+use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
 use bevy_mod_outline::{OutlineBundle, OutlineVolume};
 use bevy_rapier3d::prelude::*;
+use rand::seq::SliceRandom;
 
-use crate::components::colliders::VelocityColliderBundle;
+use crate::{components::colliders::VelocityColliderBundle, AppState};
 
 #[derive(Component)]
 pub struct Asteroid;
@@ -10,39 +12,11 @@ pub struct Asteroid;
 
 #[derive(Event)]
 pub struct AsteroidSpawnEvent {
-    pub position: Vec3,
-    pub velocity: Vec3,
+    pub position: Transform,
+    pub velocity: Velocity,
     pub size: f32,
 }
 
-
-#[derive(Resource)]
-struct AsteroidRes {
-    pub mesh: Handle<Mesh>,
-    pub material: Handle<StandardMaterial>,
-}
-
-fn asteroid_setup(
-    mut commands: Commands, 
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-) {
-    let mesh = meshes.add(shape::UVSphere {
-        radius: 1.0,
-        sectors: 10,
-        ..default()
-    }.into());
-
-    let material = materials.add(StandardMaterial {
-        base_color: Color::DARK_GRAY, 
-        ..default()
-    });
-
-    commands.insert_resource(AsteroidRes {
-        mesh,
-        material,
-    });
-}
 
 fn asteroid_collisions(
     mut commands: Commands, 
@@ -58,22 +32,22 @@ fn asteroid_collisions(
 fn asteroid_spawn(
     mut commands: Commands,
     mut spawn_events: EventReader<AsteroidSpawnEvent>, 
-    asteroid_res: Res<AsteroidRes>,
+    asteroid_res: Res<AsteroidAssets>,
 ) {
+    if spawn_events.len() == 0 { return; }
+    let mut rng = rand::thread_rng();
+    let asteroids = [asteroid_res.asteroid_1.clone(), asteroid_res.asteroid_2.clone()];
     for event in spawn_events.read() {
+        let scene = asteroids.choose(&mut rng).unwrap();
         commands.spawn((
-            PbrBundle {
-                mesh: asteroid_res.mesh.clone(),
-                material: asteroid_res.material.clone(),
-                transform: Transform::from_translation(event.position),
+            SceneBundle {
+                scene: scene.clone(), 
+                transform: event.position,
                 ..default()
             }, 
             Asteroid,
             VelocityColliderBundle {
-                velocity: Velocity {
-                    linvel: event.velocity,
-                    ..default()
-                },
+                velocity: event.velocity,
                 collider: Collider::ball(1.0), 
                 ..default()
             }, 
@@ -90,15 +64,21 @@ fn asteroid_spawn(
     }
 }
 
-
+#[derive(AssetCollection, Resource)]
+struct AsteroidAssets {
+    #[asset(path = "asteroid1.glb#Scene0")]
+    asteroid_1: Handle<Scene>, 
+    #[asset(path = "asteroid2.glb#Scene0")]
+    asteroid_2: Handle<Scene>,
+}
 
 pub struct AsteroidPlugin;
 
 impl Plugin for AsteroidPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_systems(Startup, asteroid_setup)
-            .add_systems(Update, (asteroid_spawn, asteroid_collisions))
+            .add_collection_to_loading_state::<_, AsteroidAssets>(AppState::Loading)
+            .add_systems(Update, (asteroid_spawn, asteroid_collisions).run_if(in_state(AppState::Running)))
             .add_event::<AsteroidSpawnEvent>();
     }
 }

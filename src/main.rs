@@ -129,16 +129,23 @@ fn scene_setup_3d(
 
     for _ in 0..100 {
         asteroid_spawn_events.send(AsteroidSpawnEvent {
-            position: Vec3::new(
-                rand::random::<f32>() * 100.0 - 50.0, 
-                0.0, 
-                rand::random::<f32>() * 100.0 - 50.0
-            ), 
-            velocity: Vec3::new(
-                rand::random::<f32>() - 0.5, 
-                0.0, 
-                rand::random::<f32>() - 0.5
-            ), 
+            position: Transform {
+                translation: Vec3::new(
+                    rand::random::<f32>() * 100.0 - 50.0, 
+                    0.0, 
+                    rand::random::<f32>() * 100.0 - 50.0
+                ), 
+                rotation: Quat::from_rotation_y(rand::random::<f32>() * std::f32::consts::PI * 2.0),
+                ..default()
+            }, 
+            velocity: Velocity {
+                linvel: Vec3::new(
+                    rand::random::<f32>() - 0.5, 
+                    0.0, 
+                    rand::random::<f32>() - 0.5
+                ), 
+                angvel: Vec3::Y * (rand::random::<f32>() - 0.5), 
+            }, 
             size: rand::random::<f32>() * 2.0 + 1.0
         });
     }
