@@ -24,20 +24,30 @@ fn gravity_system(
     sources: Query<(&Transform, &GravitySource), Without<GravityAffected>>, 
     mut affected: Query<(&mut Velocity, &mut Transform), (With<GravityAffected>, Without<GravitySource>)>,
 ) {
-    for (source_transform, source) in &sources {
-        for (mut velocity, mut transform) in &mut affected {
-            let distance = source_transform.translation.distance(transform.translation);
-            if distance < 0.01 { continue; }
-            if let Some(radius) = source.radius {
-                if distance < radius { continue; }
-            }
-            let acc = source.mass / (distance * distance);
-            let new_vel = velocity.linvel + (source_transform.translation - transform.translation).normalize() * acc * time.delta_seconds();
-            let delta_angle = Vec3::X.angle_between(new_vel) - Vec3::X.angle_between(velocity.linvel);
-            transform.rotate_y(delta_angle);
-            velocity.linvel = new_vel;
-        }
+    for (mut velocity, transform) in &mut affected {
+        let current_vel = velocity.linvel;
+        velocity.linvel += sources.iter().map(|(source_transform, source)| {
+            gravity_step(source_transform, source, time.delta_seconds(), transform.translation, current_vel)
+        }).sum::<Vec3>();
     }
+}
+
+#[inline(always)]
+pub fn gravity_step(
+    source_transform: &Transform,
+    source: &GravitySource,
+    delta_time: f32, 
+    pos: Vec3,
+    vel: Vec3,
+) -> Vec3 {
+    let distance = source_transform.translation.distance(pos);
+
+    if distance < 0.01 { return vel; }
+    if let Some(radius) = source.radius {
+        if distance < radius { return vel; }
+    }
+    let acc = source.mass / (distance * distance);
+    (source_transform.translation - pos).normalize() * acc * delta_time
 }
 
 

@@ -138,6 +138,15 @@ fn bullet_collision(
     }
 }
 
+fn bullet_rotation_correction(
+    mut query: Query<(&mut Transform, &Velocity), With<Bullet>>,
+) {
+    for (mut transform, vel) in &mut query {
+        let rotation = Quat::from_rotation_arc(transform.forward(), vel.linvel.normalize());
+        transform.rotate(rotation);
+    }
+}
+
 #[derive(Resource)]
 struct BulletResource {
     bullet_mesh: Handle<Mesh>,
@@ -210,6 +219,7 @@ impl Plugin for BulletPlugin {
                 bullet_shoot, 
                 bullet_despawn, 
                 bullet_collision,
+                bullet_rotation_correction,
             ).run_if(in_state(AppState::Running)));
     }
 }

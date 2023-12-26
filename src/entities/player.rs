@@ -6,7 +6,7 @@ use bevy_mod_outline::{OutlineBundle, OutlineVolume, InheritOutlineBundle};
 use bevy_rapier3d::prelude::*;
 use rand::{seq::SliceRandom, Rng};
 
-use crate::{AppState, components::{despawn_after::DespawnAfter, gravity::{GravitySource, GravityAffected}, movement::MaxSpeed}};
+use crate::{AppState, components::{despawn_after::DespawnAfter, gravity::{GravitySource, GravityAffected, gravity_step}, movement::MaxSpeed}};
 
 #[derive(Component)]
 pub struct Player;
@@ -221,7 +221,7 @@ fn player_line_update(
     gravity_sources: Query<(&Transform, &GravitySource), (Without<Player>, Without<PlayerLine>)>,
     mut assets: ResMut<Assets<Mesh>>,
 ) {
-    const PREDICTION_LENGTH: usize = 20;
+    const PREDICTION_LENGTH: usize = 100;
     const LINE_THICKNESS: f32 = 0.1;
     const NORMALS: [Vec3; PREDICTION_LENGTH * 2] = [Vec3::Y; PREDICTION_LENGTH * 2];
 
@@ -232,7 +232,7 @@ fn player_line_update(
             transform.translation = player_transform.translation;
 
             let mut positions: Vec<Vec3> = Vec::with_capacity(PREDICTION_LENGTH * 2);
-
+            let player_pos = player_transform.translation;
             let mut current_pos = Vec3::ZERO;
             let mut current_vel = player_velocity.linvel;
 
@@ -242,12 +242,10 @@ fn player_line_update(
                 positions.push(current_pos - perpendicular * thickness);
                 positions.push(current_pos + perpendicular * thickness);
 
-                current_pos += current_vel * 0.1;
+                current_pos += current_vel * 0.02;
                 // TODO: Duplicate code
                 current_vel += gravity_sources.iter().map(|(gravity_transform, gravity_source)| {
-                    let gravity_dir = (gravity_transform.translation - current_pos).normalize();
-                    let gravity_strength = gravity_source.mass / (gravity_transform.translation - current_pos).length_squared();
-                    gravity_dir * gravity_strength * 0.1
+                    gravity_step(gravity_transform, gravity_source, 0.02, current_pos + player_pos, current_vel)
                 }).sum::<Vec3>();
             }
             mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, NORMALS.to_vec());
