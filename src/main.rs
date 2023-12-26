@@ -7,7 +7,7 @@ use bevy_obj::ObjPlugin;
 use bevy_rapier3d::prelude::*;
 use bevy_toon_shader::{ToonShaderPlugin, ToonShaderSun};
 use entities::{asteroid::AsteroidSpawnEvent, EntitiesPlugin};
-use components::{gravity::GravitySource, ComponentsPlugin};
+use components::ComponentsPlugin;
 
 mod entities;
 mod utils;
@@ -124,10 +124,10 @@ fn scene_setup_3d(
         Collider::cuboid(5.0, 5.0, 5.0), 
         RigidBody::Fixed, 
         Sensor, 
-        GravitySource {
-            mass: 10000.0, 
-            radius: None,
-        }, 
+        // GravitySource {
+        //     mass: 10000.0, 
+        //     radius: None,
+        // }, 
         ActiveCollisionTypes::all(), 
         ActiveEvents::COLLISION_EVENTS
     ));

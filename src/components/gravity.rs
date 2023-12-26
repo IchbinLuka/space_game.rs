@@ -27,6 +27,7 @@ fn gravity_system(
     for (source_transform, source) in &sources {
         for (mut velocity, mut transform) in &mut affected {
             let distance = source_transform.translation.distance(transform.translation);
+            if distance < 0.01 { continue; }
             if let Some(radius) = source.radius {
                 if distance < radius { continue; }
             }

@@ -8,6 +8,8 @@ use rand::{seq::SliceRandom, Rng};
 
 use crate::{components::{colliders::VelocityColliderBundle, despawn_after::DespawnAfter}, AppState, utils::materials::matte_material};
 
+use super::bullet::BULLET_COLLISION_GROUP;
+
 #[derive(Component)]
 pub struct Asteroid;
 
@@ -86,6 +88,8 @@ fn asteroid_spawn(
     assets: Res<AsteroidAssets>,
     res: Res<AsteroidRes>,
 ) {
+    let collision_groups = CollisionGroups::new(BULLET_COLLISION_GROUP, Group::ALL);
+
     if spawn_events.is_empty() { return; }
     let mut rng = rand::thread_rng();
     let asteroids = [assets.asteroid_1.clone(), assets.asteroid_2.clone()];
@@ -111,7 +115,8 @@ fn asteroid_spawn(
                     colour: Color::BLACK, 
                 }, 
                 ..default()
-            }
+            }, 
+            collision_groups, 
         ));
     }
 }

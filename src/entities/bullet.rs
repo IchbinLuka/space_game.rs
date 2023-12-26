@@ -5,7 +5,7 @@ use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::Loadin
 use bevy_mod_outline::{OutlineVolume, OutlineBundle};
 use bevy_rapier3d::prelude::*;
 
-use crate::{Movement, AppState, components::gravity::GravityAffected};
+use crate::{AppState, components::gravity::GravityAffected};
 
 use super::player::Player;
 
@@ -13,6 +13,9 @@ use super::player::Player;
 pub struct Bullet {
     pub spawn_time: Duration
 }
+pub const BULLET_COLLISION_GROUP: Group = Group::GROUP_2;
+
+const BULLET_GROUP: CollisionGroups = CollisionGroups::new(Group::GROUP_1, Group::GROUP_2);
 
 const BULLET_CORNER_1: Vec3 = Vec3::new(0.03, 0.03, 0.6);
 const BULLET_CORNER_2: Vec3 = Vec3::new(-0.03, -0.03, 0.0);
@@ -45,7 +48,7 @@ fn bullet_setup(
 fn bullet_shoot(
     keyboard_input: Res<Input<KeyCode>>, 
     time: Res<Time>,
-    query: Query<(&Transform, &Movement, With<Player>)>, 
+    query: Query<(&Transform, &Velocity, With<Player>)>, 
     mut commands: Commands,
     bullet_res: Res<BulletResource>,
     assets: Res<BulletAssets>, 
@@ -56,7 +59,7 @@ fn bullet_shoot(
         return;
     }
     let bullet_size = BULLET_CORNER_1 - BULLET_CORNER_2;
-    for (transform, movement, _) in &query {
+    for (transform, velocity, _) in &query {
         if keyboard_input.pressed(KeyCode::Space) {
             // If finished, the timer should wait for the player to shoot before ticking again 
             last_bullet_info.timer.tick(time.delta());
@@ -86,13 +89,15 @@ fn bullet_shoot(
                     }, 
                     ..default()
                 }, 
-                Collider::cuboid(bullet_size.x, bullet_size.y, bullet_size.z), 
+                Collider::cuboid(bullet_size.x, bullet_size.y, bullet_size.z),
+                BULLET_GROUP, 
                 ActiveEvents::COLLISION_EVENTS, 
+                ActiveHooks::FILTER_INTERSECTION_PAIR, 
                 RigidBody::KinematicVelocityBased, 
                 Sensor, 
                 GravityAffected, 
                 Velocity {
-                    linvel: transform.forward().normalize() * 20.0 + movement.vel, 
+                    linvel: transform.forward().normalize() * 20.0 + velocity.linvel, 
                     ..default()
                 }, 
                 CollidingEntities::default(), 

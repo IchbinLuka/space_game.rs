@@ -5,6 +5,8 @@ use rand::Rng;
 
 use crate::{AppState, components::gravity::GravitySource, utils::materials::{matte_material, default_outline}};
 
+use super::bullet::BULLET_COLLISION_GROUP;
+
 pub struct PlanetPlugin;
 
 impl Plugin for PlanetPlugin {
@@ -20,6 +22,7 @@ fn planet_setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
+    let collision_groups = CollisionGroups::new(BULLET_COLLISION_GROUP | Group::GROUP_3, Group::ALL);
     
     let mesh = meshes.add(shape::UVSphere {
         sectors: 20, 
@@ -30,9 +33,9 @@ fn planet_setup(
     let mut rng = rand::thread_rng();
 
     let asteroids = [
-        ("549335", 30.0), 
-        ("f77d36", 50.0), 
-        ("365df7", 40.0)
+        ("549335", 20.0), 
+        ("f77d36", 30.0), 
+        ("365df7", 15.0)
     ];
 
     for (color, size) in asteroids {
@@ -47,7 +50,7 @@ fn planet_setup(
                 mesh: mesh.clone(),
                 material,
                 transform: Transform::from_xyz(
-                    rng.gen_range(-100.0..100.0), 
+                    rng.gen_range(50.0..250.0), 
                     0.0, 
                     rng.gen_range(-100.0..100.0)
                 ).with_scale(Vec3::splat(size)),
@@ -56,11 +59,12 @@ fn planet_setup(
             Collider::ball(1.0), 
             RigidBody::Fixed, 
             Velocity::default(), 
+            collision_groups,
             ActiveCollisionTypes::all(), 
             ActiveEvents::COLLISION_EVENTS, 
-            Sensor, 
+            // Sensor, 
             GravitySource {
-                mass: size * 1000.0, 
+                mass: size * 500.0, 
                 ..default()
             }, 
             OutlineBundle {
