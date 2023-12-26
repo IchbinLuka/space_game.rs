@@ -63,7 +63,6 @@ fn player_setup(
                 visible: true,
                 colour: Color::BLACK, 
                 width: 3.0,
-                ..default()
             }, 
             ..default()
         }
@@ -180,8 +179,8 @@ fn setup_exhaust_particles(
 
     commands.insert_resource(
         ExhausParticleRes {
-            mesh: mesh, 
-            materials: materials
+            mesh, 
+            materials
         }
     )
 }

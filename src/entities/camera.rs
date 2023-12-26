@@ -1,4 +1,5 @@
 use bevy::{prelude::*, core_pipeline::clear_color::ClearColorConfig};
+use bevy_toon_shader::ToonShaderMainCamera;
 
 use crate::{Movement, AppState};
 
@@ -26,7 +27,7 @@ fn camera_follow_system(
 fn camera_setup(
     mut commands: Commands,
 ) {
-    let mut camera_tranform = Transform::from_xyz(0.0, 40.0, 0.0);
+    let mut camera_tranform = Transform::from_xyz(0.0, 70.0, 0.0);
     camera_tranform.rotate(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2));
 
     commands.spawn((
@@ -39,6 +40,7 @@ fn camera_setup(
             ..default()
         }, 
         CameraComponent, 
+        ToonShaderMainCamera, 
         Movement::default(),
     ));
 }

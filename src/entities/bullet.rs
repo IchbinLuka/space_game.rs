@@ -14,8 +14,8 @@ pub struct Bullet {
     pub spawn_time: Duration
 }
 
-const BULLET_CORNER_1: Vec3 = Vec3::new(0.02, 0.02, 0.4);
-const BULLET_CORNER_2: Vec3 = Vec3::new(-0.02, -0.02, 0.0);
+const BULLET_CORNER_1: Vec3 = Vec3::new(0.03, 0.03, 0.6);
+const BULLET_CORNER_2: Vec3 = Vec3::new(-0.03, -0.03, 0.0);
 
 fn bullet_setup(
     mut commands: Commands, 
@@ -81,9 +81,8 @@ fn bullet_shoot(
                 OutlineBundle {
                     outline: OutlineVolume {
                         colour: Color::RED,
-                        width: 2.0,  
+                        width: 1.0,  
                         visible: true,
-                        ..default()
                     }, 
                     ..default()
                 }, 
@@ -158,11 +157,11 @@ impl BulletSide {
     }
 }
 
-impl Into<Vec3> for BulletSide {
-    fn into(self) -> Vec3 {
-        match self {
-            BulletSide::Left => Self::LEFT_POSITION,
-            BulletSide::Right => Self::RIGHT_POSITION,
+impl From<BulletSide> for Vec3 {
+    fn from(value: BulletSide) -> Self {
+        match value {
+            BulletSide::Left => BulletSide::LEFT_POSITION,
+            BulletSide::Right => BulletSide::RIGHT_POSITION,
         }
     }
 }

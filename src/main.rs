@@ -1,9 +1,13 @@
+#![allow(clippy::type_complexity)] // Query types can be really complex
+
 use bevy::{prelude::*, log::LogPlugin};
 use bevy_asset_loader::loading_state::{LoadingStateAppExt, LoadingState};
 use bevy_mod_outline::{OutlinePlugin, AutoGenerateOutlineNormalsPlugin};
+use bevy_obj::ObjPlugin;
 use bevy_rapier3d::prelude::*;
-use entities::{camera::CameraComponentPlugin, player::PlayerPlugin, bullet::BulletPlugin, loading_screen::LoadingScreenPlugin, asteroid::{AsteroidSpawnEvent, AsteroidPlugin}};
-use components::{despawn_after::DespawnAfterPlugin, gravity::{GravitySource, GravityPlugin}};
+use bevy_toon_shader::{ToonShaderPlugin, ToonShaderSun};
+use entities::{asteroid::AsteroidSpawnEvent, EntitiesPlugin};
+use components::{gravity::GravitySource, ComponentsPlugin};
 
 mod entities;
 mod utils;
@@ -60,9 +64,7 @@ impl Plugin for ScenePlugin3D {
     fn build(&self, app: &mut App) {
         app
             .add_systems(Startup, scene_setup_3d)
-            .add_systems(Update, movement_system)
-            .add_plugins(CameraComponentPlugin)
-            .add_plugins(PlayerPlugin);
+            .add_systems(Update, movement_system);
     }
 }
 
@@ -100,15 +102,18 @@ fn scene_setup_3d(
         brightness: 0.5,
     });
 
-    commands.spawn(DirectionalLightBundle {
-        directional_light: DirectionalLight {
-            illuminance: 10000.0, 
-            color: Color::hex("fcd4b5").unwrap(), 
+    commands.spawn((
+        DirectionalLightBundle {
+            directional_light: DirectionalLight {
+                illuminance: 10000.0, 
+                color: Color::hex("fcd4b5").unwrap(), 
+                ..default()
+            }, 
+            transform: Transform::from_xyz(0.0, 40.0, 0.0).with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2 + 0.1)),
             ..default()
-        },
-        transform: Transform::from_xyz(0.0, 10.0, 0.0).with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2 + 0.1)),
-        ..default()
-    });
+        }, 
+        ToonShaderSun
+    ));
 
     commands.spawn((
         PbrBundle {
@@ -166,8 +171,14 @@ fn main() {
                 ..default()
             }
         ))
-        .add_plugins((OutlinePlugin, AutoGenerateOutlineNormalsPlugin))
-        .add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
+        .add_plugins((
+            OutlinePlugin, 
+            AutoGenerateOutlineNormalsPlugin, 
+            RapierPhysicsPlugin::<NoUserData>::default(), 
+            // RapierDebugRenderPlugin::default(),
+            ToonShaderPlugin, 
+            ObjPlugin
+        ))
         .add_state::<AppState>()
         .add_systems(Startup, setup_physics)
         .add_loading_state(
@@ -176,11 +187,8 @@ fn main() {
         )
         .add_plugins((
             ScenePlugin3D, 
-            BulletPlugin, 
-            LoadingScreenPlugin, 
-            DespawnAfterPlugin, 
-            GravityPlugin, 
-            AsteroidPlugin
+            EntitiesPlugin, 
+            ComponentsPlugin, 
         ))
         .run();
 }
