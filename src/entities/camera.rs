@@ -1,5 +1,4 @@
 use bevy::{prelude::*, core_pipeline::clear_color::ClearColorConfig};
-use bevy_rapier3d::dynamics::Velocity;
 use bevy_toon_shader::ToonShaderMainCamera;
 
 use crate::{Movement, AppState};
@@ -10,15 +9,17 @@ use super::player::Player;
 pub struct CameraComponent;
 
 fn camera_follow_system(
-    timer: Res<Time>,
-    mut camera_query: Query<(&mut Movement, &Transform, With<CameraComponent>, Without<Player>)>,
-    cube_query: Query<(&Transform, &Velocity, With<Player>)>,
+    mut camera_query: Query<&mut Transform, (With<CameraComponent>, Without<Player>)>,
+    player_query: Query<&Transform, With<Player>>,
 ) {
-    for (mut camera_movement, camera_transform, _, _) in &mut camera_query {
-        let cube_tranform = cube_query.iter().next();
-        if let Some((transform, cube_movement, _)) = cube_tranform {
-            let delta_vel = (transform.translation.xz() - camera_transform.translation.xz()) * 0.1 * timer.delta_seconds();
-            camera_movement.vel = cube_movement.linvel * 0.9 + Vec3::new(delta_vel.x, 0.0, delta_vel.y);
+    for mut camera_transform in &mut camera_query {
+        let player_tranform = player_query.iter().next();
+        if let Some(transform) = player_tranform {
+            camera_transform.translation = Vec3::new(
+                transform.translation.x,
+                camera_transform.translation.y,
+                transform.translation.z,
+            );
         } else {
             println!("No cube transform found");
         }

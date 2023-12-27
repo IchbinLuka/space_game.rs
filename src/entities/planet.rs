@@ -16,6 +16,11 @@ impl Plugin for PlanetPlugin {
     }
 }
 
+#[derive(Component)]
+pub struct Planet {
+    pub radius: f32,
+}
+
 
 fn planet_setup(
     mut commands: Commands, 
@@ -55,6 +60,9 @@ fn planet_setup(
                     rng.gen_range(-100.0..100.0)
                 ).with_scale(Vec3::splat(size)),
                 ..default()
+            }, 
+            Planet {
+                radius: size, 
             }, 
             Collider::ball(1.0), 
             RigidBody::Fixed, 

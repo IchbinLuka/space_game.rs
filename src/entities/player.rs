@@ -6,7 +6,9 @@ use bevy_mod_outline::{OutlineBundle, OutlineVolume, InheritOutlineBundle};
 use bevy_rapier3d::prelude::*;
 use rand::{seq::SliceRandom, Rng};
 
-use crate::{AppState, components::{despawn_after::DespawnAfter, gravity::{GravitySource, GravityAffected, gravity_step}, movement::MaxSpeed}};
+use crate::{AppState, components::{despawn_after::DespawnAfter, gravity::{GravitySource, GravityAffected, gravity_step}, movement::MaxSpeed, colliders::VelocityColliderBundle}};
+
+use super::planet::Planet;
 
 #[derive(Component)]
 pub struct Player;
@@ -53,12 +55,14 @@ fn player_setup(
         MaxSpeed {
             max_speed: 100.0,
         },
-        Velocity {
-            linvel: Vec3::X, 
+        VelocityColliderBundle {
+            collider: Collider::ball(1.0),
+            velocity: Velocity {
+                linvel: Vec3::X, 
+                ..default()
+            }, 
             ..default()
         }, 
-        RigidBody::KinematicVelocityBased, 
-        Collider::ball(1.0),
         GravityAffected, 
         OutlineBundle {
             outline: OutlineVolume {
@@ -90,6 +94,25 @@ fn setup_scene_once_loaded(
             }
         }
     }
+}
+
+fn player_collisions(
+    mut player: Query<(&mut Velocity, &mut Transform, &CollidingEntities), With<Player>>,
+    planet_query: Query<(&Transform, &Planet), Without<Player>>
+) {
+    for (mut velocity, mut transform, colliding_entities) in &mut player {
+        let Some((planet_transform, planet)) = colliding_entities
+            .iter()
+            .map(|e| planet_query.get(e))
+            .find(Result::is_ok).map(Result::unwrap)
+        else { continue };
+
+        let normal = (transform.translation - planet_transform.translation).normalize();
+
+        velocity.linvel = -30.0 * normal.dot(velocity.linvel.normalize()) * normal;
+        transform.translation = planet_transform.translation + normal * (planet.radius + 0.5);
+    }
+
 }
 
 
@@ -187,6 +210,10 @@ fn setup_exhaust_particles(
     )
 }
 
+const PREDICTION_LENGTH: usize = 100;
+const LINE_THICKNESS: f32 = 0.1;
+
+
 #[derive(Component)]
 struct PlayerLine;
 
@@ -202,12 +229,15 @@ fn player_line_setup(
         ..default()
     });
 
-    let mesh = meshes.add(Mesh::new(PrimitiveTopology::TriangleStrip));
+    let mut mesh = Mesh::new(PrimitiveTopology::TriangleStrip);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, [Vec3::ZERO; PREDICTION_LENGTH * 2].to_vec());
+    mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, [Vec3::Y; PREDICTION_LENGTH * 2].to_vec());
+    let mesh_handle = meshes.add(mesh);
 
 
     commands.spawn((
         PbrBundle {
-            mesh, 
+            mesh: mesh_handle, 
             material, 
             ..default()
         }, 
@@ -221,9 +251,6 @@ fn player_line_update(
     gravity_sources: Query<(&Transform, &GravitySource), (Without<Player>, Without<PlayerLine>)>,
     mut assets: ResMut<Assets<Mesh>>,
 ) {
-    const PREDICTION_LENGTH: usize = 100;
-    const LINE_THICKNESS: f32 = 0.1;
-    const NORMALS: [Vec3; PREDICTION_LENGTH * 2] = [Vec3::Y; PREDICTION_LENGTH * 2];
 
     for (mesh_handle, mut transform) in &mut line_query {
         let Some(mesh) = assets.get_mut(mesh_handle.id()) else { continue };
@@ -243,12 +270,11 @@ fn player_line_update(
                 positions.push(current_pos + perpendicular * thickness);
 
                 current_pos += current_vel * 0.02;
-                // TODO: Duplicate code
+
                 current_vel += gravity_sources.iter().map(|(gravity_transform, gravity_source)| {
                     gravity_step(gravity_transform, gravity_source, 0.02, current_pos + player_pos, current_vel)
                 }).sum::<Vec3>();
             }
-            mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, NORMALS.to_vec());
             mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
         }
     }
@@ -271,7 +297,8 @@ impl Plugin for PlayerPlugin {
                 player_input, 
                 setup_scene_once_loaded, 
                 spawn_exhaust_particle, 
-                player_line_update
+                player_line_update, 
+                player_collisions, 
             ).run_if(in_state(AppState::Running)));
     }
 }

@@ -167,7 +167,7 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(
             LogPlugin {
-                level: bevy::log::Level::DEBUG,
+                level: bevy::log::Level::INFO,
                 ..default()
             }
         ))
