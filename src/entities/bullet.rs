@@ -11,7 +11,8 @@ use super::player::Player;
 
 #[derive(Component)]
 pub struct Bullet {
-    pub spawn_time: Duration
+    pub spawn_time: Duration, 
+    pub relative_speed: Vec3, 
 }
 pub const BULLET_COLLISION_GROUP: Group = Group::GROUP_2;
 
@@ -79,7 +80,8 @@ fn bullet_shoot(
                     ..default()
                 }, 
                 Bullet {
-                    spawn_time: time.elapsed()
+                    spawn_time: time.elapsed(), 
+                    relative_speed: velocity.linvel,
                 },
                 OutlineBundle {
                     outline: OutlineVolume {
@@ -139,10 +141,10 @@ fn bullet_collision(
 }
 
 fn bullet_rotation_correction(
-    mut query: Query<(&mut Transform, &Velocity), With<Bullet>>,
+    mut query: Query<(&mut Transform, &Velocity, &Bullet)>,
 ) {
-    for (mut transform, vel) in &mut query {
-        let rotation = Quat::from_rotation_arc(transform.forward(), vel.linvel.normalize());
+    for (mut transform, vel, bullet) in &mut query {
+        let rotation = Quat::from_rotation_arc(transform.forward(), (vel.linvel - bullet.relative_speed).normalize());
         transform.rotate(rotation);
     }
 }

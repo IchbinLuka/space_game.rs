@@ -86,16 +86,6 @@ fn scene_setup_3d(
         transform: Transform::from_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
         ..default()
     });
-    // light
-    // commands.spawn(PointLightBundle {
-    //     point_light: PointLight {
-    //         intensity: 1500.0,
-    //         shadows_enabled: true,
-    //         ..default()
-    //     },
-    //     transform: Transform::from_xyz(4.0, 8.0, 4.0),
-    //     ..default()
-    // });
 
     commands.insert_resource(AmbientLight {
         color: Color::WHITE, 
@@ -165,12 +155,12 @@ enum AppState {
 
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins.set(
-            LogPlugin {
+        .add_plugins(DefaultPlugins
+            .set(LogPlugin {
                 level: bevy::log::Level::INFO,
                 ..default()
-            }
-        ))
+            })
+        )
         .add_plugins((
             OutlinePlugin, 
             AutoGenerateOutlineNormalsPlugin, 
