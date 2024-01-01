@@ -101,7 +101,7 @@ fn despawn_asteroid_field(
         for (entity, field_transform) in &asteroid_fields {
             let distance = field_transform.translation.distance(player_transform.translation);
             if distance > 200.0 {
-                info!("Despawning asteroid field");
+                debug!("Despawning asteroid field");
                 commands.entity(entity).despawn_recursive();
             }
         }

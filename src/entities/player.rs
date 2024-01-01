@@ -256,7 +256,7 @@ fn player_line_update(
         let Some(mesh) = assets.get_mut(mesh_handle.id()) else { continue };
         for (player_transform, player_velocity) in &player_query {
             // let mut position_attribute = mesh.attribute_mut(Mesh::ATTRIBUTE_POSITION).unwrap();
-            transform.translation = player_transform.translation;
+            transform.translation = player_transform.translation - Vec3::Y * 0.1;
 
             let mut positions: Vec<Vec3> = Vec::with_capacity(PREDICTION_LENGTH * 2);
             let player_pos = player_transform.translation;
@@ -266,14 +266,15 @@ fn player_line_update(
             for i in 0..PREDICTION_LENGTH {
                 let perpendicular = current_vel.cross(Vec3::Y).normalize();
                 let thickness = (1.0 - (i as f32 / PREDICTION_LENGTH as f32).powf(2.0)) * LINE_THICKNESS;
-                positions.push(current_pos - perpendicular * thickness);
-                positions.push(current_pos + perpendicular * thickness);
 
                 current_pos += current_vel * 0.02;
 
                 current_vel += gravity_sources.iter().map(|(gravity_transform, gravity_source)| {
                     gravity_step(gravity_transform, gravity_source, 0.02, current_pos + player_pos, current_vel)
                 }).sum::<Vec3>();
+
+                positions.push(current_pos - perpendicular * thickness);
+                positions.push(current_pos + perpendicular * thickness);
             }
             mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
         }

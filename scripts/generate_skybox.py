@@ -12,6 +12,8 @@ OUTPUT_PATH = f"{PARENT_DIR}/../assets/skybox2.svg"
 OUTPUT_WIDTH = 2000
 ASPECT_RATIO = 1 / 6
 
+SVG_WIDTH = 300
+
 
 output_file = open("skybox_output.svg", "w")
 
@@ -21,9 +23,9 @@ content = ""
 for _ in range(NUM_STARS):
     content += f"""
     <circle
-        cx="{random.uniform(0, OUTPUT_WIDTH)}mm"
-        cy="{random.uniform(0, OUTPUT_WIDTH / ASPECT_RATIO)}mm"
-        r="{random.uniform(2.0, 2.8)}mm"
+        cx="{random.uniform(0, SVG_WIDTH)}mm"
+        cy="{random.uniform(0, SVG_WIDTH / ASPECT_RATIO)}mm"
+        r="{random.uniform(0.3, 0.7)}mm"
         fill="#ffffff"
         fill-opacity="{random.uniform(0.7, 1.0)}"
         stroke="none"/>
@@ -34,8 +36,8 @@ output_file.write(
 f"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 
 <svg
-    width="{OUTPUT_WIDTH}mm"
-    height="{OUTPUT_WIDTH / ASPECT_RATIO}mm"
+    width="{SVG_WIDTH}mm"
+    height="{SVG_WIDTH / ASPECT_RATIO}mm"
     version="1.1"
     id="svg1"
     sodipodi:docname="skybox.svg"
@@ -45,8 +47,8 @@ f"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 
     <rect
        style="fill:#191970;fill-opacity:1;"
-       width="{OUTPUT_WIDTH}mm"
-       height="{OUTPUT_WIDTH / ASPECT_RATIO}mm"
+       width="{SVG_WIDTH}mm"
+       height="{SVG_WIDTH / ASPECT_RATIO}mm"
        x="0"
        y="0" />
 
