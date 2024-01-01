@@ -2,16 +2,19 @@ use std::{time::Duration, f32::consts::FRAC_PI_2};
 
 use bevy::prelude::*;
 use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
-use bevy_mod_outline::{OutlineBundle, OutlineVolume};
+use bevy_mod_outline::OutlineBundle;
 use bevy_rapier3d::prelude::*;
-use rand::{seq::SliceRandom, Rng};
+use rand::{seq::SliceRandom, Rng, rngs::ThreadRng};
 
-use crate::{components::{colliders::VelocityColliderBundle, despawn_after::DespawnAfter}, AppState, utils::materials::matte_material};
+use crate::{components::{colliders::VelocityColliderBundle, despawn_after::DespawnAfter}, AppState, utils::materials::{matte_material, default_outline}};
 
-use super::bullet::BULLET_COLLISION_GROUP;
+use super::{bullet::BULLET_COLLISION_GROUP, player::Player};
 
 #[derive(Component)]
 pub struct Asteroid;
+
+#[derive(Component)]
+pub struct AsteroidField;
 
 
 #[derive(Event)]
@@ -26,18 +29,97 @@ pub struct AsteroidDestructionEvent {
     pub transform: Transform,
 }
 
+fn spawn_asteroid_field(
+    mut commands: Commands,
+    player_query: Query<(&Transform, &Velocity), With<Player>>,
+    asteroid_fields: Query<&Transform, With<AsteroidField>>,
+    res: Res<AsteroidRes>,
+    assets: Res<AsteroidAssets>,
+) {
+    for (player_transform, player_velocity) in &player_query {
+        let spawn_asteroid_field = asteroid_fields.iter().all(|field_transform| {
+            let distance = field_transform.translation.distance(player_transform.translation);
+            distance > 100.0
+        });
+        if spawn_asteroid_field {
+            let mut rng = rand::thread_rng();
+            let position = player_transform.translation + player_velocity.linvel.normalize() * 100.0 + Vec3::new(
+                rng.gen_range(-50.0..50.0), 
+                0.0, 
+                rng.gen_range(-50.0..50.0)
+            );
+            commands.spawn((
+                AsteroidField,
+                Transform::from_translation(position), 
+                GlobalTransform::default(), 
+                InheritedVisibility::VISIBLE, 
+            )).with_children(|c| {
+                let num_asteroids = rng.gen_range(10..50);
+                for _ in 0..num_asteroids {
+                    let translation = Vec3::new(
+                        rng.gen_range(-20.0..20.0), 
+                        0.0, 
+                        rng.gen_range(-20.0..20.0)
+                    );
+
+                    let rotation = Quat::from_rotation_y(rng.gen_range(0.0..std::f32::consts::PI * 2.0));
+                    let scale = Vec3::splat(rng.gen_range(0.7..1.4));
+                    let linvel = Vec3::new(
+                        rand::random::<f32>() - 0.5, 
+                        0.0, 
+                        rand::random::<f32>() - 0.5
+                    );
+                    let angvel = Vec3::Y * (rng.gen_range(-0.5..0.5));
+
+
+                    c.spawn(AsteroidBundle::random(
+                        &mut rng, 
+                        &res, 
+                        &assets, 
+                        Transform {
+                            translation,
+                            rotation, 
+                            scale, 
+                        },
+                        Velocity {
+                            linvel, 
+                            angvel, 
+                        }
+                    ));
+                }
+            });
+        }
+    }
+}
+
+fn despawn_asteroid_field(
+    mut commands: Commands, 
+    player_query: Query<&Transform, With<Player>>,
+    asteroid_fields: Query<(Entity, &Transform), With<AsteroidField>>,
+) {
+    for player_transform in &player_query {
+        for (entity, field_transform) in &asteroid_fields {
+            let distance = field_transform.translation.distance(player_transform.translation);
+            if distance > 200.0 {
+                info!("Despawning asteroid field");
+                commands.entity(entity).despawn_recursive();
+            }
+        }
+    }
+}
+
 
 fn asteroid_collisions(
     mut commands: Commands, 
-    query: Query<(Entity, &CollidingEntities, &Transform), With<Asteroid>>, 
+    query: Query<(Entity, &CollidingEntities, &GlobalTransform), With<Asteroid>>, 
     mut destruction_events: EventWriter<AsteroidDestructionEvent>,
 
 ) {
-    for (entity, colliding, transform) in &query {
+    for (entity, colliding, global_transform) in &query {
         if colliding.is_empty() { continue; }
         commands.entity(entity).despawn_recursive();
         destruction_events.send(AsteroidDestructionEvent {
-            transform: *transform
+            transform: global_transform.compute_transform()
         });
     }
 }
@@ -109,15 +191,51 @@ fn asteroid_spawn(
                 ..default()
             }, 
             OutlineBundle {
-                outline: OutlineVolume {
-                    visible: true, 
-                    width: 4.0,
-                    colour: Color::BLACK, 
-                }, 
+                outline: default_outline(), 
                 ..default()
             }, 
             collision_groups, 
         ));
+    }
+}
+
+#[derive(Bundle)]
+struct AsteroidBundle {
+    mesh_bundle: MaterialMeshBundle<StandardMaterial>, 
+    asteroid: Asteroid,
+    velocity_collider_bundle: VelocityColliderBundle,
+    outline_bundle: OutlineBundle,
+    collision_groups: CollisionGroups,
+}
+
+impl AsteroidBundle {
+    const COLLISION_GROUPS: CollisionGroups = CollisionGroups::new(BULLET_COLLISION_GROUP, Group::ALL);
+
+    fn random(rng: &mut ThreadRng, res: &AsteroidRes, assets: &AsteroidAssets,  position: Transform, velocity: Velocity) -> Self {
+        let mesh = if rng.gen::<bool>() {
+            assets.asteroid_1.clone()
+        } else {
+            assets.asteroid_2.clone()
+        };
+        Self {
+            mesh_bundle: MaterialMeshBundle {
+                mesh,
+                material: res.material.clone(),
+                transform: position,
+                ..default()
+            }, 
+            asteroid: Asteroid,
+            velocity_collider_bundle: VelocityColliderBundle {
+                velocity,
+                collider: Collider::ball(1.0), 
+                ..default()
+            }, 
+            outline_bundle: OutlineBundle {
+                outline: default_outline(), 
+                ..default()
+            }, 
+            collision_groups: Self::COLLISION_GROUPS, 
+        }
     }
 }
 
@@ -164,7 +282,9 @@ impl Plugin for AsteroidPlugin {
             .add_systems(Update, (
                 asteroid_spawn, 
                 asteroid_collisions, 
-                asteroid_destruction
+                asteroid_destruction, 
+                spawn_asteroid_field,
+                despawn_asteroid_field,
             ).run_if(in_state(AppState::Running)))
             .add_event::<AsteroidSpawnEvent>()
             .add_event::<AsteroidDestructionEvent>();

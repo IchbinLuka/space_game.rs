@@ -8,6 +8,7 @@ use bevy_rapier3d::prelude::*;
 use bevy_toon_shader::{ToonShaderPlugin, ToonShaderSun};
 use entities::{asteroid::AsteroidSpawnEvent, EntitiesPlugin};
 use components::ComponentsPlugin;
+use rand::Rng;
 
 mod entities;
 mod utils;
@@ -114,10 +115,6 @@ fn scene_setup_3d(
         Collider::cuboid(5.0, 5.0, 5.0), 
         RigidBody::Fixed, 
         Sensor, 
-        // GravitySource {
-        //     mass: 10000.0, 
-        //     radius: None,
-        // }, 
         ActiveCollisionTypes::all(), 
         ActiveEvents::COLLISION_EVENTS
     ));
@@ -141,7 +138,7 @@ fn scene_setup_3d(
                 ), 
                 angvel: Vec3::Y * (rand::random::<f32>() - 0.5), 
             }, 
-            size: rand::random::<f32>() * 2.0 + 1.0
+            size: rand::thread_rng().gen_range(0.5..2.0)
         });
     }
 }

@@ -21,6 +21,8 @@ const BULLET_GROUP: CollisionGroups = CollisionGroups::new(Group::GROUP_1, Group
 const BULLET_CORNER_1: Vec3 = Vec3::new(0.03, 0.03, 0.6);
 const BULLET_CORNER_2: Vec3 = Vec3::new(-0.03, -0.03, 0.0);
 
+const BULLET_SPEED: f32 = 40.0;
+
 fn bullet_setup(
     mut commands: Commands, 
     mut meshes: ResMut<Assets<Mesh>>,
@@ -99,7 +101,7 @@ fn bullet_shoot(
                 Sensor, 
                 GravityAffected, 
                 Velocity {
-                    linvel: transform.forward().normalize() * 20.0 + velocity.linvel, 
+                    linvel: transform.forward().normalize() * BULLET_SPEED + velocity.linvel, 
                     ..default()
                 }, 
                 CollidingEntities::default(), 
