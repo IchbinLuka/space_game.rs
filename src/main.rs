@@ -8,11 +8,13 @@ use bevy_rapier3d::prelude::*;
 use bevy_toon_shader::{ToonShaderPlugin, ToonShaderSun};
 use entities::{asteroid::AsteroidSpawnEvent, EntitiesPlugin};
 use components::ComponentsPlugin;
+use particles::ParticlesPlugin;
 use rand::Rng;
 
 mod entities;
 mod utils;
 mod components;
+mod particles;
 
 
 #[derive(Component)]
@@ -176,6 +178,7 @@ fn main() {
             ScenePlugin3D, 
             EntitiesPlugin, 
             ComponentsPlugin, 
+            ParticlesPlugin, 
         ))
         .run();
 }

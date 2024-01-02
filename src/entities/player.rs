@@ -6,9 +6,9 @@ use bevy_mod_outline::{OutlineBundle, OutlineVolume, InheritOutlineBundle};
 use bevy_rapier3d::prelude::*;
 use rand::{seq::SliceRandom, Rng};
 
-use crate::{AppState, components::{despawn_after::DespawnAfter, gravity::{GravitySource, GravityAffected, gravity_step}, movement::MaxSpeed, colliders::VelocityColliderBundle}};
+use crate::{AppState, components::{despawn_after::DespawnAfter, gravity::{GravitySource, GravityAffected, gravity_step}, movement::MaxSpeed, colliders::VelocityColliderBundle}, particles::fire_particles::FireParticleRes};
 
-use super::planet::Planet;
+use super::{planet::Planet, explosion::ExplosionEvent};
 
 #[derive(Component)]
 pub struct Player;
@@ -16,20 +16,17 @@ pub struct Player;
 fn player_input(
     timer: Res<Time>,
     keyboard_input: Res<Input<KeyCode>>,
-    mut query: Query<(&mut Velocity, &mut Transform, With<Player>)>,
+    mut query: Query<(&mut Velocity, &mut Transform, Entity), With<Player>>,
     mut particle_spawn: EventWriter<ParticleSpawnEvent>
 ) {
-    let mut rng = rand::thread_rng();
-    for (mut velocity, mut transform, _) in &mut query {
+    for (mut velocity, mut transform, entity) in &mut query {
         for key in keyboard_input.get_pressed() {
             
             match key {
                 KeyCode::Up | KeyCode::W => {
-                    let particle_offset: Vec3 = Vec3::new(rng.gen_range(-0.2..0.2), 0.0, 0.8);
                     velocity.linvel += transform.forward().normalize();
                     particle_spawn.send(ParticleSpawnEvent {
-                        pos: transform.translation + transform.rotation.mul_vec3(particle_offset),
-                        vel: -transform.forward().normalize(),
+                        entity
                     });
                 },
                 KeyCode::Left | KeyCode::A => transform.rotate_y(5.0 * timer.delta_seconds()),
@@ -98,7 +95,8 @@ fn setup_scene_once_loaded(
 
 fn player_collisions(
     mut player: Query<(&mut Velocity, &mut Transform, &CollidingEntities), With<Player>>,
-    planet_query: Query<(&Transform, &Planet), Without<Player>>
+    planet_query: Query<(&Transform, &Planet), Without<Player>>, 
+    mut explosions: EventWriter<ExplosionEvent>,
 ) {
     for (mut velocity, mut transform, colliding_entities) in &mut player {
         let Some((planet_transform, planet)) = colliding_entities
@@ -106,6 +104,10 @@ fn player_collisions(
             .map(|e| planet_query.get(e))
             .find(Result::is_ok).map(Result::unwrap)
         else { continue };
+
+        explosions.send(ExplosionEvent {
+            position: transform.translation,
+        });
 
         let normal = (transform.translation - planet_transform.translation).normalize();
 
@@ -129,85 +131,62 @@ struct SpaceshipExhaustParticle;
 
 #[derive(Event)]
 struct ParticleSpawnEvent {
-    pos: Vec3, 
-    vel: Vec3,
+    entity: Entity
 }
 
-#[derive(Resource)]
-struct ExhausParticleRes {
-    mesh: Handle<Mesh>,
-    materials: [Handle<StandardMaterial>; 4],
-}
+
 
 fn spawn_exhaust_particle(
     mut events: EventReader<ParticleSpawnEvent>, 
     mut commands: Commands, 
-    res: Res<ExhausParticleRes>, 
-    time: Res<Time>
+    res: Res<FireParticleRes>, 
+    time: Res<Time>, 
+    space_ship_query: Query<(&Transform, &Velocity), With<Player>>
 ) {
     let mut rng = rand::thread_rng();
-    const RANDOM_VEL_RANGE: std::ops::Range<f32> = -0.7..0.7;
-    const RANDOM_ANG_RANGE: std::ops::Range<f32> = -0.7..0.7;
+    const RANDOM_VEL_RANGE: std::ops::Range<f32> = -4.0..4.0;
+    const LIFE_TIME_RANGE: std::ops::Range<u64> = 300..500;
+    
     for event in events.read() {
+        let Ok((transform, velocity)) = space_ship_query.get(event.entity) else { continue };
+        let scale = Vec3::splat(rng.gen_range(0.7..1.4));
+        let lifetime = rng.gen_range(LIFE_TIME_RANGE);
+        let linvel = velocity.linvel - 
+            transform.forward() * 10.0 + // Speed relative to spaceship
+            transform.forward().cross(Vec3::Y).normalize() * rng.gen_range(RANDOM_VEL_RANGE); // Random sideways velocity
+
         commands.spawn((
             PbrBundle {
                 material: res.materials.choose(&mut rng).unwrap().clone(), 
                 mesh: res.mesh.clone(),
-                transform: Transform::from_translation(event.pos).with_scale(
-                    Vec3::splat(rng.gen_range(0.7..1.4))
-                ),
+                transform: Transform { 
+                    translation: transform.translation - transform.forward() * 0.4, 
+                    scale, 
+                    rotation: Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2), 
+                 },
                 ..default()
             }, 
             SpaceshipExhaustParticle,
             Velocity {
-                linvel: event.vel + Vec3::new(
-                    rng.gen_range(RANDOM_VEL_RANGE.clone()), 
-                    rng.gen_range(RANDOM_VEL_RANGE.clone()), 
-                    rng.gen_range(RANDOM_VEL_RANGE.clone())
-                ), 
-                angvel: Vec3::new(
-                    rng.gen_range(RANDOM_ANG_RANGE.clone()), 
-                    rng.gen_range(RANDOM_ANG_RANGE.clone()), 
-                    rng.gen_range(RANDOM_ANG_RANGE.clone())
-                )
+                linvel, 
+                ..default()
             }, 
             RigidBody::KinematicVelocityBased, 
             DespawnAfter {
-                time: Duration::from_millis(500), 
+                time: Duration::from_millis(lifetime), 
                 spawn_time: time.elapsed()
             }
         ));
     }
 }
 
-fn setup_exhaust_particles(
-    mut commands: Commands, 
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
+fn exhaust_particle_update(
+    time: Res<Time>, 
+    mut particles: Query<&mut Transform, With<SpaceshipExhaustParticle>>
 ) {
-    let mesh = meshes.add(shape::Cube::new(0.2).into());
-    
-    let colors = [
-        Color::hex("ef8904").unwrap(), 
-        Color::hex("f2600c").unwrap(), 
-        Color::hex("cc2804").unwrap(), 
-        Color::hex("e89404").unwrap(), 
-    ];
-
-    let materials = colors.iter().map(|color| {
-        materials.add(StandardMaterial {
-            emissive: *color, 
-            base_color: *color,
-            ..default()
-        })
-    }).collect::<Vec<_>>().try_into().unwrap();
-
-    commands.insert_resource(
-        ExhausParticleRes {
-            mesh, 
-            materials
-        }
-    )
+    for mut transform in &mut particles {
+        transform.scale += Vec3::splat(1.0) * time.delta_seconds();
+    }
 }
 
 const PREDICTION_LENGTH: usize = 100;
@@ -290,14 +269,14 @@ impl Plugin for PlayerPlugin {
             .add_collection_to_loading_state::<_, PlayerAssets>(AppState::Loading)
             .add_event::<ParticleSpawnEvent>()
             .add_systems(OnEnter(AppState::Running), (
-                player_setup, 
-                setup_exhaust_particles, 
+                player_setup,  
                 player_line_setup
             ))
             .add_systems(Update, (
                 player_input, 
                 setup_scene_once_loaded, 
                 spawn_exhaust_particle, 
+                exhaust_particle_update,
                 player_line_update, 
                 player_collisions, 
             ).run_if(in_state(AppState::Running)));

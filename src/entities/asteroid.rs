@@ -8,7 +8,7 @@ use rand::{seq::SliceRandom, Rng, rngs::ThreadRng};
 
 use crate::{components::{colliders::VelocityColliderBundle, despawn_after::DespawnAfter}, AppState, utils::materials::{matte_material, default_outline}};
 
-use super::{bullet::BULLET_COLLISION_GROUP, player::Player};
+use super::{bullet::BULLET_COLLISION_GROUP, player::Player, explosion::ExplosionEvent};
 
 #[derive(Component)]
 pub struct Asteroid;
@@ -126,6 +126,7 @@ fn asteroid_collisions(
 
 fn asteroid_destruction(
     mut destruction_events: EventReader<AsteroidDestructionEvent>, 
+    mut explosions: EventWriter<ExplosionEvent>,
     mut commands: Commands,
     res: Res<AsteroidRes>,
     time: Res<Time>,
@@ -133,6 +134,7 @@ fn asteroid_destruction(
     const NUM_DESTRUCTION_PARTICLES: usize = 20;
     let mut rng = rand::thread_rng();
     for event in destruction_events.read() {
+        explosions.send(ExplosionEvent { position: event.transform.translation });
         for _ in 0..NUM_DESTRUCTION_PARTICLES {
             commands.spawn((
                 MaterialMeshBundle {

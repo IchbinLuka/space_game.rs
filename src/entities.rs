@@ -6,6 +6,7 @@ pub mod bullet;
 pub mod loading_screen;
 pub mod asteroid;
 pub mod planet;
+pub mod explosion;
 
 pub struct EntitiesPlugin;
 
@@ -18,6 +19,7 @@ impl Plugin for EntitiesPlugin {
             loading_screen::LoadingScreenPlugin,
             asteroid::AsteroidPlugin,
             planet::PlanetPlugin,
+            explosion::ExplosionPlugin,
         ));
     }
 }

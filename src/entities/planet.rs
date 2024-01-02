@@ -50,6 +50,8 @@ fn planet_setup(
             ..matte_material()
         });
 
+        let angvel = Vec3 { y: rng.gen_range(-0.1..0.1), ..Vec3::ZERO };
+
         commands.spawn((
             MaterialMeshBundle {
                 mesh: mesh.clone(),
@@ -66,11 +68,13 @@ fn planet_setup(
             }, 
             Collider::ball(1.0), 
             RigidBody::Fixed, 
-            Velocity::default(), 
+            Velocity {
+                angvel, 
+                ..default()
+            }, 
             collision_groups,
             ActiveCollisionTypes::all(), 
             ActiveEvents::COLLISION_EVENTS, 
-            // Sensor, 
             GravitySource {
                 mass: size * 500.0, 
                 ..default()
