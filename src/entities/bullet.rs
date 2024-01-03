@@ -2,10 +2,11 @@ use std::time::Duration;
 
 use bevy::prelude::*;
 use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
+use bevy_audio::VolumeLevel;
 use bevy_mod_outline::{OutlineVolume, OutlineBundle};
 use bevy_rapier3d::prelude::*;
 
-use crate::{AppState, components::gravity::GravityAffected};
+use crate::{AppState, components::gravity::GravityAffected, utils::sets::Set};
 
 use super::player::Player;
 
@@ -14,6 +15,15 @@ pub struct Bullet {
     pub spawn_time: Duration, 
     pub relative_speed: Vec3, 
 }
+
+
+#[derive(Event)]
+pub struct BulletSpawnEvent {
+    pub position: Transform,
+    pub entity_velocity: Velocity,
+    pub direction: Vec3,
+}
+
 pub const BULLET_COLLISION_GROUP: Group = Group::GROUP_2;
 
 const BULLET_GROUP: CollisionGroups = CollisionGroups::new(Group::GROUP_1, Group::GROUP_2);
@@ -44,77 +54,74 @@ fn bullet_setup(
         bullet_mesh,
         bullet_material,
     });
-
-    commands.insert_resource(LastBulletInfo::new());
 }
 
-fn bullet_shoot(
-    keyboard_input: Res<Input<KeyCode>>, 
-    time: Res<Time>,
-    query: Query<(&Transform, &Velocity, With<Player>)>, 
-    mut commands: Commands,
+fn bullet_spawn(
+    mut commands: Commands, 
+    mut events: EventReader<BulletSpawnEvent>,
+    player_query: Query<&Transform, With<Player>>,
     bullet_res: Res<BulletResource>,
-    assets: Res<BulletAssets>, 
-    mut last_bullet_info: ResMut<LastBulletInfo>,
+    assets: Res<BulletAssets>,
+    time: Res<Time>,
 ) {
-    if !last_bullet_info.timer.finished() {
-        last_bullet_info.timer.tick(time.delta());
-        return;
-    }
     let bullet_size = BULLET_CORNER_1 - BULLET_CORNER_2;
-    for (transform, velocity, _) in &query {
-        if keyboard_input.pressed(KeyCode::Space) {
-            // If finished, the timer should wait for the player to shoot before ticking again 
-            last_bullet_info.timer.tick(time.delta());
-            let side = last_bullet_info.side;
 
-            let pos = transform.translation + transform.rotation.mul_vec3(side.into());
-            let mut bullet_transform = Transform::from_translation(pos);
-            
-            bullet_transform.rotate(transform.rotation);
-            // bullet_transform.rotate_x(-PI * 0.5);
-            debug!("Spawning bullet");
-            commands.spawn((
-                PbrBundle {
-                    mesh: bullet_res.bullet_mesh.clone(),
-                    material: bullet_res.bullet_material.clone(),
-                    transform: bullet_transform,
-                    ..default()
+    let Ok(player) = player_query.get_single() else {
+        warn!("No player found");
+        return;
+    };
+
+    for event in events.read() {
+        // let pos = transform.translation + transform.rotation.mul_vec3(side.into());
+        let mut bullet_transform = Transform::from_translation(event.position.translation);
+        
+        let rotation = Quat::from_rotation_arc(bullet_transform.forward(), event.direction.normalize());
+
+        bullet_transform.rotate(rotation);
+
+        commands.spawn((
+            PbrBundle {
+                mesh: bullet_res.bullet_mesh.clone(),
+                material: bullet_res.bullet_material.clone(),
+                transform: bullet_transform,
+                ..default()
+            }, 
+            Bullet {
+                spawn_time: time.elapsed(), 
+                relative_speed: event.entity_velocity.linvel,
+            },
+            OutlineBundle {
+                outline: OutlineVolume {
+                    colour: Color::RED,
+                    width: 1.0,  
+                    visible: true,
                 }, 
-                Bullet {
-                    spawn_time: time.elapsed(), 
-                    relative_speed: velocity.linvel,
-                },
-                OutlineBundle {
-                    outline: OutlineVolume {
-                        colour: Color::RED,
-                        width: 1.0,  
-                        visible: true,
-                    }, 
-                    ..default()
-                }, 
-                Collider::cuboid(bullet_size.x, bullet_size.y, bullet_size.z),
-                BULLET_GROUP, 
-                ActiveEvents::COLLISION_EVENTS, 
-                ActiveHooks::FILTER_INTERSECTION_PAIR, 
-                RigidBody::KinematicVelocityBased, 
-                Sensor, 
-                GravityAffected, 
-                Velocity {
-                    linvel: transform.forward().normalize() * BULLET_SPEED + velocity.linvel, 
-                    ..default()
-                }, 
-                CollidingEntities::default(), 
-            ));
-            commands.spawn(
-                AudioBundle {
-                    source: assets.test_sound.clone(), 
+                ..default()
+            }, 
+            Collider::cuboid(bullet_size.x, bullet_size.y, bullet_size.z),
+            BULLET_GROUP, 
+            ActiveEvents::COLLISION_EVENTS, 
+            ActiveHooks::FILTER_INTERSECTION_PAIR, 
+            RigidBody::KinematicVelocityBased, 
+            Sensor, 
+            GravityAffected, 
+            Velocity {
+                linvel: event.direction.normalize() * BULLET_SPEED + event.entity_velocity.linvel, 
+                ..default()
+            }, 
+            CollidingEntities::default(), 
+        ));
+        commands.spawn(
+            AudioBundle {
+                source: assets.test_sound.clone(), 
+                settings: PlaybackSettings {
+                    volume: bevy_audio::Volume::Relative(VolumeLevel::new(
+                        f32::min(1.0, 40.0 / event.position.translation.distance_squared(player.translation)))
+                    ),
                     ..default()
                 }
-            );
-            
-            last_bullet_info.side = side.other();
-        }
+            }
+        );
     }
 }
 
@@ -157,54 +164,6 @@ struct BulletResource {
     bullet_material: Handle<StandardMaterial>,
 }
 
-#[derive(Clone, Copy)]
-enum BulletSide {
-    Left,
-    Right,
-}
-
-impl BulletSide {
-    const LEFT_POSITION: Vec3 = Vec3::new(-0.6, 0.0, -0.44);
-    const RIGHT_POSITION: Vec3 = Vec3::new(0.6, 0.0, -0.44);
-
-    fn other(self) -> Self {
-        match self {
-            Self::Left => Self::Right,
-            Self::Right => Self::Left,
-        }
-    }
-}
-
-impl From<BulletSide> for Vec3 {
-    fn from(value: BulletSide) -> Self {
-        match value {
-            BulletSide::Left => BulletSide::LEFT_POSITION,
-            BulletSide::Right => BulletSide::RIGHT_POSITION,
-        }
-    }
-}
-
-impl Default for BulletSide {
-    fn default() -> Self {
-        Self::Left
-    }
-}
-
-
-#[derive(Resource)]
-struct LastBulletInfo {
-    side: BulletSide,
-    timer: Timer,
-}
-
-impl LastBulletInfo {
-    fn new() -> Self {
-        Self {
-            side: BulletSide::default(),
-            timer: Timer::from_seconds(0.2, TimerMode::Repeating),
-        }
-    }
-}
 
 #[derive(AssetCollection, Resource)]
 struct BulletAssets {
@@ -220,10 +179,11 @@ impl Plugin for BulletPlugin {
             .add_collection_to_loading_state::<_, BulletAssets>(AppState::Loading)
             .add_systems(OnEnter(AppState::Running), bullet_setup)
             .add_systems(Update, (
-                bullet_shoot, 
                 bullet_despawn, 
                 bullet_collision,
                 bullet_rotation_correction,
-            ).run_if(in_state(AppState::Running)));
+                bullet_spawn.after(Set::BulletEvents),
+            ).run_if(in_state(AppState::Running)))
+            .add_event::<BulletSpawnEvent>();
     }
 }

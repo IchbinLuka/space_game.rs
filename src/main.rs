@@ -1,10 +1,12 @@
 #![allow(clippy::type_complexity)] // Query types can be really complex
+#![feature(let_chains)]
 
 use bevy::{prelude::*, log::LogPlugin};
 use bevy_asset_loader::loading_state::{LoadingStateAppExt, LoadingState};
 use bevy_mod_outline::{OutlinePlugin, AutoGenerateOutlineNormalsPlugin};
 use bevy_obj::ObjPlugin;
 use bevy_rapier3d::prelude::*;
+use bevy_screen_diagnostics::{ScreenDiagnosticsPlugin, ScreenFrameDiagnosticsPlugin};
 use bevy_toon_shader::{ToonShaderPlugin, ToonShaderSun};
 use entities::{asteroid::AsteroidSpawnEvent, EntitiesPlugin};
 use components::ComponentsPlugin;
@@ -164,9 +166,10 @@ fn main() {
             OutlinePlugin, 
             AutoGenerateOutlineNormalsPlugin, 
             RapierPhysicsPlugin::<NoUserData>::default(), 
-            // RapierDebugRenderPlugin::default(),
             ToonShaderPlugin, 
-            ObjPlugin
+            ObjPlugin, 
+            ScreenDiagnosticsPlugin::default(), 
+            ScreenFrameDiagnosticsPlugin, 
         ))
         .add_state::<AppState>()
         .add_systems(Startup, setup_physics)

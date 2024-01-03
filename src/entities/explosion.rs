@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 use rand::{seq::SliceRandom, Rng};
 
-use crate::particles::fire_particles::FireParticleRes;
+use crate::{particles::fire_particles::FireParticleRes, utils::sets::Set};
 
 
 #[derive(Component)]
@@ -13,7 +13,18 @@ pub struct ExplosionParticle {
 #[derive(Event)]
 pub struct ExplosionEvent {
     pub position: Vec3,
+    pub parent: Option<Entity>,
     // pub radius: f32,
+}
+
+impl Default for ExplosionEvent {
+    fn default() -> Self {
+        Self {
+            position: Vec3::ZERO,
+            parent: None,
+        }
+    }
+
 }
 
 fn spawn_explosion(
@@ -21,10 +32,21 @@ fn spawn_explosion(
     mut commands: Commands,
     time: Res<Time>,
     fire_res: Res<FireParticleRes>,
+    velocity_query: Query<(&Velocity, &Transform)>,
 ) {
     const PARTICLE_COUNT: usize = 20;
     for event in events.read() {
         let mut rng = rand::thread_rng();
+
+        let (parent_velocity, parent_pos) = if let Some(parent) = event.parent && 
+            let Ok((velocity, transform)) = velocity_query.get(parent) 
+        {
+            (velocity.linvel, transform.translation)
+        } else {
+            (Vec3::ZERO, Vec3::ZERO)
+        };
+
+
         for _ in 0..PARTICLE_COUNT {
             let scale = Vec3::splat(rng.gen_range(0.7..1.4));
 
@@ -36,15 +58,16 @@ fn spawn_explosion(
                     mesh: fire_res.mesh.clone(),
                     material: fire_res.materials.choose(&mut rng).unwrap().clone(),
                     transform: Transform {
-                        translation: event.position,
+                        translation: event.position + parent_pos,
                         scale,
                         rotation: Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2),
                     },
+                    inherited_visibility: InheritedVisibility::VISIBLE,
                     ..default()
                 }, 
                 RigidBody::KinematicVelocityBased, 
                 Velocity {
-                    linvel: Vec3::new(
+                    linvel: parent_velocity + Vec3::new(
                         rng.gen_range(-1.0..1.0), 
                         rng.gen_range(-1.0..1.0), 
                         rng.gen_range(-1.0..1.0)
@@ -82,7 +105,7 @@ pub struct ExplosionPlugin;
 impl Plugin for ExplosionPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_systems(Update, spawn_explosion)
+            .add_systems(Update, spawn_explosion.after(Set::ExplosionEvents))
             .add_systems(Update, explosion_particle_update)
             .add_event::<ExplosionEvent>();
     }

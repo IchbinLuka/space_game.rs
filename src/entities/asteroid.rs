@@ -6,7 +6,7 @@ use bevy_mod_outline::OutlineBundle;
 use bevy_rapier3d::prelude::*;
 use rand::{seq::SliceRandom, Rng, rngs::ThreadRng};
 
-use crate::{components::{colliders::VelocityColliderBundle, despawn_after::DespawnAfter}, AppState, utils::materials::{matte_material, default_outline}};
+use crate::{components::{colliders::VelocityColliderBundle, despawn_after::DespawnAfter}, AppState, utils::{materials::{matte_material, default_outline}, sets::Set}};
 
 use super::{bullet::BULLET_COLLISION_GROUP, player::Player, explosion::ExplosionEvent};
 
@@ -26,7 +26,7 @@ pub struct AsteroidSpawnEvent {
 
 #[derive(Event)]
 pub struct AsteroidDestructionEvent {
-    pub transform: Transform,
+    pub entity: Entity,
 }
 
 fn spawn_asteroid_field(
@@ -112,36 +112,31 @@ fn despawn_asteroid_field(
 fn asteroid_collisions(
     mut commands: Commands, 
     query: Query<(Entity, &CollidingEntities, &GlobalTransform), With<Asteroid>>, 
-    mut destruction_events: EventWriter<AsteroidDestructionEvent>,
-
-) {
-    for (entity, colliding, global_transform) in &query {
-        if colliding.is_empty() { continue; }
-        commands.entity(entity).despawn_recursive();
-        destruction_events.send(AsteroidDestructionEvent {
-            transform: global_transform.compute_transform()
-        });
-    }
-}
-
-fn asteroid_destruction(
-    mut destruction_events: EventReader<AsteroidDestructionEvent>, 
     mut explosions: EventWriter<ExplosionEvent>,
-    mut commands: Commands,
     res: Res<AsteroidRes>,
     time: Res<Time>,
 ) {
     const NUM_DESTRUCTION_PARTICLES: usize = 20;
-    let mut rng = rand::thread_rng();
-    for event in destruction_events.read() {
-        explosions.send(ExplosionEvent { position: event.transform.translation });
+
+    for (entity, colliding, global_transform) in &query {
+        if colliding.is_empty() { continue; }
+        let mut rng = rand::thread_rng();
+        commands.entity(entity).despawn_recursive();
+
+        let transform = global_transform.compute_transform();
+
+        explosions.send(ExplosionEvent { 
+            position: transform.translation, 
+            ..default()
+        });
         for _ in 0..NUM_DESTRUCTION_PARTICLES {
+            
             commands.spawn((
                 MaterialMeshBundle {
                     mesh: res.particle_mesh.clone(),
                     material: res.material.clone(),
                     transform: Transform {
-                        translation: event.transform.translation + Vec3::new(
+                        translation: transform.translation + Vec3::new(
                             rng.gen_range(-1.0..1.0), 
                             rng.gen_range(-1.0..1.0), 
                             rng.gen_range(-1.0..1.0)
@@ -165,6 +160,7 @@ fn asteroid_destruction(
         }
     }
 }
+
 
 fn asteroid_spawn(
     mut commands: Commands,
@@ -283,8 +279,7 @@ impl Plugin for AsteroidPlugin {
             .add_systems(OnEnter(AppState::Running), asteroid_setup)
             .add_systems(Update, (
                 asteroid_spawn, 
-                asteroid_collisions, 
-                asteroid_destruction, 
+                asteroid_collisions.in_set(Set::ExplosionEvents),
                 spawn_asteroid_field,
                 despawn_asteroid_field,
             ).run_if(in_state(AppState::Running)))
