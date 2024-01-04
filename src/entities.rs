@@ -1,7 +1,7 @@
 use bevy::app::Plugin;
 
 pub mod camera;
-pub mod player;
+pub mod spaceship;
 pub mod bullet;
 pub mod loading_screen;
 pub mod asteroid;
@@ -14,7 +14,7 @@ impl Plugin for EntitiesPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.add_plugins((
             camera::CameraComponentPlugin,
-            player::PlayerPlugin,
+            spaceship::PlayerPlugin,
             bullet::BulletPlugin,
             loading_screen::LoadingScreenPlugin,
             asteroid::AsteroidPlugin,

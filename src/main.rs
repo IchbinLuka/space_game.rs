@@ -12,6 +12,7 @@ use entities::{asteroid::AsteroidSpawnEvent, EntitiesPlugin};
 use components::ComponentsPlugin;
 use particles::ParticlesPlugin;
 use rand::Rng;
+use utils::scene_outline::SceneOutlinePlugin;
 
 mod entities;
 mod utils;
@@ -182,6 +183,7 @@ fn main() {
             EntitiesPlugin, 
             ComponentsPlugin, 
             ParticlesPlugin, 
+            SceneOutlinePlugin, 
         ))
         .run();
 }

@@ -8,7 +8,7 @@ use rand::{seq::SliceRandom, Rng, rngs::ThreadRng};
 
 use crate::{components::{colliders::VelocityColliderBundle, despawn_after::DespawnAfter}, AppState, utils::{materials::{matte_material, default_outline}, sets::Set}};
 
-use super::{bullet::BULLET_COLLISION_GROUP, player::Player, explosion::ExplosionEvent};
+use super::{bullet::BULLET_COLLISION_GROUP, spaceship::Player, explosion::ExplosionEvent};
 
 #[derive(Component)]
 pub struct Asteroid;

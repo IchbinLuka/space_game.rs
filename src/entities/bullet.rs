@@ -8,12 +8,13 @@ use bevy_rapier3d::prelude::*;
 
 use crate::{AppState, components::gravity::GravityAffected, utils::sets::Set};
 
-use super::player::Player;
+use super::spaceship::Player;
 
 #[derive(Component)]
 pub struct Bullet {
     pub spawn_time: Duration, 
     pub relative_speed: Vec3, 
+    pub origin: Entity,
 }
 
 
@@ -22,6 +23,7 @@ pub struct BulletSpawnEvent {
     pub position: Transform,
     pub entity_velocity: Velocity,
     pub direction: Vec3,
+    pub entity: Entity,
 }
 
 pub const BULLET_COLLISION_GROUP: Group = Group::GROUP_2;
@@ -89,6 +91,7 @@ fn bullet_spawn(
             Bullet {
                 spawn_time: time.elapsed(), 
                 relative_speed: event.entity_velocity.linvel,
+                origin: event.entity,
             },
             OutlineBundle {
                 outline: OutlineVolume {
@@ -142,8 +145,9 @@ fn bullet_collision(
     query: Query<(Entity, &Bullet, &CollidingEntities)>,
     mut commands: Commands,
 ) {
-    for (entity, _, colliding_entities) in &query {
+    for (entity, bullet, colliding_entities) in &query {
         if colliding_entities.is_empty() { continue; }
+        if colliding_entities.iter().all(|e| e == bullet.origin) { continue; }
         debug!("Bullet collided with something");
         commands.entity(entity).despawn_recursive();
     }

@@ -1,8 +1,8 @@
 use std::time::Duration;
 
-use bevy::{prelude::*, scene::SceneInstance, render::render_resource::PrimitiveTopology};
+use bevy::{prelude::*, render::render_resource::PrimitiveTopology};
 use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
-use bevy_mod_outline::{OutlineBundle, OutlineVolume, InheritOutlineBundle};
+use bevy_mod_outline::{OutlineBundle, OutlineVolume};
 use bevy_rapier3d::prelude::*;
 use rand::{seq::SliceRandom, Rng};
 
@@ -89,10 +89,10 @@ pub struct SpaceshipBundle {
 impl SpaceshipBundle {
     const COLLISION_GROUPS: CollisionGroups = CollisionGroups::new(BULLET_COLLISION_GROUP, Group::ALL);
 
-    fn new(assets: &PlayerAssets, pos: Vec3) -> Self {
+    fn new(model: Handle<Scene>, pos: Vec3) -> Self {
         Self {
             velocity_collider_bundle: VelocityColliderBundle {
-                collider: Collider::ball(3.0),
+                collider: Collider::ball(1.0),
                 velocity: Velocity {
                     linvel: Vec3::X, 
                     ..default()
@@ -109,8 +109,8 @@ impl SpaceshipBundle {
                 ..default()
             }, 
             scene_bundle: SceneBundle {
-                scene: assets.spaceship.clone(),
-                transform: Transform::from_translation(pos).with_scale(Vec3::splat(0.2)), 
+                scene: model,
+                transform: Transform::from_translation(pos), 
                 inherited_visibility: InheritedVisibility::VISIBLE,
                 ..default()
             }, 
@@ -148,7 +148,7 @@ fn player_input(
 fn player_shoot(
     keyboard_input: Res<Input<KeyCode>>, 
     time: Res<Time>,
-    query: Query<(&Transform, &Velocity, With<Player>)>, 
+    query: Query<(&Transform, &Velocity, Entity), With<Player>>, 
     mut bullet_spawn_events: EventWriter<BulletSpawnEvent>,
     mut last_bullet_info: Local<LastBulletInfo>,
 ) {
@@ -157,7 +157,7 @@ fn player_shoot(
         return;
     }
     
-    for (transform, velocity, _) in &query {
+    for (transform, velocity, entity) in &query {
         if keyboard_input.pressed(KeyCode::Space) {
             // If finished, the timer should wait for the player to shoot before ticking again 
             last_bullet_info.timer.tick(time.delta());
@@ -172,6 +172,7 @@ fn player_shoot(
                 position: bullet_transform, 
                 entity_velocity: *velocity, 
                 direction: transform.forward(),
+                entity
             });
             
             last_bullet_info.side = side.other();
@@ -188,7 +189,13 @@ fn bot_update(
 ) {
     let mut rng = rand::thread_rng();
 
-    for (mut velocity, mut transform, mut bot, entity, mut last_bullet) in &mut bots {
+    for (
+        mut velocity, 
+        mut transform, 
+        mut bot, 
+        entity, 
+        mut last_bullet, 
+    ) in &mut bots {
         if !last_bullet.timer.finished() {
             last_bullet.timer.tick(time.delta());
         }
@@ -203,16 +210,15 @@ fn bot_update(
                 let angle = transform.forward().angle_between(delta);
 
                 let cross = transform.forward().cross(delta);
-                let mut sign = if cross.y > 0.0 { 1.0 } else { -1.0 };
+                let mut sign = cross.y.signum();
 
                 if distance < 20.0 {
                     sign *= -1.0;
                 }
 
-                // velocity.angvel = Vec3::Y * sign * 5.0;
                 transform.rotate_y(sign * 5.0 * time.delta_seconds());
 
-                if angle < 0.1 || delta.length() < 20.0 {
+                if angle < 0.1 || distance < 20.0 {
                     velocity.linvel += transform.forward().normalize();
                     exhaust_particles.send(ParticleSpawnEvent {
                         entity
@@ -234,6 +240,7 @@ fn bot_update(
                         position: bullet_transform, 
                         entity_velocity: *velocity, 
                         direction: transform.forward(),
+                        entity,
                     });
                     
                     last_bullet.side = side.other();
@@ -249,7 +256,6 @@ fn bot_update(
                 if angle > 0.1 {
                     let cross = transform.forward().cross(delta);
                     let sign = if cross.y > 0.0 { 1.0 } else { -1.0 };
-                    // velocity.angvel = Vec3::Y * sign * 5.0;
                     transform.rotate_y(sign * 5.0 * time.delta_seconds());
                 } else {
                     velocity.linvel += transform.forward().normalize();
@@ -266,12 +272,12 @@ fn bot_update(
 
 fn player_setup(
     mut commands: Commands,
-    assets: Res<PlayerAssets>,
+    assets: Res<SpaceshipAssets>,
 ) {
 
     commands.spawn((
         Player, 
-        SpaceshipBundle::new(&assets, Vec3::ZERO), 
+        SpaceshipBundle::new(assets.player_ship.clone(), Vec3::ZERO), 
         MaxSpeed {
             max_speed: 60.0,
         }
@@ -282,38 +288,17 @@ fn player_setup(
             state: BotState::Chasing,
         }, 
         LastBulletInfo::default(),
-        SpaceshipBundle::new(&assets, Vec3::new(0.0, 0.0, 10.0)), 
+        SpaceshipBundle::new(assets.enemy_ship.clone(), Vec3::new(0.0, 0.0, 10.0)), 
         MaxSpeed {
             max_speed: 30.0,
         }
     ));
 }
 
-
-fn setup_scene_once_loaded(
-    mut commands: Commands,
-    scene_query: Query<&SceneInstance>,
-    scene_manager: Res<SceneSpawner>,
-    mut done: Local<bool>,
-) {
-    if !*done {
-        if let Ok(scene) = scene_query.get_single() {
-            if scene_manager.instance_is_ready(**scene) {
-                for entity in scene_manager.iter_instance_entities(**scene) {
-                    commands
-                        .entity(entity)
-                        .insert(InheritOutlineBundle::default());
-                }
-                *done = true;
-            }
-        }
-    }
-}
-
 fn spaceship_collisions(
     mut spaceship: Query<(&mut Velocity, &mut Transform, &CollidingEntities, Entity), With<Spaceship>>,
     planet_query: Query<(&Transform, &Planet), Without<Spaceship>>, 
-    bullet_query: Query<(), (Without<Spaceship>, With<Bullet>)>,
+    bullet_query: Query<&Bullet, Without<Spaceship>>,
     mut explosions: EventWriter<ExplosionEvent>,
 ) {
     for (mut velocity, mut transform, colliding_entities, entity) in &mut spaceship {
@@ -331,14 +316,15 @@ fn spaceship_collisions(
             let normal = (transform.translation - planet_transform.translation).normalize();
     
             velocity.linvel = -30.0 * normal.dot(velocity.linvel.normalize()) * normal;
-            transform.translation = planet_transform.translation + normal * (planet.radius + 0.5);
+            transform.translation = planet_transform.translation + normal * (planet.radius + 1.0);
         }
 
-        if colliding_entities
+        if let Some(bullet) =  colliding_entities
             .iter()
             .map(|e| bullet_query.get(e))
-            .find(Result::is_ok).map(Result::unwrap).is_some() 
+            .find(Result::is_ok).map(Result::unwrap) 
         {
+            if bullet.origin == entity { continue; }
             explosions.send(ExplosionEvent {
                 parent: Some(entity),
                 ..default()
@@ -352,9 +338,11 @@ fn spaceship_collisions(
 
 
 #[derive(AssetCollection, Resource)]
-struct PlayerAssets {
+struct SpaceshipAssets {
     #[asset(path = "spaceship.glb#Scene0")]
-    spaceship: Handle<Scene>
+    player_ship: Handle<Scene>, 
+    #[asset(path = "enemy.glb#Scene0")]
+    enemy_ship: Handle<Scene>,
 }
 
 
@@ -498,7 +486,7 @@ pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_collection_to_loading_state::<_, PlayerAssets>(AppState::Loading)
+            .add_collection_to_loading_state::<_, SpaceshipAssets>(AppState::Loading)
             .add_event::<ParticleSpawnEvent>()
             .add_systems(OnEnter(AppState::Running), (
                 player_setup,  
@@ -507,7 +495,6 @@ impl Plugin for PlayerPlugin {
             .add_systems(Update, (
                 player_input, 
                 player_shoot.in_set(Set::BulletEvents),
-                setup_scene_once_loaded, 
                 spawn_exhaust_particle, 
                 exhaust_particle_update,
                 player_line_update, 

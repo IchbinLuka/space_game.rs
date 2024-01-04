@@ -4,7 +4,7 @@ use bevy_toon_shader::ToonShaderMainCamera;
 
 use crate::{Movement, AppState};
 
-use super::player::Player;
+use super::spaceship::Player;
 
 #[derive(Component)]
 pub struct CameraComponent;
