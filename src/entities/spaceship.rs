@@ -447,7 +447,7 @@ fn player_line_setup(
 fn player_line_update(
     mut line_query: Query<(&mut Handle<Mesh>, &mut Transform), (With<PlayerLine>, Without<Player>)>, 
     player_query: Query<(&Transform, &Velocity), IsPlayer>,
-    gravity_sources: Query<(&Transform, &GravitySource), (Without<Player>, Without<PlayerLine>)>,
+    gravity_sources: Query<(&Transform, &GravitySource, Option<&Planet>), (Without<Player>, Without<PlayerLine>)>,
     mut assets: ResMut<Assets<Mesh>>,
 ) {
 
@@ -467,14 +467,22 @@ fn player_line_update(
                 let thickness = (1.0 - (i as f32 / PREDICTION_LENGTH as f32).powf(2.0)) * LINE_THICKNESS;
 
                 current_pos += current_vel * 0.02;
+                if !gravity_sources.iter().all(|(transform, _, planet)| {
+                    let Some(p) = planet else { return true; };
+                    (current_pos + player_pos).distance(transform.translation) > p.radius
+                }) {
+                    break;
+                }
 
-                current_vel += gravity_sources.iter().map(|(gravity_transform, gravity_source)| {
+                current_vel += gravity_sources.iter().map(|(gravity_transform, gravity_source, _)| {
                     gravity_step(gravity_transform, gravity_source, 0.02, current_pos + player_pos, current_vel)
                 }).sum::<Vec3>();
 
                 positions.push(current_pos - perpendicular * thickness);
                 positions.push(current_pos + perpendicular * thickness);
             }
+            
+            mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, [Vec3::Y].repeat(positions.len()));
             mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
         }
     }
