@@ -16,6 +16,9 @@ type IsBot = (With<Bot>, Without<Player>);
 #[derive(Component)]
 pub struct Player;
 
+#[derive(Component)]
+pub struct Health(pub f32);
+
 
 const BULLET_COOLDOWN: f32 = 0.2;
 
@@ -278,6 +281,7 @@ fn player_setup(
     commands.spawn((
         Player, 
         SpaceshipBundle::new(assets.player_ship.clone(), Vec3::ZERO), 
+        Health(100.0),
         MaxSpeed {
             max_speed: 60.0,
         }
@@ -296,12 +300,12 @@ fn player_setup(
 }
 
 fn spaceship_collisions(
-    mut spaceship: Query<(&mut Velocity, &mut Transform, &CollidingEntities, Entity), With<Spaceship>>,
+    mut spaceship: Query<(&mut Velocity, &mut Transform, &CollidingEntities, Entity, Option<&mut Health>), With<Spaceship>>,
     planet_query: Query<(&Transform, &Planet), Without<Spaceship>>, 
     bullet_query: Query<&Bullet, Without<Spaceship>>,
     mut explosions: EventWriter<ExplosionEvent>,
 ) {
-    for (mut velocity, mut transform, colliding_entities, entity) in &mut spaceship {
+    for (mut velocity, mut transform, colliding_entities, entity, health) in &mut spaceship {
         if let Some((planet_transform, planet)) = colliding_entities
             .iter()
             .map(|e| planet_query.get(e))
@@ -325,6 +329,11 @@ fn spaceship_collisions(
             .find(Result::is_ok).map(Result::unwrap) 
         {
             if bullet.origin == entity { continue; }
+
+            if let Some(mut health) = health {
+                health.0 = (health.0 - 1.0).max(0.0);
+            }
+
             explosions.send(ExplosionEvent {
                 parent: Some(entity),
                 ..default()
@@ -454,11 +463,10 @@ fn player_line_update(
     for (mesh_handle, mut transform) in &mut line_query {
         let Some(mesh) = assets.get_mut(mesh_handle.id()) else { continue };
         for (player_transform, player_velocity) in &player_query {
-            // let mut position_attribute = mesh.attribute_mut(Mesh::ATTRIBUTE_POSITION).unwrap();
             transform.translation = player_transform.translation - Vec3::Y * 0.1;
 
             let mut positions: Vec<Vec3> = Vec::with_capacity(PREDICTION_LENGTH * 2);
-            let player_pos = player_transform.translation;
+            let player_pos = player_transform.translation; 
             let mut current_pos = Vec3::ZERO;
             let mut current_vel = player_velocity.linvel;
 

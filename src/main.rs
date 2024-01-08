@@ -6,18 +6,21 @@ use bevy_asset_loader::loading_state::{LoadingStateAppExt, LoadingState};
 use bevy_mod_outline::{OutlinePlugin, AutoGenerateOutlineNormalsPlugin};
 use bevy_obj::ObjPlugin;
 use bevy_rapier3d::prelude::*;
+use bevy_round_ui::prelude::RoundUiPlugin;
 use bevy_screen_diagnostics::{ScreenDiagnosticsPlugin, ScreenFrameDiagnosticsPlugin};
 use bevy_toon_shader::{ToonShaderPlugin, ToonShaderSun};
 use entities::{asteroid::AsteroidSpawnEvent, EntitiesPlugin};
 use components::ComponentsPlugin;
 use particles::ParticlesPlugin;
 use rand::Rng;
+use ui::UIPlugin;
 use utils::scene_outline::SceneOutlinePlugin;
 
 mod entities;
 mod utils;
 mod components;
 mod particles;
+mod ui;
 
 
 #[derive(Component)]
@@ -171,6 +174,7 @@ fn main() {
             ObjPlugin, 
             ScreenDiagnosticsPlugin::default(), 
             ScreenFrameDiagnosticsPlugin, 
+            RoundUiPlugin, 
         ))
         .add_state::<AppState>()
         .add_systems(Startup, setup_physics)
@@ -184,6 +188,7 @@ fn main() {
             ComponentsPlugin, 
             ParticlesPlugin, 
             SceneOutlinePlugin, 
+            UIPlugin, 
         ))
         .run();
 }

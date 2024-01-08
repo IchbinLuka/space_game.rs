@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
+use bevy_mod_outline::OutlineBundle;
 use bevy_rapier3d::dynamics::Velocity;
 
 use crate::{AppState, components::colliders::VelocityColliderBundle, utils::materials::default_outline};
@@ -32,7 +33,10 @@ fn cruiser_setup(
             ..default()
         },
         Cruiser,
-        default_outline(), 
+        OutlineBundle {
+            outline: default_outline(), 
+            ..default()
+        }
     ));
 }
 
