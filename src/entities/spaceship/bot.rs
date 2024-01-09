@@ -2,10 +2,10 @@ use bevy::prelude::*;
 use bevy_rapier3d::dynamics::Velocity;
 use rand::Rng;
 
-use crate::{components::movement::MaxSpeed, entities::bullet::BulletSpawnEvent, AppState};
+use crate::{components::movement::MaxSpeed, entities::{bullet::BulletSpawnEvent, explosion::ExplosionEvent}, AppState};
 
 use super::{
-    IsBot, IsPlayer, LastBulletInfo, ParticleSpawnEvent, SpaceshipAssets, SpaceshipBundle,
+    IsBot, IsPlayer, LastBulletInfo, ParticleSpawnEvent, SpaceshipAssets, SpaceshipBundle, Health,
 };
 
 #[derive(Component)]
@@ -38,7 +38,25 @@ fn spawn_bot(
             LastBulletInfo::default(),
             SpaceshipBundle::new(assets.enemy_ship.clone(), Vec3::new(0.0, 0.0, 10.0)),
             MaxSpeed { max_speed: 30.0 },
+            Health(20.0), 
         ));
+    }
+}
+
+fn bot_death(
+    mut commands: Commands, 
+    mut explosions: EventWriter<ExplosionEvent>,
+    bots: Query<(Entity, &Transform, &Health), IsBot>,
+) {
+    for (entity, transform, health) in &bots {
+        if health.0 <= 0.0 {
+            explosions.send(ExplosionEvent {
+                parent: Some(entity),
+                position: transform.translation,
+                ..default()
+            });
+            commands.entity(entity).despawn_recursive();
+        }
     }
 }
 
@@ -134,13 +152,27 @@ fn bot_update(
     }
 }
 
+
+fn bot_setup(mut bot_events: EventWriter<BotSpawnEvent>) {
+    bot_events.send(BotSpawnEvent {
+        pos: Vec3::new(0.0, 0.0, 100.0),
+        initial_state: BotState::Chasing,
+    });
+}
+
 pub struct BotPlugin;
 
 impl Plugin for BotPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
-            Update,
-            (spawn_bot, bot_update).run_if(in_state(AppState::Running)),
-        );
+        app
+            .add_event::<BotSpawnEvent>()
+            .add_systems(Update,(
+                spawn_bot, 
+                bot_update, 
+                bot_death,
+            ).run_if(in_state(AppState::Running)),)
+            .add_systems(OnEnter(AppState::Running), (
+                bot_setup,
+            ));
     }
 }

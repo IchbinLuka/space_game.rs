@@ -32,6 +32,13 @@ type IsBot = (With<Bot>, Without<Player>);
 #[derive(Component)]
 pub struct Health(pub f32);
 
+impl Health {
+    pub fn take_damage(&mut self, damage: f32) {
+        self.0 = (self.0 - damage).max(0.0);
+    }
+}
+
+
 const BULLET_COOLDOWN: f32 = 0.2;
 
 #[derive(Resource, Component)]
@@ -140,7 +147,14 @@ fn spaceship_collisions(
     bullet_query: Query<&Bullet, Without<Spaceship>>,
     mut explosions: EventWriter<ExplosionEvent>,
 ) {
-    for (mut velocity, mut transform, colliding_entities, entity, health) in &mut spaceship {
+    for (
+        mut velocity, 
+        mut transform, 
+        colliding_entities, 
+        entity, 
+        mut health
+    ) in &mut spaceship {
+        
         if let Some((planet_transform, planet)) = colliding_entities
             .iter()
             .map(|e| planet_query.get(e))
@@ -153,9 +167,12 @@ fn spaceship_collisions(
             });
 
             let normal = (transform.translation - planet_transform.translation).normalize();
-
             velocity.linvel = -30.0 * normal.dot(velocity.linvel.normalize()) * normal;
             transform.translation = planet_transform.translation + normal * (planet.radius + 1.0);
+
+            if let Some(ref mut health) = health {
+                health.take_damage(5.0);
+            }
         }
 
         if let Some(bullet) = colliding_entities
@@ -168,8 +185,8 @@ fn spaceship_collisions(
                 continue;
             }
 
-            if let Some(mut health) = health {
-                health.0 = (health.0 - 1.0).max(0.0);
+            if let Some(ref mut health) = health {
+                health.take_damage(10.0);
             }
 
             explosions.send(ExplosionEvent {
@@ -256,8 +273,8 @@ pub struct SpaceshipPlugin;
 
 impl Plugin for SpaceshipPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((bot::BotPlugin, player::PlayerPlugin))
-            .add_collection_to_loading_state::<_, SpaceshipAssets>(AppState::Loading)
+        app.add_collection_to_loading_state::<_, SpaceshipAssets>(AppState::Loading)
+            .add_plugins((bot::BotPlugin, player::PlayerPlugin))
             .add_event::<ParticleSpawnEvent>()
             .add_systems(
                 Update,
