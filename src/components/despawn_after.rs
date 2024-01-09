@@ -20,8 +20,6 @@ fn despawn_after_system(
     }
 }
 
-
-
 pub struct DespawnAfterPlugin;
 
 impl Plugin for DespawnAfterPlugin {

@@ -1,8 +1,8 @@
-use bevy::app::{Plugin, App};
+use bevy::app::{App, Plugin};
 
+pub mod colliders;
 pub mod despawn_after;
 pub mod gravity;
-pub mod colliders;
 pub mod movement;
 
 pub struct ComponentsPlugin;

@@ -15,31 +15,31 @@ pub struct FireParticleRes {
 }
 
 fn setup_fire_particles(
-    mut commands: Commands, 
+    mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     let mesh = meshes.add(shape::Circle::new(0.2).into());
-    
+
     let colors = [
-        Color::hex("ef8904").unwrap(), 
-        Color::hex("f2600c").unwrap(), 
-        Color::hex("cc2804").unwrap(), 
-        Color::hex("e89404").unwrap(), 
+        Color::hex("ef8904").unwrap(),
+        Color::hex("f2600c").unwrap(),
+        Color::hex("cc2804").unwrap(),
+        Color::hex("e89404").unwrap(),
     ];
 
-    let materials = colors.iter().map(|color| {
-        materials.add(StandardMaterial {
-            emissive: *color, 
-            base_color: *color,
-            ..default()
+    let materials = colors
+        .iter()
+        .map(|color| {
+            materials.add(StandardMaterial {
+                emissive: *color,
+                base_color: *color,
+                ..default()
+            })
         })
-    }).collect::<Vec<_>>().try_into().unwrap();
+        .collect::<Vec<_>>()
+        .try_into()
+        .unwrap();
 
-    commands.insert_resource(
-        FireParticleRes {
-            mesh, 
-            materials
-        }
-    )
+    commands.insert_resource(FireParticleRes { mesh, materials })
 }

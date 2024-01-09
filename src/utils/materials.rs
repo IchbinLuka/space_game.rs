@@ -1,4 +1,4 @@
-use bevy::{pbr::StandardMaterial, utils::default, render::color::Color};
+use bevy::{pbr::StandardMaterial, render::color::Color, utils::default};
 use bevy_mod_outline::OutlineVolume;
 
 pub fn matte_material() -> StandardMaterial {

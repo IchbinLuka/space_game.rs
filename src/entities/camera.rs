@@ -1,10 +1,14 @@
-use bevy::{prelude::*, core_pipeline::{clear_color::ClearColorConfig, Skybox}, render::render_resource::{TextureViewDescriptor, TextureViewDimension}};
+use bevy::{
+    core_pipeline::{clear_color::ClearColorConfig, Skybox},
+    prelude::*,
+    render::render_resource::{TextureViewDescriptor, TextureViewDimension},
+};
 use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
 use bevy_toon_shader::ToonShaderMainCamera;
 
-use crate::{Movement, AppState};
+use crate::{AppState, Movement};
 
-use super::spaceship::Player;
+use super::spaceship::player::Player;
 
 #[derive(Component)]
 pub struct CameraComponent;
@@ -30,7 +34,7 @@ fn camera_follow_system(
 fn camera_setup(
     mut commands: Commands,
     camera_assets: Res<CameraAssets>,
-    mut images: ResMut<Assets<Image>>
+    mut images: ResMut<Assets<Image>>,
 ) {
     let image = images.get_mut(&camera_assets.skybox).unwrap();
     // NOTE: PNGs do not have any metadata that could indicate they contain a cubemap texture,
@@ -52,16 +56,16 @@ fn camera_setup(
             projection: Projection::Perspective(PerspectiveProjection {
                 far: 10000.0,
                 ..default()
-            }), 
+            }),
             camera_3d: Camera3d {
-                clear_color: ClearColorConfig::Custom(Color::MIDNIGHT_BLUE), 
+                clear_color: ClearColorConfig::Custom(Color::MIDNIGHT_BLUE),
                 ..default()
-            }, 
+            },
             ..default()
-        }, 
-        Skybox(camera_assets.skybox.clone()), 
-        CameraComponent, 
-        ToonShaderMainCamera, 
+        },
+        Skybox(camera_assets.skybox.clone()),
+        CameraComponent,
+        ToonShaderMainCamera,
         Movement::default(),
     ));
 }
@@ -76,9 +80,11 @@ pub struct CameraComponentPlugin;
 
 impl Plugin for CameraComponentPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_collection_to_loading_state::<_, CameraAssets>(AppState::Loading)
+        app.add_collection_to_loading_state::<_, CameraAssets>(AppState::Loading)
             .add_systems(OnEnter(AppState::Running), camera_setup)
-            .add_systems(Update, camera_follow_system.run_if(in_state(AppState::Running)));
+            .add_systems(
+                Update,
+                camera_follow_system.run_if(in_state(AppState::Running)),
+            );
     }
 }
