@@ -1,6 +1,13 @@
-use bevy::app::Plugin;
+use bevy::{app::Plugin, render::{mesh::Mesh, render_resource::PrimitiveTopology}};
 
 pub mod fire_particles;
+
+
+
+fn particle_system_setup() {
+    let mut mesh = Mesh::new(PrimitiveTopology::PointList);
+}
+
 
 pub struct ParticlesPlugin;
 

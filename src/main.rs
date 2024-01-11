@@ -1,7 +1,7 @@
 #![allow(clippy::type_complexity)] // Query types can be really complex
 #![feature(let_chains)]
 
-use bevy::{prelude::*, log::LogPlugin, window::PresentMode};
+use bevy::{prelude::*, log::LogPlugin};
 use bevy_asset_loader::loading_state::{LoadingStateAppExt, LoadingState};
 use bevy_mod_outline::{OutlinePlugin, AutoGenerateOutlineNormalsPlugin};
 use bevy_obj::ObjPlugin;
@@ -168,7 +168,7 @@ fn main() {
             .set(WindowPlugin {
                 primary_window: Some(Window {
                     title: "Space Game".into(),
-                    present_mode: PresentMode::Immediate,
+                    // present_mode: PresentMode::Immediate,
                     ..default()
                 }), 
                 ..default()
