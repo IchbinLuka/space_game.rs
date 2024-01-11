@@ -186,7 +186,7 @@ pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
-            OnEnter(AppState::Running),
+            OnEnter(AppState::MainScene),
             (player_setup, player_line_setup),
         )
         .add_systems(
@@ -196,7 +196,7 @@ impl Plugin for PlayerPlugin {
                 player_input,
                 player_line_update,
             )
-                .run_if(in_state(AppState::Running)),
+                .run_if(in_state(AppState::MainScene)),
         );
     }
 }

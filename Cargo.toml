@@ -17,6 +17,7 @@ bevy_obj = "0.12.0"
 bevy_toon_shader = "0.3"
 bevy_screen_diagnostics = "0.4.0"
 bevy_round_ui = "0.1.1"
+bytemuck = "1.14.0"
 
 [workspace]
 resolver = "2"

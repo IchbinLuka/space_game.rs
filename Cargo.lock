@@ -3606,6 +3606,7 @@ dependencies = [
  "bevy_round_ui",
  "bevy_screen_diagnostics",
  "bevy_toon_shader",
+ "bytemuck",
  "rand",
 ]
 

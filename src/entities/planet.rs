@@ -15,7 +15,7 @@ pub struct PlanetPlugin;
 
 impl Plugin for PlanetPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(AppState::Running), planet_setup);
+        app.add_systems(OnEnter(AppState::MainScene), planet_setup);
     }
 }
 

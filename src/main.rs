@@ -1,6 +1,7 @@
 #![allow(clippy::type_complexity)] // Query types can be really complex
 #![feature(let_chains)]
 
+
 use bevy::{prelude::*, log::LogPlugin};
 use bevy_asset_loader::loading_state::{LoadingStateAppExt, LoadingState};
 use bevy_mod_outline::{OutlinePlugin, AutoGenerateOutlineNormalsPlugin};
@@ -87,14 +88,7 @@ fn scene_setup_3d(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut asteroid_spawn_events: EventWriter<AsteroidSpawnEvent>,
 ) {
-    commands.spawn(PbrBundle {
-        mesh: meshes.add(shape::Circle::new(4.0).into()),
-        material: materials.add(Color::WHITE.into()),
-        transform: Transform::from_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
-        ..default()
-    });
 
     commands.insert_resource(AmbientLight {
         color: Color::WHITE, 
@@ -113,49 +107,14 @@ fn scene_setup_3d(
         }, 
         ToonShaderSun
     ));
-
-    commands.spawn((
-        PbrBundle {
-            mesh: meshes.add(shape::Cube::new(10.0).into()), 
-            material: materials.add(Color::RED.into()),
-            ..default()
-        }, 
-        Collider::cuboid(5.0, 5.0, 5.0), 
-        RigidBody::Fixed, 
-        Sensor, 
-        ActiveCollisionTypes::all(), 
-        ActiveEvents::COLLISION_EVENTS
-    ));
-
-    for _ in 0..100 {
-        asteroid_spawn_events.send(AsteroidSpawnEvent {
-            position: Transform {
-                translation: Vec3::new(
-                    rand::random::<f32>() * 100.0 - 50.0, 
-                    0.0, 
-                    rand::random::<f32>() * 100.0 - 50.0
-                ), 
-                rotation: Quat::from_rotation_y(rand::random::<f32>() * std::f32::consts::PI * 2.0),
-                ..default()
-            }, 
-            velocity: Velocity {
-                linvel: Vec3::new(
-                    rand::random::<f32>() - 0.5, 
-                    0.0, 
-                    rand::random::<f32>() - 0.5
-                ), 
-                angvel: Vec3::Y * (rand::random::<f32>() - 0.5), 
-            }, 
-            size: rand::thread_rng().gen_range(0.5..2.0)
-        });
-    }
 }
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash, Default, States)]
 enum AppState {
+    MainSceneLoading, 
+    MainScene,
     #[default]
-    Loading, 
-    Running
+    ParticleTestScene,
 }
 
 fn main() {
@@ -187,8 +146,8 @@ fn main() {
         .add_state::<AppState>()
         .add_systems(Startup, setup_physics)
         .add_loading_state(
-            LoadingState::new(AppState::Loading)
-                .continue_to_state(AppState::Running)
+            LoadingState::new(AppState::MainSceneLoading)
+                .continue_to_state(AppState::MainScene)
         )
         .add_plugins((
             ScenePlugin3D, 

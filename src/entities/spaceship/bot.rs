@@ -170,8 +170,8 @@ impl Plugin for BotPlugin {
                 spawn_bot, 
                 bot_update, 
                 bot_death,
-            ).run_if(in_state(AppState::Running)),)
-            .add_systems(OnEnter(AppState::Running), (
+            ).run_if(in_state(AppState::MainScene)),)
+            .add_systems(OnEnter(AppState::MainScene), (
                 bot_setup,
             ));
     }

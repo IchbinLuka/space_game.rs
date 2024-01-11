@@ -73,10 +73,10 @@ pub struct HealthBarPlugin;
 
 impl Plugin for HealthBarPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(AppState::Running), health_bar_setup)
+        app.add_systems(OnEnter(AppState::MainScene), health_bar_setup)
             .add_systems(
                 Update,
-                health_bar_update.run_if(in_state(AppState::Running)),
+                health_bar_update.run_if(in_state(AppState::MainScene)),
             );
     }
 }

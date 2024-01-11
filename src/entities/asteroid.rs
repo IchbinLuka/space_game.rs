@@ -296,8 +296,8 @@ pub struct AsteroidPlugin;
 
 impl Plugin for AsteroidPlugin {
     fn build(&self, app: &mut App) {
-        app.add_collection_to_loading_state::<_, AsteroidAssets>(AppState::Loading)
-            .add_systems(OnEnter(AppState::Running), asteroid_setup)
+        app.add_collection_to_loading_state::<_, AsteroidAssets>(AppState::MainSceneLoading)
+            .add_systems(OnEnter(AppState::MainScene), asteroid_setup)
             .add_systems(
                 Update,
                 (
@@ -306,7 +306,7 @@ impl Plugin for AsteroidPlugin {
                     spawn_asteroid_field,
                     despawn_asteroid_field,
                 )
-                    .run_if(in_state(AppState::Running)),
+                    .run_if(in_state(AppState::MainScene)),
             )
             .add_event::<AsteroidSpawnEvent>()
             .add_event::<AsteroidDestructionEvent>();

@@ -80,11 +80,11 @@ pub struct CameraComponentPlugin;
 
 impl Plugin for CameraComponentPlugin {
     fn build(&self, app: &mut App) {
-        app.add_collection_to_loading_state::<_, CameraAssets>(AppState::Loading)
-            .add_systems(OnEnter(AppState::Running), camera_setup)
+        app.add_collection_to_loading_state::<_, CameraAssets>(AppState::MainSceneLoading)
+            .add_systems(OnEnter(AppState::MainScene), camera_setup)
             .add_systems(
                 Update,
-                camera_follow_system.run_if(in_state(AppState::Running)),
+                camera_follow_system.run_if(in_state(AppState::MainScene)),
             );
     }
 }

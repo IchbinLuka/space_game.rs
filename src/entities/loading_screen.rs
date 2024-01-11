@@ -47,7 +47,7 @@ pub struct LoadingScreenPlugin;
 
 impl Plugin for LoadingScreenPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_systems(OnEnter(AppState::Loading), loading_screen_setup)
-            .add_systems(OnExit(AppState::Loading), loading_screen_cleanup);
+        app.add_systems(OnEnter(AppState::MainSceneLoading), loading_screen_setup)
+            .add_systems(OnExit(AppState::MainSceneLoading), loading_screen_cleanup);
     }
 }

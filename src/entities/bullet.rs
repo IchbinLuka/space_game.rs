@@ -175,8 +175,8 @@ pub struct BulletPlugin;
 
 impl Plugin for BulletPlugin {
     fn build(&self, app: &mut App) {
-        app.add_collection_to_loading_state::<_, BulletAssets>(AppState::Loading)
-            .add_systems(OnEnter(AppState::Running), bullet_setup)
+        app.add_collection_to_loading_state::<_, BulletAssets>(AppState::MainSceneLoading)
+            .add_systems(OnEnter(AppState::MainScene), bullet_setup)
             .add_systems(
                 Update,
                 (
@@ -185,7 +185,7 @@ impl Plugin for BulletPlugin {
                     bullet_rotation_correction,
                     bullet_spawn.after(Set::BulletEvents),
                 )
-                    .run_if(in_state(AppState::Running)),
+                    .run_if(in_state(AppState::MainScene)),
             )
             .add_event::<BulletSpawnEvent>();
     }

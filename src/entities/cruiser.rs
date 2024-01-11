@@ -48,7 +48,7 @@ pub struct CruiserPLugin;
 
 impl Plugin for CruiserPLugin {
     fn build(&self, app: &mut App) {
-        app.add_collection_to_loading_state::<_, CruiserAssets>(AppState::Loading)
-            .add_systems(OnEnter(AppState::Running), cruiser_setup);
+        app.add_collection_to_loading_state::<_, CruiserAssets>(AppState::MainSceneLoading)
+            .add_systems(OnEnter(AppState::MainScene), cruiser_setup);
     }
 }

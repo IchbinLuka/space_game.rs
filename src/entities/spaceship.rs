@@ -273,7 +273,7 @@ pub struct SpaceshipPlugin;
 
 impl Plugin for SpaceshipPlugin {
     fn build(&self, app: &mut App) {
-        app.add_collection_to_loading_state::<_, SpaceshipAssets>(AppState::Loading)
+        app.add_collection_to_loading_state::<_, SpaceshipAssets>(AppState::MainSceneLoading)
             .add_plugins((bot::BotPlugin, player::PlayerPlugin))
             .add_event::<ParticleSpawnEvent>()
             .add_systems(
@@ -283,7 +283,7 @@ impl Plugin for SpaceshipPlugin {
                     exhaust_particle_update,
                     spaceship_collisions.in_set(Set::ExplosionEvents),
                 )
-                    .run_if(in_state(AppState::Running)),
+                    .run_if(in_state(AppState::MainScene)),
             );
     }
 }
