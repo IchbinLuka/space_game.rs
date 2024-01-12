@@ -51,7 +51,7 @@ fn spawn_explosion(
                 ExplosionParticle {
                     spawn_time: time.elapsed_seconds(),
                 },
-                PbrBundle {
+                MaterialMeshBundle {
                     mesh: fire_res.mesh.clone(),
                     material: fire_res.materials.choose(&mut rng).unwrap().clone(),
                     transform: Transform {

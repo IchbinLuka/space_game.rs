@@ -1,39 +1,34 @@
 use std::f32::consts::FRAC_PI_2;
 
-use bevy::{prelude::*, render::{render_resource::{ShaderRef, AsBindGroup, ShaderType}, mesh::shape::Quad}, core_pipeline::clear_color::ClearColorConfig, core::{Pod, Zeroable}};
+use bevy::{prelude::*, render::{render_resource::{ShaderRef, AsBindGroup}, mesh::shape::Quad}, core_pipeline::clear_color::ClearColorConfig};
 
 use crate::AppState;
 
 pub mod fire_particles;
 
 
-
-
- #[derive(Asset, TypePath, AsBindGroup, Debug, Clone, ShaderType)]
-struct PointUniforms {
-    radius: f32,
-    view_matrix: Mat4,
-    center: Vec3,
-    color: Color,
-}
-
-
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
-struct ParticleMaterial {
+pub struct ParticleMaterial {
     #[uniform(0)]
-    color: Color,
+    pub color: Color,
 }
 
-#[derive(Clone, Copy, Pod, Zeroable)]
-#[repr(C)]
-struct ParticleInstanceData {
-    pos: Vec3, 
-    radius: f32,
+impl Default for ParticleMaterial {
+    fn default() -> Self {
+        Self {
+            color: Color::BLACK,
+        }
+    }
 }
+
 
 impl Material for ParticleMaterial {
     fn fragment_shader() -> ShaderRef {
         "shaders/point.wgsl".into()
+    }
+
+    fn alpha_mode(&self) -> AlphaMode {
+        AlphaMode::Blend
     }
 }
 

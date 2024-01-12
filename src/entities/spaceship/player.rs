@@ -72,7 +72,7 @@ fn player_input(
         for key in keyboard_input.get_pressed() {
             match key {
                 KeyCode::Up | KeyCode::W => {
-                    velocity.linvel += transform.forward().normalize() * timer.delta_seconds() * 20.0;
+                    velocity.linvel += transform.forward().normalize() * timer.delta_seconds() * 60.0;
                     particle_spawn.send(ParticleSpawnEvent { entity });
                 }
                 KeyCode::Left | KeyCode::A => transform.rotate_y(5.0 * timer.delta_seconds()),

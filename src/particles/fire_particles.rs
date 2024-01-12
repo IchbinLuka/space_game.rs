@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+use super::ParticleMaterial;
+
 pub struct FireParticlesPlugin;
 
 impl Plugin for FireParticlesPlugin {
@@ -11,30 +13,28 @@ impl Plugin for FireParticlesPlugin {
 #[derive(Resource)]
 pub struct FireParticleRes {
     pub mesh: Handle<Mesh>,
-    pub materials: [Handle<StandardMaterial>; 4],
+    pub materials: [Handle<ParticleMaterial>; 4],
 }
 
 fn setup_fire_particles(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut materials: ResMut<Assets<ParticleMaterial>>,
 ) {
-    let mesh = meshes.add(shape::Circle::new(0.2).into());
+    let mesh = meshes.add(shape::Quad::new(Vec2::splat(0.4)).into());
 
     let colors = [
         Color::hex("ef8904").unwrap(),
         Color::hex("f2600c").unwrap(),
-        Color::hex("cc2804").unwrap(),
+        Color::hex("e06411").unwrap(),
         Color::hex("e89404").unwrap(),
     ];
 
     let materials = colors
         .iter()
         .map(|color| {
-            materials.add(StandardMaterial {
-                emissive: *color,
-                base_color: *color,
-                ..default()
+            materials.add(ParticleMaterial {
+                color: *color,
             })
         })
         .collect::<Vec<_>>()

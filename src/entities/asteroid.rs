@@ -12,7 +12,7 @@ use crate::{
         materials::{default_outline, matte_material},
         sets::Set,
     },
-    AppState,
+    AppState, particles::ParticleMaterial,
 };
 
 use super::{bullet::BULLET_COLLISION_GROUP, explosion::ExplosionEvent, spaceship::player::Player};
@@ -138,7 +138,7 @@ fn asteroid_collisions(
             commands.spawn((
                 MaterialMeshBundle {
                     mesh: res.particle_mesh.clone(),
-                    material: res.material.clone(),
+                    material: res.particle_material.clone(),
                     transform: Transform {
                         translation: transform.translation
                             + Vec3::new(
@@ -266,29 +266,30 @@ struct AsteroidAssets {
 struct AsteroidRes {
     material: Handle<StandardMaterial>,
     particle_mesh: Handle<Mesh>,
+    particle_material: Handle<ParticleMaterial>,
 }
 
 fn asteroid_setup(
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut standard_materials: ResMut<Assets<StandardMaterial>>,
+    mut particle_materials: ResMut<Assets<ParticleMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut commands: Commands,
 ) {
-    let material = materials.add(StandardMaterial {
+    let material = standard_materials.add(StandardMaterial {
         base_color: Color::hex("747a8c").unwrap(),
         ..matte_material()
     });
 
-    let particle_mesh = meshes.add(
-        shape::Circle {
-            radius: 0.1,
-            ..default()
-        }
-        .into(),
-    );
+    let particle_material = particle_materials.add(ParticleMaterial {
+        color: Color::hex("665F64").unwrap(),
+    });
+
+    let particle_mesh = meshes.add(shape::Quad::new(Vec2::splat(0.2)).into(),);
 
     commands.insert_resource(AsteroidRes {
         material,
         particle_mesh,
+        particle_material,
     });
 }
 

@@ -53,7 +53,6 @@ fn bot_death(
             explosions.send(ExplosionEvent {
                 parent: Some(entity),
                 position: transform.translation,
-                ..default()
             });
             commands.entity(entity).despawn_recursive();
         }

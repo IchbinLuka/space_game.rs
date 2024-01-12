@@ -236,7 +236,7 @@ fn spawn_exhaust_particle(
             transform.forward().cross(Vec3::Y).normalize() * rng.gen_range(RANDOM_VEL_RANGE); // Random sideways velocity
 
         commands.spawn((
-            PbrBundle {
+            MaterialMeshBundle {
                 material: res.materials.choose(&mut rng).unwrap().clone(),
                 mesh: res.mesh.clone(),
                 transform: Transform {

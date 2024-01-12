@@ -2,7 +2,7 @@
 #![feature(let_chains)]
 
 
-use bevy::{prelude::*, log::LogPlugin};
+use bevy::{prelude::*, log::LogPlugin, window::PresentMode};
 use bevy_asset_loader::loading_state::{LoadingStateAppExt, LoadingState};
 use bevy_mod_outline::{OutlinePlugin, AutoGenerateOutlineNormalsPlugin};
 use bevy_obj::ObjPlugin;
@@ -10,10 +10,9 @@ use bevy_rapier3d::prelude::*;
 use bevy_round_ui::prelude::RoundUiPlugin;
 use bevy_screen_diagnostics::{ScreenDiagnosticsPlugin, ScreenFrameDiagnosticsPlugin};
 use bevy_toon_shader::{ToonShaderPlugin, ToonShaderSun};
-use entities::{asteroid::AsteroidSpawnEvent, EntitiesPlugin};
+use entities::EntitiesPlugin;
 use components::ComponentsPlugin;
 use particles::ParticlesPlugin;
-use rand::Rng;
 use ui::UIPlugin;
 use utils::scene_outline::SceneOutlinePlugin;
 
@@ -86,8 +85,6 @@ fn setup_physics(
 
 fn scene_setup_3d(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
 
     commands.insert_resource(AmbientLight {
@@ -111,9 +108,9 @@ fn scene_setup_3d(
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash, Default, States)]
 enum AppState {
+    #[default]
     MainSceneLoading, 
     MainScene,
-    #[default]
     ParticleTestScene,
 }
 
@@ -127,7 +124,7 @@ fn main() {
             .set(WindowPlugin {
                 primary_window: Some(Window {
                     title: "Space Game".into(),
-                    // present_mode: PresentMode::Immediate,
+                    present_mode: PresentMode::Immediate,
                     ..default()
                 }), 
                 ..default()
