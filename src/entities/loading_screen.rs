@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::AppState;
+use crate::{AppState, LoadingStateItem};
 
 #[derive(Component)]
 pub struct LoadingScreen;
@@ -47,7 +47,9 @@ pub struct LoadingScreenPlugin;
 
 impl Plugin for LoadingScreenPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.add_systems(OnEnter(AppState::MainSceneLoading), loading_screen_setup)
-            .add_systems(OnExit(AppState::MainSceneLoading), loading_screen_cleanup);
+        for LoadingStateItem { loading_state, .. } in AppState::LOADING_STATES {
+            app.add_systems(OnEnter(*loading_state), loading_screen_setup)
+                .add_systems(OnExit(*loading_state), loading_screen_cleanup);
+        }
     }
 }

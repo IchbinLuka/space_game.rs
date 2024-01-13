@@ -106,7 +106,7 @@ fn scene_setup_3d(
     ));
 }
 
-#[derive(Clone, Eq, PartialEq, Debug, Hash, Default, States)]
+#[derive(Clone, Eq, PartialEq, Debug, Hash, Default, States, Copy)]
 enum AppState {
     #[default]
     MainSceneLoading, 
@@ -114,8 +114,32 @@ enum AppState {
     ParticleTestScene,
 }
 
+struct LoadingStateItem {
+    loading_state: AppState,
+    next_state: AppState,
+}
+
+impl AppState {
+    pub const LOADING_STATES: &'static [LoadingStateItem] = &[
+        LoadingStateItem {
+            loading_state: AppState::MainSceneLoading,
+            next_state: AppState::MainScene,
+        },
+    ];
+}
+
 fn main() {
-    App::new()
+    let mut app = App::new();
+
+    // Add loading states
+    for LoadingStateItem { loading_state, next_state } in AppState::LOADING_STATES {
+        app.add_loading_state(
+            LoadingState::new(*loading_state)
+                .continue_to_state(*next_state)
+        );
+    }
+
+    app
         .add_plugins(DefaultPlugins
             .set(LogPlugin {
                 level: bevy::log::Level::INFO,
@@ -142,10 +166,6 @@ fn main() {
         ))
         .add_state::<AppState>()
         .add_systems(Startup, setup_physics)
-        .add_loading_state(
-            LoadingState::new(AppState::MainSceneLoading)
-                .continue_to_state(AppState::MainScene)
-        )
         .add_plugins((
             ScenePlugin3D, 
             EntitiesPlugin, 
@@ -153,6 +173,7 @@ fn main() {
             ParticlesPlugin, 
             SceneOutlinePlugin, 
             UIPlugin, 
-        ))
-        .run();
+        ));
+    
+    app.run();
 }
