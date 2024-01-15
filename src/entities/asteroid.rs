@@ -10,12 +10,12 @@ use crate::{
     components::{colliders::VelocityColliderBundle, despawn_after::DespawnAfter},
     utils::{
         materials::{default_outline, matte_material},
-        sets::Set,
+        sets::Set, misc::CollidingEntitiesExtension,
     },
-    AppState, particles::ParticleMaterial,
+    AppState, particles::ParticleMaterial, ui::score::ScoreEvent,
 };
 
-use super::{bullet::BULLET_COLLISION_GROUP, explosion::ExplosionEvent, spaceship::player::Player};
+use super::{bullet::{BULLET_COLLISION_GROUP, Bullet}, explosion::ExplosionEvent, spaceship::player::Player};
 
 #[derive(Component)]
 pub struct Asteroid;
@@ -116,8 +116,10 @@ fn asteroid_collisions(
     mut commands: Commands,
     query: Query<(Entity, &CollidingEntities, &GlobalTransform), With<Asteroid>>,
     mut explosions: EventWriter<ExplosionEvent>,
+    bullet_query: Query<(), With<Bullet>>,
     res: Res<AsteroidRes>,
     time: Res<Time>,
+    mut score_events: EventWriter<ScoreEvent>,
 ) {
     const NUM_DESTRUCTION_PARTICLES: usize = 20;
 
@@ -129,6 +131,13 @@ fn asteroid_collisions(
         commands.entity(entity).despawn_recursive();
 
         let transform = global_transform.compute_transform();
+
+        if colliding.fulfills_query(&bullet_query) {
+            score_events.send(ScoreEvent { 
+                score: 100, 
+                world_pos: transform.translation
+            });
+        }
 
         explosions.send(ExplosionEvent {
             position: transform.translation,
@@ -303,7 +312,9 @@ impl Plugin for AsteroidPlugin {
                 Update,
                 (
                     asteroid_spawn,
-                    asteroid_collisions.in_set(Set::ExplosionEvents),
+                    asteroid_collisions
+                        .in_set(Set::ExplosionEvents)
+                        .in_set(Set::ScoreEvents),
                     spawn_asteroid_field,
                     despawn_asteroid_field,
                 )

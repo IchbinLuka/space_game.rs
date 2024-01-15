@@ -4,4 +4,5 @@ use bevy::ecs::schedule::SystemSet;
 pub enum Set {
     BulletEvents,
     ExplosionEvents,
+    ScoreEvents, 
 }

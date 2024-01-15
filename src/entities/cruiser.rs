@@ -4,7 +4,7 @@ use bevy_mod_outline::OutlineBundle;
 use bevy_rapier3d::dynamics::Velocity;
 
 use crate::{
-    components::colliders::VelocityColliderBundle, utils::materials::default_outline, AppState,
+    components::colliders::VelocityColliderBundle, utils::materials::default_outline, AppState, ui::node_3d_renderer::Node3DObject,
 };
 
 #[derive(Component)]
@@ -40,8 +40,35 @@ fn cruiser_setup(mut commands: Commands, assets: Res<CruiserAssets>) {
         OutlineBundle {
             outline: default_outline(),
             ..default()
-        },
+        }, 
     ));
+
+    commands.spawn((NodeBundle {
+        transform: Transform::from_translation(Vec3::Y * 10.0), 
+        ..default()
+    }, Node3DObject {
+        world_pos: Vec3::ZERO
+    })).with_children(|c| {
+        c.spawn(TextBundle {
+            text: Text {
+                sections: vec![
+                    TextSection {
+                        value: "Cruiser".to_string(),
+                        style: TextStyle {
+                            font_size: 20.0,
+                            color: Color::WHITE,
+                            ..default()
+                        },
+                    },
+                ], 
+                ..default()
+            },
+            ..default()
+        });
+    });
+
+
+    // commands.entity(cruiser).push_children(&[label]);
 }
 
 pub struct CruiserPLugin;

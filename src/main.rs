@@ -148,7 +148,7 @@ fn main() {
             .set(WindowPlugin {
                 primary_window: Some(Window {
                     title: "Space Game".into(),
-                    present_mode: PresentMode::Immediate,
+                    present_mode: PresentMode::AutoVsync,
                     ..default()
                 }), 
                 ..default()
