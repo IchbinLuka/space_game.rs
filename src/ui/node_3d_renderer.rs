@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+use crate::utils::sets::Set;
+
 
 #[derive(Component)]
 pub struct Node3DObject {
@@ -25,7 +27,7 @@ fn node_3d_renderer_update(
         style.left = Val::Px(screen_pos.x);
         style.top = Val::Px(screen_pos.y);
 
-        info!("Node position: {:?}", screen_pos);
+        // info!("Node position: {:?}", screen_pos);
     }
 }
 
@@ -35,7 +37,7 @@ pub struct Node3DRendererPlugin;
 impl Plugin for Node3DRendererPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Update, (
-            node_3d_renderer_update, 
+            node_3d_renderer_update.after(Set::CameraMovement), 
         ));
     }
 }

@@ -72,8 +72,8 @@ pub struct ScenePlugin3D;
 impl Plugin for ScenePlugin3D {
     fn build(&self, app: &mut App) {
         app
-            .add_systems(Startup, scene_setup_3d)
-            .add_systems(Update, movement_system);
+            .add_systems(OnEnter(AppState::MainScene), scene_setup_3d)
+            .add_systems(Update, movement_system.run_if(in_state(AppState::MainScene)));
     }
 }
 

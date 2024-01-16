@@ -21,7 +21,8 @@ fn health_bar_setup(mut commands: Commands, mut materials: ResMut<Assets<RoundUi
         .spawn(MaterialNodeBundle {
             style: Style {
                 left: Val::Px(10.0),
-                top: Val::Px(10.0),
+                bottom: Val::Px(10.0),
+                position_type: PositionType::Absolute,
                 width: Val::Px(PANEL_WIDTH),
                 height: Val::Px(PANEL_HEIGHT),
                 padding: UiRect::all(Val::Px(PADDING)),

@@ -1,17 +1,20 @@
 use bevy::{
     core_pipeline::{clear_color::ClearColorConfig, Skybox},
     prelude::*,
-    render::render_resource::{TextureViewDescriptor, TextureViewDimension},
+    render::{render_resource::{TextureViewDescriptor, TextureViewDimension}, view::RenderLayers},
 };
 use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
 use bevy_toon_shader::ToonShaderMainCamera;
 
-use crate::{AppState, Movement};
+use crate::{AppState, Movement, utils::sets::Set};
 
 use super::spaceship::player::Player;
 
 #[derive(Component)]
 pub struct CameraComponent;
+
+
+pub const RENDER_LAYER_2D: u8 = 1;
 
 fn camera_follow_system(
     mut camera_query: Query<&mut Transform, (With<CameraComponent>, Without<Player>)>,
@@ -68,6 +71,20 @@ fn camera_setup(
         ToonShaderMainCamera,
         Movement::default(),
     ));
+
+    commands.spawn((
+        Camera2dBundle {
+            camera_2d: Camera2d {
+                clear_color: ClearColorConfig::None, 
+            },  
+            camera: Camera {
+                order: 1, 
+                ..default()
+            }, 
+            ..default()
+        }, 
+        RenderLayers::layer(RENDER_LAYER_2D), 
+    ));
 }
 
 #[derive(AssetCollection, Resource)]
@@ -84,7 +101,9 @@ impl Plugin for CameraComponentPlugin {
             .add_systems(OnEnter(AppState::MainScene), camera_setup)
             .add_systems(
                 Update,
-                camera_follow_system.run_if(in_state(AppState::MainScene)),
+                camera_follow_system
+                    .in_set(Set::CameraMovement)
+                    .run_if(in_state(AppState::MainScene)),
             );
     }
 }
