@@ -54,7 +54,6 @@ fn score_events(
                                 color: Color::WHITE,
                                 ..default()
                             }, 
-                            ..default()
                         }
                     ], 
                     ..default()

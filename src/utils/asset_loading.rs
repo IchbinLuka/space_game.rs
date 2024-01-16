@@ -15,7 +15,7 @@ impl AppExtension for App {
         T: AssetCollection + Resource,
     {
         for state in states {
-            self.add_collection_to_loading_state::<_, T>(state.clone());
+            self.add_collection_to_loading_state::<_, T>(*state);
         }
         self
     }

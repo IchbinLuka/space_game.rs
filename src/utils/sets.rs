@@ -5,4 +5,5 @@ pub enum Set {
     BulletEvents,
     ExplosionEvents,
     ScoreEvents, 
+    _CameraMovement, 
 }
