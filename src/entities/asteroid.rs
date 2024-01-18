@@ -134,7 +134,7 @@ fn asteroid_collisions(
 
         if colliding.fulfills_query(&bullet_query) {
             score_events.send(ScoreEvent { 
-                score: 100, 
+                score: 10, 
                 world_pos: transform.translation
             });
         }

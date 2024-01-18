@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_rapier3d::dynamics::Velocity;
 use rand::Rng;
 
-use crate::{components::movement::MaxSpeed, entities::{bullet::BulletSpawnEvent, explosion::ExplosionEvent}, AppState};
+use crate::{components::movement::MaxSpeed, entities::{bullet::BulletSpawnEvent, explosion::ExplosionEvent}, AppState, ui::score::ScoreEvent};
 
 use super::{
     IsBot, IsPlayer, LastBulletInfo, ParticleSpawnEvent, SpaceshipAssets, SpaceshipBundle, Health,
@@ -46,6 +46,7 @@ fn spawn_bot(
 fn bot_death(
     mut commands: Commands, 
     mut explosions: EventWriter<ExplosionEvent>,
+    mut scores: EventWriter<ScoreEvent>,
     bots: Query<(Entity, &Transform, &Health), IsBot>,
 ) {
     for (entity, transform, health) in &bots {
@@ -53,6 +54,10 @@ fn bot_death(
             explosions.send(ExplosionEvent {
                 parent: Some(entity),
                 position: transform.translation,
+            });
+            scores.send(ScoreEvent {
+                score: 300, 
+                world_pos: transform.translation,
             });
             commands.entity(entity).despawn_recursive();
         }

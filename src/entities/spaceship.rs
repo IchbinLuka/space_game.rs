@@ -26,8 +26,8 @@ use super::{
 pub mod bot;
 pub mod player;
 
-type IsPlayer = (With<Player>, Without<Bot>);
-type IsBot = (With<Bot>, Without<Player>);
+pub type IsPlayer = (With<Player>, Without<Bot>);
+pub type IsBot = (With<Bot>, Without<Player>);
 
 #[derive(Component)]
 pub struct Health(pub f32);
