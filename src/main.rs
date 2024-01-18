@@ -97,6 +97,7 @@ fn scene_setup_3d(
             directional_light: DirectionalLight {
                 illuminance: 10000.0, 
                 color: Color::hex("fcd4b5").unwrap(), 
+                shadows_enabled: false, 
                 ..default()
             }, 
             transform: Transform::from_xyz(0.0, 40.0, 0.0).with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2 + 0.1)),

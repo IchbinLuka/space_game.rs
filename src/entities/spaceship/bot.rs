@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_rapier3d::dynamics::Velocity;
 use rand::Rng;
 
-use crate::{components::movement::MaxSpeed, entities::{bullet::BulletSpawnEvent, explosion::ExplosionEvent}, AppState, ui::score::ScoreEvent};
+use crate::{components::movement::MaxSpeed, entities::{bullet::BulletSpawnEvent, explosion::ExplosionEvent}, AppState, ui::{score::ScoreEvent, enemy_indicator::{EnemyIndicatorBundle, EnemyIndicatorRes}}};
 
 use super::{
     IsBot, IsPlayer, LastBulletInfo, ParticleSpawnEvent, SpaceshipAssets, SpaceshipBundle, Health,
@@ -29,17 +29,22 @@ fn spawn_bot(
     mut spawn_events: EventReader<BotSpawnEvent>,
     mut commands: Commands,
     assets: Res<SpaceshipAssets>,
+    indicator_res: Res<EnemyIndicatorRes>,
 ) {
     for event in spawn_events.read() {
-        commands.spawn((
+        let entity = commands.spawn((
             Bot {
                 state: event.initial_state,
             },
             LastBulletInfo::default(),
-            SpaceshipBundle::new(assets.enemy_ship.clone(), Vec3::new(0.0, 0.0, 10.0)),
+            SpaceshipBundle::new(assets.enemy_ship.clone(), event.pos),
             MaxSpeed { max_speed: 30.0 },
             Health(20.0), 
-        ));
+        )).id();
+
+        commands.spawn(
+            EnemyIndicatorBundle::new(&indicator_res, entity),
+        );
     }
 }
 
@@ -160,6 +165,14 @@ fn bot_update(
 fn bot_setup(mut bot_events: EventWriter<BotSpawnEvent>) {
     bot_events.send(BotSpawnEvent {
         pos: Vec3::new(0.0, 0.0, 100.0),
+        initial_state: BotState::Chasing,
+    });
+    bot_events.send(BotSpawnEvent {
+        pos: Vec3::new(100.0, 0.0, 100.0),
+        initial_state: BotState::Chasing,
+    });
+    bot_events.send(BotSpawnEvent {
+        pos: Vec3::new(-100.0, 0.0, 100.0),
         initial_state: BotState::Chasing,
     });
 }
