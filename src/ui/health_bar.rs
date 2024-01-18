@@ -5,7 +5,7 @@ use bevy_round_ui::{
 };
 
 use crate::{
-    entities::spaceship::{player::Player, Health},
+    entities::spaceship::{Health, IsPlayer},
     AppState,
 };
 
@@ -59,7 +59,7 @@ fn health_bar_setup(mut commands: Commands, mut materials: ResMut<Assets<RoundUi
 }
 
 fn health_bar_update(
-    player_query: Query<&Health, With<Player>>,
+    player_query: Query<&Health, (IsPlayer, Changed<Health>)>,
     mut health_bar_query: Query<&mut Style, With<HealthBarContent>>,
 ) {
     let Ok(player_health) = player_query.get_single() else {

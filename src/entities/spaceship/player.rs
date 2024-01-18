@@ -1,13 +1,13 @@
 use bevy::{prelude::*, render::render_resource::PrimitiveTopology};
-use bevy_rapier3d::dynamics::Velocity;
+use bevy_rapier3d::{dynamics::Velocity, geometry::CollidingEntities};
 
 use crate::{
     components::{
         gravity::{gravity_step, GravitySource},
         movement::MaxSpeed,
     },
-    entities::{bullet::BulletSpawnEvent, planet::Planet},
-    utils::sets::Set,
+    entities::{bullet::{BulletSpawnEvent, Bullet}, planet::Planet},
+    utils::{sets::Set, misc::CollidingEntitiesExtension},
     AppState,
 };
 
@@ -17,6 +17,9 @@ use super::{
 
 #[derive(Component)]
 pub struct Player;
+
+#[derive(Component)]
+struct LastHit(Option<f32>);
 
 fn player_shoot(
     keyboard_input: Res<Input<KeyCode>>,
@@ -59,6 +62,7 @@ fn player_setup(mut commands: Commands, assets: Res<SpaceshipAssets>) {
         SpaceshipBundle::new(assets.player_ship.clone(), Vec3::ZERO),
         Health(100.0),
         MaxSpeed { max_speed: 60.0 },
+        LastHit(None), 
     ));
 }
 
@@ -181,6 +185,35 @@ fn player_line_update(
     }
 }
 
+fn player_regeneration(
+    mut players: Query<(&mut Health, &LastHit), IsPlayer>,
+    time: Res<Time>,
+) {
+    const HEAL_COOLDOWN: f32 = 4.0;
+
+    for (mut health, last_hit) in &mut players {
+        if let Some(last_hit) = last_hit.0 {
+            if time.elapsed_seconds() - last_hit < HEAL_COOLDOWN {
+                continue;
+            }
+        }
+
+        health.heal(2.0 * time.delta_seconds());
+    }
+}
+
+fn player_collision(
+    mut players: Query<(&CollidingEntities, &mut LastHit), IsPlayer>, 
+    bullet_query: Query<(), (With<Bullet>, Without<Player>)>, 
+    time: Res<Time>,
+) {
+    for (colliding, mut last_hit) in &mut players {
+        if colliding.fulfills_query(&bullet_query) {
+            last_hit.0 = Some(time.elapsed_seconds());
+        }
+    }
+}
+
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
@@ -195,6 +228,8 @@ impl Plugin for PlayerPlugin {
                 player_shoot.in_set(Set::BulletEvents),
                 player_input,
                 player_line_update,
+                player_regeneration,
+                player_collision, 
             )
                 .run_if(in_state(AppState::MainScene)),
         );

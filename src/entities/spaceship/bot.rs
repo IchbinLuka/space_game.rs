@@ -55,7 +55,7 @@ fn bot_death(
     bots: Query<(Entity, &Transform, &Health), IsBot>,
 ) {
     for (entity, transform, health) in &bots {
-        if health.0 <= 0.0 {
+        if health.is_dead() {
             explosions.send(ExplosionEvent {
                 parent: Some(entity),
                 position: transform.translation,
