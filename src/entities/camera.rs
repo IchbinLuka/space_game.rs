@@ -50,12 +50,12 @@ fn camera_setup(
         });
     }
 
-    let mut camera_tranform = Transform::from_xyz(0.0, 70.0, 0.0);
-    camera_tranform.rotate(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2));
+    let mut camera_transform = Transform::from_xyz(0.0, 70.0, 0.0);
+    camera_transform.rotate(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2));
 
     commands.spawn((
         Camera3dBundle {
-            transform: camera_tranform,
+            transform: camera_transform,
             projection: Projection::Perspective(PerspectiveProjection {
                 far: 10000.0,
                 ..default()

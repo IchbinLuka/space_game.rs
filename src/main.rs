@@ -1,6 +1,11 @@
 #![allow(clippy::type_complexity)] // Query types can be really complex
 #![feature(let_chains)]
 
+#[macro_use]
+extern crate rust_i18n;
+
+i18n!();
+
 
 use bevy::{prelude::*, log::LogPlugin, window::PresentMode};
 use bevy_asset_loader::loading_state::{LoadingStateAppExt, LoadingState};
@@ -130,6 +135,8 @@ impl AppState {
 }
 
 fn main() {
+    rust_i18n::set_locale("de");
+
     let mut app = App::new();
 
     // Add loading states

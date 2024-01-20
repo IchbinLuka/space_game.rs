@@ -1,0 +1,4 @@
+_version: 1
+hello: Hallo Welt!
+score: "Punkte: %{score}"
+cruiser: Kreuzer

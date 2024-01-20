@@ -47,7 +47,7 @@ fn cruiser_setup(mut commands: Commands, assets: Res<CruiserAssets>) {
 
     commands.spawn((
         Text2dBundle {
-            text: Text::from_section("Cruiser", default()), 
+            text: Text::from_section(t!("cruiser"), default()), 
             ..default()
         }, 
         RenderLayers::layer(RENDER_LAYER_2D), 

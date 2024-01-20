@@ -1,7 +1,7 @@
 use::bevy::prelude::*;
 use bevy::{sprite::Anchor, render::view::RenderLayers};
 
-use crate::{utils::sets::Set, AppState};
+use crate::{utils::sets::Set, AppState, entities::camera::RENDER_LAYER_2D};
 
 use super::fonts::FontsResource;
 
@@ -72,7 +72,7 @@ fn score_events(
             ScoreElement {
                 score: event.score
             }, 
-            RenderLayers::layer(1), 
+            RenderLayers::layer(RENDER_LAYER_2D), 
         ));
     }
 }
@@ -131,7 +131,7 @@ fn score_setup(
                 text: Text {
                     sections: vec![
                         TextSection {
-                            value: "Score: ".to_string(),
+                            value: t!("score", score = 0).to_string(),
                             style: TextStyle {
                                 font_size: 60.0,
                                 font: font_resource.mouse_memoirs.clone(), 
@@ -155,7 +155,7 @@ fn score_update(
 ) {
     if !score.is_changed() { return; }
     for mut text in &mut score_query {
-        text.sections[0].value = format!("Score: {}", score.0);
+        text.sections[0].value = t!("score", score = score.0).to_string();
     }
 }
 

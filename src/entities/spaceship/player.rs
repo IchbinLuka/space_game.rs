@@ -1,4 +1,5 @@
 use bevy::{prelude::*, render::render_resource::PrimitiveTopology};
+
 use bevy_rapier3d::{dynamics::Velocity, geometry::CollidingEntities};
 
 use crate::{
@@ -229,9 +230,8 @@ impl Plugin for PlayerPlugin {
                 player_input,
                 player_line_update,
                 player_regeneration,
-                player_collision, 
-            )
-                .run_if(in_state(AppState::MainScene)),
+                player_collision,
+            ).run_if(in_state(AppState::MainScene)),
         );
     }
 }

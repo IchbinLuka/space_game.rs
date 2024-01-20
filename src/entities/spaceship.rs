@@ -126,7 +126,7 @@ impl SpaceshipBundle {
                     visible: true,
                     colour: Color::BLACK,
                     width: 3.0,
-                },
+                }, 
                 ..default()
             },
             scene_bundle: SceneBundle {
