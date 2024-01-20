@@ -12,7 +12,7 @@ use crate::{
         materials::{default_outline, matte_material},
         sets::Set, misc::CollidingEntitiesExtension,
     },
-    AppState, particles::ParticleMaterial, ui::score::ScoreEvent,
+    AppState, particles::ParticleMaterial, ui::score::ScoreEvent, entities::bullet::BulletType,
 };
 
 use super::{bullet::{BULLET_COLLISION_GROUP, Bullet}, explosion::ExplosionEvent, spaceship::player::Player};
@@ -116,7 +116,7 @@ fn asteroid_collisions(
     mut commands: Commands,
     query: Query<(Entity, &CollidingEntities, &GlobalTransform), With<Asteroid>>,
     mut explosions: EventWriter<ExplosionEvent>,
-    bullet_query: Query<(), With<Bullet>>,
+    bullet_query: Query<&Bullet>,
     res: Res<AsteroidRes>,
     time: Res<Time>,
     mut score_events: EventWriter<ScoreEvent>,
@@ -132,11 +132,14 @@ fn asteroid_collisions(
 
         let transform = global_transform.compute_transform();
 
-        if colliding.fulfills_query(&bullet_query) {
-            score_events.send(ScoreEvent { 
-                score: 10, 
-                world_pos: transform.translation
-            });
+        for bullet in colliding.filter_fulfills_query(&bullet_query) {
+            if bullet.bullet_type == BulletType::Player {
+                score_events.send(ScoreEvent {
+                    score: 10,
+                    world_pos: transform.translation,
+                });
+                break;
+            }
         }
 
         explosions.send(ExplosionEvent {

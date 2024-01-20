@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_rapier3d::dynamics::Velocity;
 use rand::Rng;
 
-use crate::{components::movement::MaxSpeed, entities::{bullet::BulletSpawnEvent, explosion::ExplosionEvent}, AppState, ui::{score::ScoreEvent, enemy_indicator::{EnemyIndicatorBundle, EnemyIndicatorRes}}};
+use crate::{components::movement::MaxSpeed, entities::{bullet::{BulletSpawnEvent, BulletTarget, BulletType}, explosion::ExplosionEvent}, AppState, ui::{score::ScoreEvent, enemy_indicator::{EnemyIndicatorBundle, EnemyIndicatorRes}}};
 
 use super::{
     IsBot, IsPlayer, LastBulletInfo, ParticleSpawnEvent, SpaceshipAssets, SpaceshipBundle, Health,
@@ -40,6 +40,7 @@ fn spawn_bot(
             SpaceshipBundle::new(assets.enemy_ship.clone(), event.pos),
             MaxSpeed { max_speed: 30.0 },
             Health(20.0), 
+            BulletTarget(BulletType::Player),
         )).id();
 
         commands.spawn(
@@ -133,6 +134,7 @@ fn bot_update(
                         entity_velocity: *velocity,
                         direction: transform.forward(),
                         entity,
+                        bullet_type: BulletType::Bot,
                     });
 
                     last_bullet.side = side.other();

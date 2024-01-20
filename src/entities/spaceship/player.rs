@@ -7,7 +7,7 @@ use crate::{
         gravity::{gravity_step, GravitySource},
         movement::MaxSpeed,
     },
-    entities::{bullet::{BulletSpawnEvent, Bullet}, planet::Planet},
+    entities::{bullet::{BulletSpawnEvent, Bullet, BulletTarget, BulletType}, planet::Planet},
     utils::{sets::Set, misc::CollidingEntitiesExtension},
     AppState,
 };
@@ -50,6 +50,7 @@ fn player_shoot(
                 entity_velocity: *velocity,
                 direction: transform.forward(),
                 entity,
+                bullet_type: BulletType::Player,
             });
 
             last_bullet_info.side = side.other();
@@ -64,6 +65,7 @@ fn player_setup(mut commands: Commands, assets: Res<SpaceshipAssets>) {
         Health(100.0),
         MaxSpeed { max_speed: 60.0 },
         LastHit(None), 
+        BulletTarget(BulletType::Bot)
     ));
 }
 

@@ -15,6 +15,16 @@ pub struct Bullet {
     pub spawn_time: Duration,
     pub relative_speed: Vec3,
     pub origin: Entity,
+    pub bullet_type: BulletType,
+}
+
+#[derive(Component)]
+pub struct BulletTarget(pub BulletType);
+
+#[derive(Clone, Copy, PartialEq,  Eq)]
+pub enum BulletType {
+    Player,
+    Bot,
 }
 
 #[derive(Event)]
@@ -23,6 +33,7 @@ pub struct BulletSpawnEvent {
     pub entity_velocity: Velocity,
     pub direction: Vec3,
     pub entity: Entity,
+    pub bullet_type: BulletType,
 }
 
 pub const BULLET_COLLISION_GROUP: Group = Group::GROUP_2;
@@ -89,6 +100,7 @@ fn bullet_spawn(
                 spawn_time: time.elapsed(),
                 relative_speed: event.entity_velocity.linvel,
                 origin: event.entity,
+                bullet_type: event.bullet_type,
             },
             OutlineBundle {
                 outline: OutlineVolume {
@@ -136,11 +148,28 @@ fn bullet_despawn(time: Res<Time>, mut commands: Commands, query: Query<(Entity,
     }
 }
 
-fn bullet_collision(query: Query<(Entity, &Bullet, &CollidingEntities)>, mut commands: Commands) {
+fn bullet_collision(
+    query: Query<(Entity, &Bullet, &CollidingEntities)>, 
+    bullet_target_query: Query<&BulletTarget>,
+    mut commands: Commands
+) {
     for (entity, bullet, colliding_entities) in &query {
         if colliding_entities.is_empty() {
             continue;
         }
+
+        let skip = colliding_entities.iter().all(|e| {
+            if let Ok(bullet_target) = bullet_target_query.get(e) {
+                if bullet_target.0 == bullet.bullet_type {
+                    return false;
+                }
+            }
+            true
+        });
+
+        if skip { continue; }
+
+
         if colliding_entities.iter().all(|e| e == bullet.origin) {
             continue;
         }
