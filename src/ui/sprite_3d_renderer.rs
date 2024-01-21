@@ -5,22 +5,30 @@ use crate::utils::sets::Set;
 
 #[derive(Component)]
 pub struct Node3DObject {
-    pub world_pos: Vec3,
+    pub parent: Entity,
 }
 
 
 fn node_3d_renderer_update(
-    mut node_query: Query<(&mut Transform, &Node3DObject)>,
+    mut node_query: Query<(&Node3DObject, &mut Transform, Entity)>,
+    transform_query: Query<&GlobalTransform, Without<Camera>>,
     camera_query: Query<(&GlobalTransform, &Camera), With<Camera3d>>, 
     window_query: Query<&Window>,
+    mut commands: Commands, 
 ) {
     let Ok((camera_transform, camera)) = camera_query.get_single() else { return; };
     let Ok(window) = window_query.get_single() else { return; };
 
-    for (mut transform, node) in &mut node_query {
+    for (node, mut transform, entity) in &mut node_query {
+        let Ok(global) = transform_query.get(node.parent) else {
+            error!("Entity of Node3DObject must exist and have a GlobalTransform component");
+            commands.entity(entity).despawn_recursive();
+            continue;
+        };
+        
         let Some(screen_pos) = camera.world_to_viewport(
             camera_transform, 
-            node.world_pos, 
+            global.compute_transform().translation, 
         ) else {
             warn!("Could not get viewport position for node");
             continue;
@@ -31,7 +39,6 @@ fn node_3d_renderer_update(
             -screen_pos.y + window.height() / 2.0, 
             0.0
         );
-
         // info!("Node position: {:?}", screen_pos);
     }
 }

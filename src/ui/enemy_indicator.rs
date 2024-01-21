@@ -1,6 +1,6 @@
 use bevy::{prelude::*, render::{render_resource::PrimitiveTopology, view::RenderLayers}, sprite::MaterialMesh2dBundle};
 
-use crate::{AppState, entities::{spaceship::{IsBot, IsPlayer, bot::Bot, player::Player}, camera::RENDER_LAYER_2D}};
+use crate::{AppState, entities::{spaceship::{IsPlayer, bot::Bot, player::Player}, camera::RENDER_LAYER_2D}};
 
 
 #[derive(Component)]
@@ -31,7 +31,7 @@ impl EnemyIndicatorBundle {
 }
 
 fn update_enemy_indicator(
-    enemies: Query<&Transform, IsBot>, 
+    transform_query: Query<&Transform, (Without<Player>, Without<EnemyIndicator>)>, 
     player: Query<&Transform, IsPlayer>,
     mut indicators: Query<
         (&mut Transform, &EnemyIndicator, Entity), 
@@ -43,7 +43,7 @@ fn update_enemy_indicator(
     
     let Ok(player_transform) = player.get_single() else { return; };
     for (mut indicator_transform, indicator, entity) in &mut indicators {
-        let Ok(transform) = enemies.get(indicator.enemy) else { 
+        let Ok(transform) = transform_query.get(indicator.enemy) else { 
             commands.entity(entity).despawn_recursive();
             continue;
         };

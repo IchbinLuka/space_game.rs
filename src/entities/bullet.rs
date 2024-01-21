@@ -127,7 +127,7 @@ fn bullet_spawn(
             source: assets.test_sound.clone(),
             settings: PlaybackSettings {
                 volume: bevy_audio::Volume::Relative(VolumeLevel::new(f32::min(
-                    1.0,
+                    0.5,
                     40.0 / event
                         .position
                         .translation

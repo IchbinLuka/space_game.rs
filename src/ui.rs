@@ -5,6 +5,7 @@ pub mod sprite_3d_renderer;
 pub mod score;
 pub mod fonts;
 pub mod enemy_indicator;
+pub mod health_bar_3d;
 
 pub struct UIPlugin;
 
@@ -16,6 +17,7 @@ impl Plugin for UIPlugin {
             score::ScorePlugin,
             fonts::FontsPlugin,
             enemy_indicator::EnemyIndicatorPlugin,
+            health_bar_3d::HealthBar3DPlugin,
         ));
     }
 }
