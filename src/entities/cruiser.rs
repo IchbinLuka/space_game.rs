@@ -2,6 +2,7 @@ use bevy::{prelude::*, render::view::RenderLayers};
 use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
 use bevy_mod_outline::OutlineBundle;
 use bevy_rapier3d::{dynamics::Velocity, geometry::{Collider, CollidingEntities}};
+use bevy_rapier3d::prelude::*;
 
 use crate::{
     components::colliders::VelocityColliderBundle, utils::{materials::default_outline, misc::CollidingEntitiesExtension}, AppState, ui::{sprite_3d_renderer::Node3DObject, enemy_indicator::{EnemyIndicatorBundle, EnemyIndicatorRes}},
@@ -53,7 +54,10 @@ fn cruiser_setup(
             ..default()
         },
         Cruiser,
-        BulletTarget(BulletType::Player),
+        BulletTarget {
+            target_type: BulletType::Bot, 
+            bullet_damage: None
+        },
         OutlineBundle {
             outline: default_outline(),
             ..default()
@@ -64,7 +68,7 @@ fn cruiser_setup(
             CruiserShield, 
             PbrBundle {
                 mesh: meshes.add(shape::UVSphere {
-                    radius: 10.0, 
+                    radius: 10., 
                     ..default()
                 }.into()), 
                 material: materials.add(StandardMaterial {
@@ -78,7 +82,15 @@ fn cruiser_setup(
                     ..Vec3::ONE
                 }), 
                 ..default()
-            }
+            }, 
+            Collider::ball(10.), 
+            RigidBody::Fixed,  
+            ActiveCollisionTypes::KINEMATIC_STATIC,
+            BulletTarget {
+                target_type: BulletType::Player, 
+                bullet_damage: Some(10.0)
+            },
+            Health(100.0),
         ));
     }).id();
 

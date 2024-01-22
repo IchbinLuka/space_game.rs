@@ -40,7 +40,10 @@ fn spawn_bot(
             SpaceshipBundle::new(assets.enemy_ship.clone(), event.pos),
             MaxSpeed { max_speed: 30.0 },
             Health(20.0), 
-            BulletTarget(BulletType::Player),
+            BulletTarget {
+                target_type: BulletType::Player, 
+                bullet_damage: Some(10.0)
+            },
         )).id();
 
         commands.spawn(

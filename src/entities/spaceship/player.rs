@@ -65,7 +65,10 @@ fn player_setup(mut commands: Commands, assets: Res<SpaceshipAssets>) {
         Health(100.0),
         MaxSpeed { max_speed: 60.0 },
         LastHit(None), 
-        BulletTarget(BulletType::Bot)
+        BulletTarget {
+            target_type: BulletType::Bot, 
+            bullet_damage: Some(10.0)
+        }
     ));
 }
 

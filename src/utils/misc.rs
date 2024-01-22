@@ -1,4 +1,4 @@
-use bevy::{prelude::*, ecs::query::{WorldQuery, ReadOnlyWorldQuery, ROQueryItem}};
+use bevy::{prelude::*, ecs::query::{ROQueryItem, ReadOnlyWorldQuery, WorldQuery}};
 use bevy_rapier3d::geometry::CollidingEntities;
 
 pub trait CollidingEntitiesExtension {

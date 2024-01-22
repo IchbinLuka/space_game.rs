@@ -193,16 +193,6 @@ fn spaceship_collisions(
             if bullet.origin == entity {
                 continue;
             }
-
-            if let Some(ref mut health) = health {
-                health.take_damage(10.0);
-            }
-
-            explosions.send(ExplosionEvent {
-                parent: Some(entity),
-                ..default()
-            });
-            // TODO: Add bullet damage
         }
     }
 }

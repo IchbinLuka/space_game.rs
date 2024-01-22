@@ -8,7 +8,7 @@ use bevy_rapier3d::prelude::*;
 
 use crate::{components::gravity::GravityAffected, utils::sets::Set, AppState};
 
-use super::spaceship::player::Player;
+use super::{explosion::ExplosionEvent, spaceship::{player::Player, Health}};
 
 #[derive(Component)]
 pub struct Bullet {
@@ -19,7 +19,10 @@ pub struct Bullet {
 }
 
 #[derive(Component)]
-pub struct BulletTarget(pub BulletType);
+pub struct BulletTarget {
+    pub target_type: BulletType,
+    pub bullet_damage: Option<f32>,
+}
 
 #[derive(Clone, Copy, PartialEq,  Eq)]
 pub enum BulletType {
@@ -149,32 +152,40 @@ fn bullet_despawn(time: Res<Time>, mut commands: Commands, query: Query<(Entity,
 }
 
 fn bullet_collision(
-    query: Query<(Entity, &Bullet, &CollidingEntities)>, 
-    bullet_target_query: Query<&BulletTarget>,
-    mut commands: Commands
+    query: Query<(Entity, &Bullet, &CollidingEntities, &Transform)>, 
+    mut bullet_target_query: Query<(&BulletTarget, &mut Health)>,
+    mut commands: Commands, 
+    mut explosions: EventWriter<ExplosionEvent>,
 ) {
-    for (entity, bullet, colliding_entities) in &query {
+    for (entity, bullet, colliding_entities, transform) in &query {
         if colliding_entities.is_empty() {
             continue;
         }
 
-        let skip = colliding_entities.iter().all(|e| {
-            if let Ok(bullet_target) = bullet_target_query.get(e) {
-                if bullet_target.0 == bullet.bullet_type {
-                    return false;
-                }
+        let mut despawn: bool = false;
+
+        for entity in colliding_entities.iter() {
+            let Ok((bullet_target, mut health)) = bullet_target_query.get_mut(entity) else {
+                continue;
+            };
+
+            if bullet_target.target_type != bullet.bullet_type { continue; }
+
+            if let Some(damage) = bullet_target.bullet_damage {
+                health.take_damage(damage);
             }
-            true
-        });
-
-        if skip { continue; }
-
-
-        if colliding_entities.iter().all(|e| e == bullet.origin) {
-            continue;
+            despawn = true;
         }
-        debug!("Bullet collided with something");
-        commands.entity(entity).despawn_recursive();
+
+        if despawn {
+            explosions.send(ExplosionEvent {
+                position: transform.translation,
+                ..default()
+            });
+
+            debug!("Bullet collided with something");
+            commands.entity(entity).despawn_recursive();
+        }
     }
 }
 
