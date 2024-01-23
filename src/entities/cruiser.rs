@@ -1,14 +1,14 @@
 use bevy::{prelude::*, render::view::RenderLayers};
 use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
 use bevy_mod_outline::OutlineBundle;
-use bevy_rapier3d::{dynamics::Velocity, geometry::{Collider, CollidingEntities}};
+use bevy_rapier3d::{dynamics::Velocity, geometry::Collider};
 use bevy_rapier3d::prelude::*;
 
 use crate::{
-    components::colliders::VelocityColliderBundle, utils::{materials::default_outline, misc::CollidingEntitiesExtension}, AppState, ui::{sprite_3d_renderer::Node3DObject, enemy_indicator::{EnemyIndicatorBundle, EnemyIndicatorRes}},
+    components::colliders::VelocityColliderBundle, utils::materials::default_outline, AppState, ui::{sprite_3d_renderer::Node3DObject, enemy_indicator::{EnemyIndicatorBundle, EnemyIndicatorRes}},
 };
 
-use super::{camera::RENDER_LAYER_2D, bullet::{BulletTarget, BulletType, Bullet}, spaceship::Health, explosion::ExplosionEvent};
+use super::{camera::RENDER_LAYER_2D, bullet::{BulletTarget, BulletType}, spaceship::Health};
 
 #[derive(Component)]
 pub struct Cruiser;
@@ -111,24 +111,13 @@ fn cruiser_setup(
     
 }
 
-
-fn cruiser_collisions(
-    mut cruisers: Query<(&mut Health, &CollidingEntities), With<Cruiser>>,
-    bullet_query: Query<(&Bullet, &Transform)>, 
-    mut explosion_events: EventWriter<ExplosionEvent>,
+fn cruiser_shield_death(
+    query: Query<(Entity, &Health), With<CruiserShield>>, 
+    mut commands: Commands, 
 ) {
-    for (mut health, colliding) in &mut cruisers {
-        for (bullet, bullet_transform) in colliding.filter_fulfills_query(&bullet_query) {
-            if bullet.bullet_type != BulletType::Player {
-                continue;
-            }
-            
-            explosion_events.send(ExplosionEvent { 
-                position: bullet_transform.translation, 
-                ..default()
-            });
-
-            health.take_damage(10.0);
+    for (entity, health) in &query {
+        if health.is_dead() {
+            commands.entity(entity).despawn_recursive();
         }
     }
 }
@@ -138,9 +127,12 @@ pub struct CruiserPLugin;
 impl Plugin for CruiserPLugin {
     fn build(&self, app: &mut App) {
         app.add_collection_to_loading_state::<_, CruiserAssets>(AppState::MainSceneLoading)
-            .add_systems(OnEnter(AppState::MainScene), cruiser_setup)
+            .add_systems(
+                OnEnter(AppState::MainScene), 
+                cruiser_setup
+            )
             .add_systems(Update, (
-                cruiser_collisions,
+                cruiser_shield_death
             ).run_if(in_state(AppState::MainScene)));
     }
 }

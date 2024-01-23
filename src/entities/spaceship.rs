@@ -11,14 +11,14 @@ use crate::{
         colliders::VelocityColliderBundle, despawn_after::DespawnAfter, gravity::GravityAffected,
     },
     particles::fire_particles::FireParticleRes,
-    utils::sets::Set,
+    utils::{misc::CollidingEntitiesExtension, sets::Set},
     AppState,
 };
 
 use self::{bot::Bot, player::Player};
 
 use super::{
-    bullet::{Bullet, BULLET_COLLISION_GROUP},
+    bullet::BULLET_COLLISION_GROUP,
     explosion::ExplosionEvent,
     planet::Planet,
 };
@@ -153,7 +153,6 @@ fn spaceship_collisions(
         With<Spaceship>,
     >,
     planet_query: Query<(&Transform, &Planet), Without<Spaceship>>,
-    bullet_query: Query<&Bullet, Without<Spaceship>>,
     mut explosions: EventWriter<ExplosionEvent>,
 ) {
     for (
@@ -163,13 +162,8 @@ fn spaceship_collisions(
         entity, 
         mut health
     ) in &mut spaceship {
-        
-        if let Some((planet_transform, planet)) = colliding_entities
-            .iter()
-            .map(|e| planet_query.get(e))
-            .find(Result::is_ok)
-            .map(Result::unwrap)
-        {
+
+        for (planet_transform, planet) in colliding_entities.filter_fulfills_query(&planet_query) {
             explosions.send(ExplosionEvent {
                 parent: Some(entity),
                 ..default()
@@ -181,17 +175,6 @@ fn spaceship_collisions(
 
             if let Some(ref mut health) = health {
                 health.take_damage(5.0);
-            }
-        }
-
-        if let Some(bullet) = colliding_entities
-            .iter()
-            .map(|e| bullet_query.get(e))
-            .find(Result::is_ok)
-            .map(Result::unwrap)
-        {
-            if bullet.origin == entity {
-                continue;
             }
         }
     }
