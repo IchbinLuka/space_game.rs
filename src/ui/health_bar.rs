@@ -13,15 +13,15 @@ use crate::{
 struct HealthBarContent;
 
 fn health_bar_setup(mut commands: Commands, mut materials: ResMut<Assets<RoundUiMaterial>>) {
-    const PANEL_WIDTH: f32 = 400.0;
-    const PANEL_HEIGHT: f32 = 40.0;
-    const PADDING: f32 = 5.0;
+    const PANEL_WIDTH: f32 = 400.;
+    const PANEL_HEIGHT: f32 = 40.;
+    const PADDING: f32 = 5.;
 
     commands
         .spawn(MaterialNodeBundle {
             style: Style {
-                left: Val::Px(10.0),
-                bottom: Val::Px(10.0),
+                left: Val::Px(10.),
+                bottom: Val::Px(10.),
                 position_type: PositionType::Absolute,
                 width: Val::Px(PANEL_WIDTH),
                 height: Val::Px(PANEL_HEIGHT),
@@ -30,7 +30,7 @@ fn health_bar_setup(mut commands: Commands, mut materials: ResMut<Assets<RoundUi
             },
             material: materials.add(RoundUiMaterial {
                 background_color: Color::BLACK,
-                border_radius: RoundUiBorder::all(PANEL_HEIGHT / 2.0).into(),
+                border_radius: RoundUiBorder::all(PANEL_HEIGHT / 2.).into(),
                 size: Vec2::new(PANEL_WIDTH, PANEL_HEIGHT),
                 ..default()
             }),
@@ -41,13 +41,13 @@ fn health_bar_setup(mut commands: Commands, mut materials: ResMut<Assets<RoundUi
                 MaterialNodeBundle {
                     material: materials.add(RoundUiMaterial {
                         background_color: Color::hex("#ef4d34").unwrap(),
-                        border_radius: RoundUiBorder::all((PANEL_HEIGHT - PADDING * 2.0) / 2.0)
+                        border_radius: RoundUiBorder::all((PANEL_HEIGHT - PADDING * 2.) / 2.)
                             .into(),
                         ..default()
                     }),
                     style: Style {
-                        width: Val::Percent(100.0),
-                        height: Val::Percent(100.0),
+                        width: Val::Percent(100.),
+                        height: Val::Percent(100.),
                         ..default()
                     },
                     ..default()
@@ -66,7 +66,7 @@ fn health_bar_update(
         return;
     };
     for mut style in &mut health_bar_query {
-        style.width = Val::Percent(player_health.0);
+        style.width = Val::Percent(player_health.health / player_health.max_health * 100.);
     }
 }
 

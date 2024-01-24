@@ -30,20 +30,30 @@ pub type IsPlayer = (With<Player>, Without<Bot>);
 pub type IsBot = (With<Bot>, Without<Player>);
 
 #[derive(Component)]
-pub struct Health(pub f32);
+pub struct Health {
+    pub health: f32,
+    pub max_health: f32,
+}
 
 impl Health {
     pub fn take_damage(&mut self, damage: f32) {
-        self.0 = (self.0 - damage).max(0.0);
+        self.health = (self.health - damage).max(0.0);
     }
 
     pub fn heal(&mut self, amount: f32) {
-        self.0 = (self.0 + amount).min(100.0);
+        self.health = (self.health + amount).min(self.max_health);
     }
 
     #[inline]
     pub fn is_dead(&self) -> bool {
-        self.0 <= 0.0
+        self.health <= 0.0
+    }
+
+    pub fn new(health: f32) -> Self {
+        Self {
+            health,
+            max_health: health,
+        }
     }
 }
 

@@ -1,14 +1,19 @@
-use bevy::{prelude::*, render::view::RenderLayers};
+use bevy::prelude::*;
 use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
 use bevy_mod_outline::OutlineBundle;
 use bevy_rapier3d::{dynamics::Velocity, geometry::Collider};
 use bevy_rapier3d::prelude::*;
 
+use crate::ui::health_bar_3d::HealthBarSpawnEvent;
+use crate::utils::sets::Set;
 use crate::{
-    components::colliders::VelocityColliderBundle, utils::materials::default_outline, AppState, ui::{sprite_3d_renderer::Node3DObject, enemy_indicator::{EnemyIndicatorBundle, EnemyIndicatorRes}},
+    components::colliders::VelocityColliderBundle, 
+    utils::materials::default_outline, 
+    AppState, 
+    ui::enemy_indicator::{EnemyIndicatorBundle, EnemyIndicatorRes},
 };
 
-use super::{camera::RENDER_LAYER_2D, bullet::{BulletTarget, BulletType}, spaceship::Health};
+use super::{bullet::{BulletTarget, BulletType}, spaceship::Health};
 
 #[derive(Component)]
 pub struct Cruiser;
@@ -31,6 +36,7 @@ fn cruiser_setup(
     indicator_res: Res<EnemyIndicatorRes>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    mut health_bar_spawn_events: EventWriter<HealthBarSpawnEvent>,
 ) {
     let Vec3 { x, y, z } = CRUISER_HITBOX_SIZE;
     let entity = commands.spawn((
@@ -62,9 +68,9 @@ fn cruiser_setup(
             outline: default_outline(),
             ..default()
         }, 
-        Health(100.0),
+        Health::new(100.0),
     )).with_children(|c| {
-        c.spawn((
+        let entity = c.spawn((
             CruiserShield, 
             PbrBundle {
                 mesh: meshes.add(shape::UVSphere {
@@ -90,25 +96,15 @@ fn cruiser_setup(
                 target_type: BulletType::Player, 
                 bullet_damage: Some(10.0)
             },
-            Health(100.0),
-        ));
+            Health::new(100.0),
+        )).id();
+
+        health_bar_spawn_events.send(HealthBarSpawnEvent { entity });
     }).id();
 
     commands.spawn(
         EnemyIndicatorBundle::new(&indicator_res, entity),
     );
-
-    commands.spawn((
-        Text2dBundle {
-            text: Text::from_section(t!("cruiser"), default()), 
-            ..default()
-        }, 
-        RenderLayers::layer(RENDER_LAYER_2D), 
-        Node3DObject {
-            parent: entity, 
-        }
-    ));
-    
 }
 
 fn cruiser_shield_death(
@@ -129,7 +125,7 @@ impl Plugin for CruiserPLugin {
         app.add_collection_to_loading_state::<_, CruiserAssets>(AppState::MainSceneLoading)
             .add_systems(
                 OnEnter(AppState::MainScene), 
-                cruiser_setup
+                cruiser_setup.in_set(Set::HealthBarSpawn),
             )
             .add_systems(Update, (
                 cruiser_shield_death

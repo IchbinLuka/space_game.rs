@@ -4,13 +4,13 @@ use crate::utils::sets::Set;
 
 
 #[derive(Component)]
-pub struct Node3DObject {
+pub struct Sprite3DObject {
     pub parent: Entity,
 }
 
 
 fn node_3d_renderer_update(
-    mut node_query: Query<(&Node3DObject, &mut Transform, Entity)>,
+    mut node_query: Query<(&Sprite3DObject, &mut Transform, Entity)>,
     transform_query: Query<&GlobalTransform, Without<Camera>>,
     camera_query: Query<(&GlobalTransform, &Camera), With<Camera3d>>, 
     window_query: Query<&Window>,
@@ -21,7 +21,7 @@ fn node_3d_renderer_update(
 
     for (node, mut transform, entity) in &mut node_query {
         let Ok(global) = transform_query.get(node.parent) else {
-            error!("Entity of Node3DObject must exist and have a GlobalTransform component");
+            warn!("Entity of Sprite3DObject must exist and have a GlobalTransform component. Despawning entity...");
             commands.entity(entity).despawn_recursive();
             continue;
         };

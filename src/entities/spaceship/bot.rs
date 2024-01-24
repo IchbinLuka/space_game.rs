@@ -39,7 +39,7 @@ fn spawn_bot(
             LastBulletInfo::default(),
             SpaceshipBundle::new(assets.enemy_ship.clone(), event.pos),
             MaxSpeed { max_speed: 30.0 },
-            Health(20.0), 
+            Health::new(20.0), 
             BulletTarget {
                 target_type: BulletType::Player, 
                 bullet_damage: Some(10.0)

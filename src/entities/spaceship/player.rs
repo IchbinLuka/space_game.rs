@@ -62,7 +62,7 @@ fn player_setup(mut commands: Commands, assets: Res<SpaceshipAssets>) {
     commands.spawn((
         Player,
         SpaceshipBundle::new(assets.player_ship.clone(), Vec3::ZERO),
-        Health(100.0),
+        Health::new(100.0),
         MaxSpeed { max_speed: 60.0 },
         LastHit(None), 
         BulletTarget {
