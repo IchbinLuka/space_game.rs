@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_rapier3d::dynamics::Velocity;
 use rand::Rng;
 
-use crate::{components::movement::MaxSpeed, entities::{bullet::{BulletSpawnEvent, BulletTarget, BulletType}, explosion::ExplosionEvent}, AppState, ui::{score::ScoreEvent, enemy_indicator::{EnemyIndicatorBundle, EnemyIndicatorRes}}};
+use crate::{components::movement::MaxSpeed, entities::{bullet::{BulletSpawnEvent, BulletTarget, BulletType}, explosion::ExplosionEvent}, AppState, ui::{enemy_indicator::{EnemyIndicatorBundle, EnemyIndicatorRes}, health_bar_3d::HealthBarSpawnEvent, score::ScoreEvent}};
 
 use super::{
     IsBot, IsPlayer, LastBulletInfo, ParticleSpawnEvent, SpaceshipAssets, SpaceshipBundle, Health,
@@ -30,6 +30,7 @@ fn spawn_bot(
     mut commands: Commands,
     assets: Res<SpaceshipAssets>,
     indicator_res: Res<EnemyIndicatorRes>,
+    mut health_bar_spawn_events: EventWriter<HealthBarSpawnEvent>,
 ) {
     for event in spawn_events.read() {
         let entity = commands.spawn((
@@ -45,6 +46,12 @@ fn spawn_bot(
                 bullet_damage: Some(10.0)
             },
         )).id();
+
+        health_bar_spawn_events.send(HealthBarSpawnEvent {
+            entity,
+            scale: 0.2,
+            offset: Vec2::new(0., -20.)
+        });
 
         commands.spawn(
             EnemyIndicatorBundle::new(&indicator_res, entity),

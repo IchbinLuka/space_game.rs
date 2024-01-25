@@ -6,9 +6,9 @@ use bevy_audio::VolumeLevel;
 use bevy_mod_outline::{OutlineBundle, OutlineVolume};
 use bevy_rapier3d::prelude::*;
 
-use crate::{components::gravity::GravityAffected, utils::sets::Set, AppState};
+use crate::{components::{gravity::GravityAffected, health::Health}, utils::sets::Set, AppState};
 
-use super::{explosion::ExplosionEvent, spaceship::{player::Player, Health}};
+use super::{explosion::ExplosionEvent, spaceship::player::Player};
 
 #[derive(Component)]
 pub struct Bullet {

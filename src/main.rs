@@ -166,7 +166,7 @@ fn main() {
             OutlinePlugin, 
             AutoGenerateOutlineNormalsPlugin, 
             RapierPhysicsPlugin::<NoUserData>::default(), 
-            RapierDebugRenderPlugin::default(),
+            // RapierDebugRenderPlugin::default(),
             ToonShaderPlugin, 
             ObjPlugin, 
             ScreenDiagnosticsPlugin::default(), 

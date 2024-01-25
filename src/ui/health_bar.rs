@@ -5,8 +5,7 @@ use bevy_round_ui::{
 };
 
 use crate::{
-    entities::spaceship::{Health, IsPlayer},
-    AppState,
+    components::health::Health, entities::spaceship::IsPlayer, AppState
 };
 
 #[derive(Component)]

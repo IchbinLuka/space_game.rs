@@ -1,6 +1,6 @@
 use bevy::{prelude::*, render::view::RenderLayers, sprite::Anchor};
 
-use crate::{entities::{camera::RENDER_LAYER_2D, spaceship::Health}, utils::sets::Set, AppState};
+use crate::{components::health::Health, entities::camera::RENDER_LAYER_2D, utils::sets::Set, AppState};
 
 use super::sprite_3d_renderer::Sprite3DObject;
 
@@ -10,7 +10,7 @@ const HEALTH_BAR_WIDTH: f32 = 150.;
 const HEALTH_BAR_PADDING: f32 = 2.;
 
 const HEALTH_BAR_CONTENT_WIDTH: f32 = HEALTH_BAR_WIDTH - HEALTH_BAR_PADDING * 2.;
-const HEALTH_BAR_CONTENT_TRANSFORM: Vec3 = Vec3::new(HEALTH_BAR_WIDTH * -0.5 + HEALTH_BAR_PADDING, 0., 0.);
+const HEALTH_BAR_CONTENT_TRANSFORM: Vec3 = Vec3::new(HEALTH_BAR_WIDTH * -0.5 + HEALTH_BAR_PADDING, 0., 1.);
 
 #[derive(Component)]
 pub struct HealthBar3d {
@@ -30,6 +30,8 @@ pub struct HealthBar3dBundle {
 #[derive(Event)]
 pub struct HealthBarSpawnEvent {
     pub entity: Entity,
+    pub scale: f32, 
+    pub offset: Vec2, 
 }
 
 fn health_bar_spawn(
@@ -39,13 +41,14 @@ fn health_bar_spawn(
     for event in events.read() {
         commands.spawn((
             HealthBar3dBackground, 
-            Sprite3DObject { parent: event.entity, }, 
+            Sprite3DObject { parent: event.entity, offset: event.offset }, 
             SpriteBundle {
                 sprite: Sprite { 
                     color: Color::BLACK, 
                     custom_size: Some(Vec2::new(HEALTH_BAR_WIDTH, HEALTH_BAR_HEIGHT)),
                     ..default()
                  },
+                 transform: Transform::from_scale(Vec3::splat(event.scale)), 
                 ..default()
             }, 
             RenderLayers::layer(RENDER_LAYER_2D), 

@@ -59,7 +59,6 @@ fn score_events(
                                 font_size: 40.0,
                                 color: Color::WHITE,
                                 font: font_resource.mouse_memoirs.clone(),
-                                ..default()
                             }, 
                         }
                     ], 
@@ -137,7 +136,6 @@ fn score_setup(
                                 font: font_resource.mouse_memoirs.clone(), 
                                 ..default()
                             }, 
-                            ..default()
                         }
                     ],  
                     ..default()

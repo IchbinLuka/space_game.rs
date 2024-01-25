@@ -4,6 +4,7 @@ use bevy_mod_outline::OutlineBundle;
 use bevy_rapier3d::{dynamics::Velocity, geometry::Collider};
 use bevy_rapier3d::prelude::*;
 
+use crate::components::health::{DespawnOnDeath, Health};
 use crate::ui::health_bar_3d::HealthBarSpawnEvent;
 use crate::utils::sets::Set;
 use crate::{
@@ -13,7 +14,7 @@ use crate::{
     ui::enemy_indicator::{EnemyIndicatorBundle, EnemyIndicatorRes},
 };
 
-use super::{bullet::{BulletTarget, BulletType}, spaceship::Health};
+use super::bullet::{BulletTarget, BulletType};
 
 #[derive(Component)]
 pub struct Cruiser;
@@ -61,13 +62,14 @@ fn cruiser_setup(
         },
         Cruiser,
         BulletTarget {
-            target_type: BulletType::Bot, 
-            bullet_damage: None
+            target_type: BulletType::Player, 
+            bullet_damage: Some(20.)
         },
         OutlineBundle {
             outline: default_outline(),
             ..default()
         }, 
+        DespawnOnDeath, 
         Health::new(100.0),
     )).with_children(|c| {
         let entity = c.spawn((
@@ -99,7 +101,7 @@ fn cruiser_setup(
             Health::new(100.0),
         )).id();
 
-        health_bar_spawn_events.send(HealthBarSpawnEvent { entity });
+        health_bar_spawn_events.send(HealthBarSpawnEvent { entity, scale: 1., offset: Vec2::ZERO });
     }).id();
 
     commands.spawn(
@@ -108,15 +110,23 @@ fn cruiser_setup(
 }
 
 fn cruiser_shield_death(
-    query: Query<(Entity, &Health), With<CruiserShield>>, 
+    query: Query<(Entity, &Health, &Parent), With<CruiserShield>>, 
     mut commands: Commands, 
+    mut health_bar_spawn_events: EventWriter<HealthBarSpawnEvent>, 
 ) {
-    for (entity, health) in &query {
+    for (entity, health, parent) in &query {
         if health.is_dead() {
+            health_bar_spawn_events.send(HealthBarSpawnEvent {
+                entity: parent.get(), 
+                scale: 1., 
+                offset: Vec2::ZERO
+            });
+
             commands.entity(entity).despawn_recursive();
         }
     }
 }
+
 
 pub struct CruiserPLugin;
 
