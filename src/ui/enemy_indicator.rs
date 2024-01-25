@@ -1,4 +1,6 @@
-use bevy::{prelude::*, render::{render_resource::PrimitiveTopology, view::RenderLayers}, sprite::MaterialMesh2dBundle};
+
+
+use bevy::{ecs::system::Command, prelude::*, render::{render_resource::PrimitiveTopology, view::RenderLayers}, sprite::MaterialMesh2dBundle};
 
 use crate::{AppState, entities::{spaceship::{IsPlayer, bot::Bot, player::Player}, camera::RENDER_LAYER_2D}};
 
@@ -8,26 +10,35 @@ pub struct EnemyIndicator {
     enemy: Entity,
 }
 
-#[derive(Bundle)]
-pub struct EnemyIndicatorBundle {
-    enemy_indicator: EnemyIndicator,
-    material_mesh: MaterialMesh2dBundle<ColorMaterial>,
-    render_layer: RenderLayers, 
+pub struct SpawnEnemyIndicator {
+    pub enemy: Entity,
 }
 
-impl EnemyIndicatorBundle {
-    pub fn new(res: &EnemyIndicatorRes, entity: Entity) -> Self {
-        Self {
-            enemy_indicator: EnemyIndicator { enemy: entity },
-            material_mesh: MaterialMesh2dBundle {
+impl Command for SpawnEnemyIndicator {
+    fn apply(self, world: &mut World) {
+        let Some(res) = world.get_resource::<EnemyIndicatorRes>() else {
+            error!("Enemy indicator resources not loaded");
+            return;
+        };
+
+        world.spawn((
+            EnemyIndicator { enemy: self.enemy },
+            MaterialMesh2dBundle {
                 mesh: res.mesh.clone().into(),
                 material: res.material.clone(),
                 transform: Transform::from_scale(Vec3::splat(20.0)), 
                 ..default()
             },
-            render_layer: RenderLayers::layer(RENDER_LAYER_2D),
-        }
+            RenderLayers::layer(RENDER_LAYER_2D),
+        ));
     }
+}
+
+#[derive(Bundle)]
+pub struct EnemyIndicatorBundle {
+    enemy_indicator: EnemyIndicator,
+    material_mesh: MaterialMesh2dBundle<ColorMaterial>,
+    render_layer: RenderLayers, 
 }
 
 fn update_enemy_indicator(

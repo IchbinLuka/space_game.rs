@@ -1,8 +1,20 @@
-use bevy::prelude::*;
+use bevy::{ecs::system::Command, prelude::*};
 use bevy_rapier3d::dynamics::Velocity;
 use rand::Rng;
 
-use crate::{components::movement::MaxSpeed, entities::{bullet::{BulletSpawnEvent, BulletTarget, BulletType}, explosion::ExplosionEvent}, AppState, ui::{enemy_indicator::{EnemyIndicatorBundle, EnemyIndicatorRes}, health_bar_3d::HealthBarSpawnEvent, score::ScoreEvent}};
+use crate::{
+    components::movement::MaxSpeed, 
+    entities::{
+        bullet::{BulletSpawnEvent, BulletTarget, BulletType}, 
+        explosion::ExplosionEvent
+    }, 
+    AppState, 
+    ui::{
+        enemy_indicator::SpawnEnemyIndicator, 
+        health_bar_3d::SpawnHealthBar, 
+        score::ScoreEvent
+    }
+};
 
 use super::{
     IsBot, IsPlayer, LastBulletInfo, ParticleSpawnEvent, SpaceshipAssets, SpaceshipBundle, Health,
@@ -19,26 +31,25 @@ pub enum BotState {
     Fleeing,
 }
 
-#[derive(Event)]
-pub struct BotSpawnEvent {
+
+pub struct SpawnBot {
     pub pos: Vec3,
     pub initial_state: BotState,
 }
 
-fn spawn_bot(
-    mut spawn_events: EventReader<BotSpawnEvent>,
-    mut commands: Commands,
-    assets: Res<SpaceshipAssets>,
-    indicator_res: Res<EnemyIndicatorRes>,
-    mut health_bar_spawn_events: EventWriter<HealthBarSpawnEvent>,
-) {
-    for event in spawn_events.read() {
-        let entity = commands.spawn((
+impl Command for SpawnBot {
+    fn apply(self, world: &mut World) {
+        let Some(assets) = world.get_resource::<SpaceshipAssets>() else {
+            error!("Spaceship assets not loaded");
+            return;
+        };
+
+        let entity = world.spawn((
             Bot {
-                state: event.initial_state,
+                state: self.initial_state,
             },
             LastBulletInfo::default(),
-            SpaceshipBundle::new(assets.enemy_ship.clone(), event.pos),
+            SpaceshipBundle::new(assets.enemy_ship.clone(), self.pos),
             MaxSpeed { max_speed: 30.0 },
             Health::new(20.0), 
             BulletTarget {
@@ -47,15 +58,14 @@ fn spawn_bot(
             },
         )).id();
 
-        health_bar_spawn_events.send(HealthBarSpawnEvent {
+        SpawnHealthBar {
             entity,
             scale: 0.2,
             offset: Vec2::new(0., -20.)
-        });
+        }.apply(world);
 
-        commands.spawn(
-            EnemyIndicatorBundle::new(&indicator_res, entity),
-        );
+        SpawnEnemyIndicator { enemy: entity }.apply(world);
+
     }
 }
 
@@ -98,7 +108,13 @@ fn bot_update(
 ) {
     let mut rng = rand::thread_rng();
 
-    for (mut velocity, mut transform, mut bot, entity, mut last_bullet) in &mut bots {
+    for (
+        mut velocity, 
+        mut transform, 
+        mut bot, 
+        entity, 
+        mut last_bullet
+    ) in &mut bots {
         if !last_bullet.timer.finished() {
             last_bullet.timer.tick(time.delta());
         }
@@ -174,16 +190,18 @@ fn bot_update(
 }
 
 
-fn bot_setup(mut bot_events: EventWriter<BotSpawnEvent>) {
-    bot_events.send(BotSpawnEvent {
+fn bot_setup(mut commands: Commands) {
+    commands.add(SpawnBot {
         pos: Vec3::new(0.0, 0.0, 100.0),
         initial_state: BotState::Chasing,
     });
-    bot_events.send(BotSpawnEvent {
+
+    commands.add(SpawnBot {
         pos: Vec3::new(100.0, 0.0, 100.0),
         initial_state: BotState::Chasing,
     });
-    bot_events.send(BotSpawnEvent {
+
+    commands.add(SpawnBot {
         pos: Vec3::new(-100.0, 0.0, 100.0),
         initial_state: BotState::Chasing,
     });
@@ -194,9 +212,7 @@ pub struct BotPlugin;
 impl Plugin for BotPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_event::<BotSpawnEvent>()
             .add_systems(Update,(
-                spawn_bot, 
                 bot_update, 
                 bot_death,
             ).run_if(in_state(AppState::MainScene)),)

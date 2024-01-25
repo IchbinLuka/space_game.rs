@@ -4,7 +4,7 @@ use bevy::prelude::*;
 use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
 use bevy_mod_outline::OutlineBundle;
 use bevy_rapier3d::prelude::*;
-use rand::{rngs::ThreadRng, seq::SliceRandom, Rng};
+use rand::Rng;
 
 use crate::{
     components::{colliders::VelocityColliderBundle, despawn_after::DespawnAfter},
@@ -20,15 +20,13 @@ use super::{bullet::{BULLET_COLLISION_GROUP, Bullet}, explosion::ExplosionEvent,
 #[derive(Component)]
 pub struct Asteroid;
 
+impl Asteroid {
+    const COLLISION_GROUPS: CollisionGroups = CollisionGroups::new(BULLET_COLLISION_GROUP, Group::ALL);
+}
+
 #[derive(Component)]
 pub struct AsteroidField;
 
-#[derive(Event)]
-pub struct AsteroidSpawnEvent {
-    pub position: Transform,
-    pub velocity: Velocity,
-    pub size: f32,
-}
 
 #[derive(Event)]
 pub struct AsteroidDestructionEvent {
@@ -51,9 +49,9 @@ fn spawn_asteroid_field(
         });
         if spawn_asteroid_field {
             let mut rng = rand::thread_rng();
-            let position = player_transform.translation
-                + player_velocity.linvel.normalize() * 100.0
-                + Vec3::new(rng.gen_range(-50.0..50.0), 0.0, rng.gen_range(-50.0..50.0));
+            let position = player_transform.translation + 
+                player_velocity.linvel.normalize() * 100.0 + 
+                Vec3::new(rng.gen_range(-50.0..50.0), 0.0, rng.gen_range(-50.0..50.0));
             commands
                 .spawn((
                     AsteroidField,
@@ -77,17 +75,35 @@ fn spawn_asteroid_field(
                         );
                         let angvel = Vec3::Y * (rng.gen_range(-0.5..0.5));
 
-                        c.spawn(AsteroidBundle::random(
-                            &mut rng,
-                            &res,
-                            &assets,
-                            Transform {
-                                translation,
-                                rotation,
-                                scale,
+                        let mesh = if rng.gen::<bool>() {
+                            assets.asteroid_1.clone()
+                        } else {
+                            assets.asteroid_2.clone()
+                        };
+
+                        c.spawn(AsteroidBundle {
+                            mesh_bundle: MaterialMeshBundle {
+                                mesh: mesh.clone(),
+                                material: res.material.clone(),
+                                transform: Transform {
+                                    translation,
+                                    rotation,
+                                    scale,
+                                },
+                                ..default()
                             },
-                            Velocity { linvel, angvel },
-                        ));
+                            asteroid: Asteroid,
+                            velocity_collider_bundle: VelocityColliderBundle {
+                                velocity: Velocity { linvel, angvel },
+                                collider: Collider::ball(1.0),
+                                ..default()
+                            },
+                            outline_bundle: OutlineBundle {
+                                outline: default_outline(),
+                                ..default()
+                            },
+                            collision_groups: Asteroid::COLLISION_GROUPS,
+                        });
                     }
                 });
         }
@@ -182,43 +198,6 @@ fn asteroid_collisions(
     }
 }
 
-fn asteroid_spawn(
-    mut commands: Commands,
-    mut spawn_events: EventReader<AsteroidSpawnEvent>,
-    assets: Res<AsteroidAssets>,
-    res: Res<AsteroidRes>,
-) {
-    let collision_groups = CollisionGroups::new(BULLET_COLLISION_GROUP, Group::ALL);
-
-    if spawn_events.is_empty() {
-        return;
-    }
-    let mut rng = rand::thread_rng();
-    let asteroids = [assets.asteroid_1.clone(), assets.asteroid_2.clone()];
-    for event in spawn_events.read() {
-        let mesh = asteroids.choose(&mut rng).unwrap();
-        commands.spawn((
-            MaterialMeshBundle {
-                mesh: mesh.clone(),
-                material: res.material.clone(),
-                transform: event.position,
-                ..default()
-            },
-            Asteroid,
-            VelocityColliderBundle {
-                velocity: event.velocity,
-                collider: Collider::ball(1.0),
-                ..default()
-            },
-            OutlineBundle {
-                outline: default_outline(),
-                ..default()
-            },
-            collision_groups,
-        ));
-    }
-}
-
 #[derive(Bundle)]
 struct AsteroidBundle {
     mesh_bundle: MaterialMeshBundle<StandardMaterial>,
@@ -228,43 +207,6 @@ struct AsteroidBundle {
     collision_groups: CollisionGroups,
 }
 
-impl AsteroidBundle {
-    const COLLISION_GROUPS: CollisionGroups =
-        CollisionGroups::new(BULLET_COLLISION_GROUP, Group::ALL);
-
-    fn random(
-        rng: &mut ThreadRng,
-        res: &AsteroidRes,
-        assets: &AsteroidAssets,
-        position: Transform,
-        velocity: Velocity,
-    ) -> Self {
-        let mesh = if rng.gen::<bool>() {
-            assets.asteroid_1.clone()
-        } else {
-            assets.asteroid_2.clone()
-        };
-        Self {
-            mesh_bundle: MaterialMeshBundle {
-                mesh,
-                material: res.material.clone(),
-                transform: position,
-                ..default()
-            },
-            asteroid: Asteroid,
-            velocity_collider_bundle: VelocityColliderBundle {
-                velocity,
-                collider: Collider::ball(1.0),
-                ..default()
-            },
-            outline_bundle: OutlineBundle {
-                outline: default_outline(),
-                ..default()
-            },
-            collision_groups: Self::COLLISION_GROUPS,
-        }
-    }
-}
 
 #[derive(AssetCollection, Resource)]
 struct AsteroidAssets {
@@ -314,7 +256,6 @@ impl Plugin for AsteroidPlugin {
             .add_systems(
                 Update,
                 (
-                    asteroid_spawn,
                     asteroid_collisions
                         .in_set(Set::ExplosionEvents)
                         .in_set(Set::ScoreEvents),
@@ -323,7 +264,6 @@ impl Plugin for AsteroidPlugin {
                 )
                     .run_if(in_state(AppState::MainScene)),
             )
-            .add_event::<AsteroidSpawnEvent>()
             .add_event::<AsteroidDestructionEvent>();
     }
 }

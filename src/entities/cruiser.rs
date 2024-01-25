@@ -5,13 +5,13 @@ use bevy_rapier3d::{dynamics::Velocity, geometry::Collider};
 use bevy_rapier3d::prelude::*;
 
 use crate::components::health::{DespawnOnDeath, Health};
-use crate::ui::health_bar_3d::HealthBarSpawnEvent;
+use crate::ui::enemy_indicator::SpawnEnemyIndicator;
+use crate::ui::health_bar_3d::SpawnHealthBar;
 use crate::utils::sets::Set;
 use crate::{
     components::colliders::VelocityColliderBundle, 
     utils::materials::default_outline, 
-    AppState, 
-    ui::enemy_indicator::{EnemyIndicatorBundle, EnemyIndicatorRes},
+    AppState,
 };
 
 use super::bullet::{BulletTarget, BulletType};
@@ -34,10 +34,9 @@ const CRUISER_HITBOX_SIZE: Vec3 = Vec3::new(3.5, 3., 13.);
 fn cruiser_setup(
     mut commands: Commands, 
     assets: Res<CruiserAssets>, 
-    indicator_res: Res<EnemyIndicatorRes>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut health_bar_spawn_events: EventWriter<HealthBarSpawnEvent>,
+
 ) {
     let Vec3 { x, y, z } = CRUISER_HITBOX_SIZE;
     let entity = commands.spawn((
@@ -71,52 +70,50 @@ fn cruiser_setup(
         }, 
         DespawnOnDeath, 
         Health::new(100.0),
-    )).with_children(|c| {
-        let entity = c.spawn((
-            CruiserShield, 
-            PbrBundle {
-                mesh: meshes.add(shape::UVSphere {
-                    radius: 10., 
-                    ..default()
-                }.into()), 
-                material: materials.add(StandardMaterial {
-                    base_color: Color::hex("2ae0ed0f").unwrap(), 
-                    unlit: true, 
-                    alpha_mode: AlphaMode::Blend, 
-                    ..default()
-                }),
-                transform: Transform::from_scale(Vec3 {
-                    z: 2., 
-                    ..Vec3::ONE
-                }), 
+    )).id();
+
+    let child = commands.spawn((
+        CruiserShield, 
+        PbrBundle {
+            mesh: meshes.add(shape::UVSphere {
+                radius: 10., 
                 ..default()
-            }, 
-            Collider::ball(10.), 
-            RigidBody::Fixed,  
-            ActiveCollisionTypes::KINEMATIC_STATIC,
-            BulletTarget {
-                target_type: BulletType::Player, 
-                bullet_damage: Some(10.0)
-            },
-            Health::new(100.0),
-        )).id();
+            }.into()), 
+            material: materials.add(StandardMaterial {
+                base_color: Color::hex("2ae0ed0f").unwrap(), 
+                unlit: true, 
+                alpha_mode: AlphaMode::Blend, 
+                ..default()
+            }),
+            transform: Transform::from_scale(Vec3 {
+                z: 2., 
+                ..Vec3::ONE
+            }), 
+            ..default()
+        }, 
+        Collider::ball(10.), 
+        RigidBody::Fixed,  
+        ActiveCollisionTypes::KINEMATIC_STATIC,
+        BulletTarget {
+            target_type: BulletType::Player, 
+            bullet_damage: Some(10.0)
+        },
+        Health::new(100.0),
+    )).id();
 
-        health_bar_spawn_events.send(HealthBarSpawnEvent { entity, scale: 1., offset: Vec2::ZERO });
-    }).id();
+    commands.entity(entity).add_child(child);
 
-    commands.spawn(
-        EnemyIndicatorBundle::new(&indicator_res, entity),
-    );
+    commands.add(SpawnHealthBar { entity: child, scale: 1., offset: Vec2::ZERO });
+    commands.add(SpawnEnemyIndicator { enemy: entity });
 }
 
 fn cruiser_shield_death(
     query: Query<(Entity, &Health, &Parent), With<CruiserShield>>, 
     mut commands: Commands, 
-    mut health_bar_spawn_events: EventWriter<HealthBarSpawnEvent>, 
 ) {
     for (entity, health, parent) in &query {
         if health.is_dead() {
-            health_bar_spawn_events.send(HealthBarSpawnEvent {
+            commands.add(SpawnHealthBar {
                 entity: parent.get(), 
                 scale: 1., 
                 offset: Vec2::ZERO

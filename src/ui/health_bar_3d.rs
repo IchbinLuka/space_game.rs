@@ -1,6 +1,6 @@
-use bevy::{prelude::*, render::view::RenderLayers, sprite::Anchor};
+use bevy::{ecs::system::Command, prelude::*, render::view::RenderLayers, sprite::Anchor};
 
-use crate::{components::health::Health, entities::camera::RENDER_LAYER_2D, utils::sets::Set, AppState};
+use crate::{components::health::Health, entities::camera::RENDER_LAYER_2D, AppState};
 
 use super::sprite_3d_renderer::Sprite3DObject;
 
@@ -27,34 +27,30 @@ pub struct HealthBar3dBundle {
     sprite: SpriteBundle,
 }
 
-#[derive(Event)]
-pub struct HealthBarSpawnEvent {
+pub struct SpawnHealthBar {
     pub entity: Entity,
     pub scale: f32, 
     pub offset: Vec2, 
 }
 
-fn health_bar_spawn(
-    mut commands: Commands,
-    mut events: EventReader<HealthBarSpawnEvent>,
-) {
-    for event in events.read() {
-        commands.spawn((
+impl Command for SpawnHealthBar {
+    fn apply(self, world: &mut World) {
+        world.spawn((
             HealthBar3dBackground, 
-            Sprite3DObject { parent: event.entity, offset: event.offset }, 
+            Sprite3DObject { parent: self.entity, offset: self.offset }, 
             SpriteBundle {
                 sprite: Sprite { 
                     color: Color::BLACK, 
                     custom_size: Some(Vec2::new(HEALTH_BAR_WIDTH, HEALTH_BAR_HEIGHT)),
                     ..default()
                  },
-                 transform: Transform::from_scale(Vec3::splat(event.scale)), 
+                 transform: Transform::from_scale(Vec3::splat(self.scale)), 
                 ..default()
             }, 
             RenderLayers::layer(RENDER_LAYER_2D), 
         )).with_children(|c| {
             c.spawn((
-                HealthBar3d { entity: event.entity }, 
+                HealthBar3d { entity: self.entity }, 
                 SpriteBundle {
                     sprite: Sprite { 
                         color: Color::RED, 
@@ -88,10 +84,8 @@ pub struct HealthBar3DPlugin;
 impl Plugin for HealthBar3DPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_event::<HealthBarSpawnEvent>()
             .add_systems(Update, (
                 health_bar_3d_update, 
-                health_bar_spawn.after(Set::HealthBarSpawn), 
             ).run_if(in_state(AppState::MainScene)));
     }
 }
