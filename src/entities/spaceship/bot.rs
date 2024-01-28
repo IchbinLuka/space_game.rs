@@ -80,6 +80,7 @@ fn bot_death(
             explosions.send(ExplosionEvent {
                 parent: Some(entity),
                 position: transform.translation,
+                radius: 10.0,
             });
             scores.send(ScoreEvent {
                 score: 300, 

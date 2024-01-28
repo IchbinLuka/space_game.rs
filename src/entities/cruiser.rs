@@ -15,6 +15,7 @@ use crate::{
 };
 
 use super::bullet::{BulletTarget, BulletType};
+use super::explosion::ExplosionEvent;
 
 #[derive(Component)]
 pub struct Cruiser;
@@ -124,18 +125,44 @@ fn cruiser_shield_death(
     }
 }
 
+fn cruiser_death(
+    query: Query<(&Health, &Transform), (With<Cruiser>, Changed<Health>)>,
+    mut explosion_events: EventWriter<ExplosionEvent>,
+) {
+    for (health, transform) in &query {
+        if health.is_dead() {
+            let forward = transform.forward();
+            explosion_events.send_batch([
+                ExplosionEvent {
+                    position: transform.translation, 
+                    radius: 10., 
+                    ..default()
+                }, 
+                ExplosionEvent {
+                    position: transform.translation + forward * 7., 
+                    radius: 10., 
+                    ..default()
+                },
+                ExplosionEvent {
+                    position: transform.translation - forward * 7., 
+                    radius: 10., 
+                    ..default()
+                },
+            ]);
+        }
+    }
+}
+
 
 pub struct CruiserPLugin;
 
 impl Plugin for CruiserPLugin {
     fn build(&self, app: &mut App) {
         app.add_collection_to_loading_state::<_, CruiserAssets>(AppState::MainSceneLoading)
-            .add_systems(
-                OnEnter(AppState::MainScene), 
-                cruiser_setup.in_set(Set::HealthBarSpawn),
-            )
+            .add_systems(OnEnter(AppState::MainScene), cruiser_setup,)
             .add_systems(Update, (
-                cruiser_shield_death
+                cruiser_shield_death, 
+                cruiser_death.in_set(Set::ExplosionEvents), 
             ).run_if(in_state(AppState::MainScene)));
     }
 }

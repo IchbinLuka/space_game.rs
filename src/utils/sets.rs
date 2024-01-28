@@ -6,5 +6,4 @@ pub enum Set {
     ExplosionEvents,
     ScoreEvents, 
     CameraMovement, 
-    HealthBarSpawn, 
 }

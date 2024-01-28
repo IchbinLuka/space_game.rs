@@ -7,13 +7,14 @@ use crate::{particles::fire_particles::FireParticleRes, utils::sets::Set};
 #[derive(Component)]
 pub struct ExplosionParticle {
     spawn_time: f32,
+    size: f32,
 }
 
 #[derive(Event)]
 pub struct ExplosionEvent {
     pub position: Vec3,
     pub parent: Option<Entity>,
-    // pub radius: f32,
+    pub radius: f32,
 }
 
 impl Default for ExplosionEvent {
@@ -21,6 +22,7 @@ impl Default for ExplosionEvent {
         Self {
             position: Vec3::ZERO,
             parent: None,
+            radius: 3.0,
         }
     }
 }
@@ -32,7 +34,7 @@ fn spawn_explosion(
     fire_res: Res<FireParticleRes>,
     velocity_query: Query<(&Velocity, &Transform)>,
 ) {
-    const PARTICLE_COUNT: usize = 20;
+    const PARTICLE_COUNT: usize = 10;
     for event in events.read() {
         let mut rng = rand::thread_rng();
 
@@ -44,20 +46,21 @@ fn spawn_explosion(
             (Vec3::ZERO, Vec3::ZERO)
         };
 
-        for _ in 0..PARTICLE_COUNT {
-            let scale = Vec3::splat(rng.gen_range(0.7..1.4));
+        for _ in 0..(PARTICLE_COUNT * event.radius as usize) {
+            let scale = rng.gen_range(0.3..1.0);
 
             commands.spawn((
                 ExplosionParticle {
                     spawn_time: time.elapsed_seconds(),
+                    size: scale * event.radius,
                 },
                 MaterialMeshBundle {
                     mesh: fire_res.mesh.clone(),
                     material: fire_res.materials.choose(&mut rng).unwrap().clone(),
                     transform: Transform {
                         translation: event.position + parent_pos,
-                        scale,
                         rotation: Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2),
+                        ..default()
                     },
                     inherited_visibility: InheritedVisibility::VISIBLE,
                     ..default()
@@ -71,7 +74,7 @@ fn spawn_explosion(
                             rng.gen_range(-1.0..1.0),
                         )
                         .normalize()
-                            * rng.gen_range(1.0..4.0),
+                            * rng.gen_range(0.3..1.3) * event.radius,
                     ..default()
                 },
             ));
@@ -89,10 +92,10 @@ fn explosion_particle_update(
     for (mut transform, particle, entity) in &mut particles {
         let lifetime = time.elapsed_seconds() - particle.spawn_time;
         if lifetime < START_PHASE_LENGTH {
-            transform.scale = Vec3::splat(lifetime / START_PHASE_LENGTH) * 3.0;
+            transform.scale = Vec3::splat(lifetime / START_PHASE_LENGTH) * particle.size;
         } else if lifetime < START_PHASE_LENGTH + END_PHASE_LENGTH {
             transform.scale =
-                Vec3::splat(1.0 - (lifetime - START_PHASE_LENGTH) / END_PHASE_LENGTH) * 3.0;
+                Vec3::splat(1.0 - (lifetime - START_PHASE_LENGTH) / END_PHASE_LENGTH) * particle.size;
         } else {
             commands.entity(entity).despawn();
         }
