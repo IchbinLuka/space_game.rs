@@ -3,8 +3,8 @@ use bevy::app::{App, Plugin};
 pub mod colliders;
 pub mod despawn_after;
 pub mod gravity;
-pub mod movement;
 pub mod health;
+pub mod movement;
 
 pub struct ComponentsPlugin;
 

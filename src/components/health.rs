@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 
-
 #[derive(Component)]
 pub struct Health {
     pub health: f32,
@@ -29,7 +28,6 @@ impl Health {
     }
 }
 
-
 #[derive(Component)]
 pub struct DespawnOnDeath;
 
@@ -43,7 +41,6 @@ fn despawn_on_death(
         }
     }
 }
-
 
 pub struct HealthPlugin;
 

@@ -87,8 +87,8 @@ fn planet_setup(
                 ..default()
             },
             SpaceshipCollisions {
-                collision_damage: 10.0, 
-            }, 
+                collision_damage: 10.0,
+            },
         ));
     }
 }

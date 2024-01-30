@@ -8,7 +8,8 @@ use rand::{seq::SliceRandom, Rng};
 
 use crate::{
     components::{
-        colliders::VelocityColliderBundle, despawn_after::DespawnAfter, gravity::GravityAffected, health::Health
+        colliders::VelocityColliderBundle, despawn_after::DespawnAfter, gravity::GravityAffected,
+        health::Health,
     },
     particles::fire_particles::FireParticleRes,
     utils::{misc::CollidingEntitiesExtension, sets::Set},
@@ -17,10 +18,7 @@ use crate::{
 
 use self::{bot::Bot, player::Player};
 
-use super::{
-    bullet::BULLET_COLLISION_GROUP,
-    explosion::ExplosionEvent,
-};
+use super::{bullet::BULLET_COLLISION_GROUP, explosion::ExplosionEvent};
 
 pub mod bot;
 pub mod player;
@@ -32,7 +30,7 @@ const BULLET_COOLDOWN: f32 = 0.2;
 
 #[derive(Component)]
 pub struct SpaceshipCollisions {
-    pub collision_damage: f32, 
+    pub collision_damage: f32,
 }
 
 impl Default for SpaceshipCollisions {
@@ -119,7 +117,7 @@ impl SpaceshipBundle {
                     visible: true,
                     colour: Color::BLACK,
                     width: 3.0,
-                }, 
+                },
                 ..default()
             },
             scene_bundle: SceneBundle {
@@ -145,21 +143,13 @@ fn spaceship_collisions(
         ),
         With<Spaceship>,
     >,
-    planet_query: Query<
-        (&GlobalTransform, &SpaceshipCollisions), 
-        Without<Spaceship>
-    >,
+    planet_query: Query<(&GlobalTransform, &SpaceshipCollisions), Without<Spaceship>>,
     mut explosions: EventWriter<ExplosionEvent>,
 ) {
-    for (
-        mut velocity, 
-        mut transform, 
-        colliding_entities, 
-        entity, 
-        mut health
-    ) in &mut spaceship {
-
-        for (global_transform, collisions) in colliding_entities.filter_fulfills_query(&planet_query) {
+    for (mut velocity, mut transform, colliding_entities, entity, mut health) in &mut spaceship {
+        for (global_transform, collisions) in
+            colliding_entities.filter_fulfills_query(&planet_query)
+        {
             explosions.send(ExplosionEvent {
                 parent: Some(entity),
                 ..default()
@@ -168,8 +158,9 @@ fn spaceship_collisions(
             let delta = transform.translation - colliding_transform.translation;
             let distance = delta.length();
             let normal = delta.normalize();
-            velocity.linvel = -velocity.linvel.normalize() * 
-                f32::max(velocity.linvel.length() * 0.5, 20.) * normal;
+            velocity.linvel = -velocity.linvel.normalize()
+                * f32::max(velocity.linvel.length() * 0.5, 20.)
+                * normal;
             transform.translation = colliding_transform.translation + normal * (distance + 2.0);
 
             if let Some(ref mut health) = health {

@@ -3,21 +3,17 @@ use bevy_rapier3d::dynamics::Velocity;
 use rand::Rng;
 
 use crate::{
-    components::movement::MaxSpeed, 
+    components::movement::MaxSpeed,
     entities::{
-        bullet::{BulletSpawnEvent, BulletTarget, BulletType}, 
-        explosion::ExplosionEvent
-    }, 
-    AppState, 
-    ui::{
-        enemy_indicator::SpawnEnemyIndicator, 
-        health_bar_3d::SpawnHealthBar, 
-        score::ScoreEvent
-    }
+        bullet::{BulletSpawnEvent, BulletTarget, BulletType},
+        explosion::ExplosionEvent,
+    },
+    ui::{enemy_indicator::SpawnEnemyIndicator, health_bar_3d::SpawnHealthBar, score::ScoreEvent},
+    AppState,
 };
 
 use super::{
-    IsBot, IsPlayer, LastBulletInfo, ParticleSpawnEvent, SpaceshipAssets, SpaceshipBundle, Health,
+    Health, IsBot, IsPlayer, LastBulletInfo, ParticleSpawnEvent, SpaceshipAssets, SpaceshipBundle,
 };
 
 #[derive(Component)]
@@ -31,7 +27,6 @@ pub enum BotState {
     Fleeing,
 }
 
-
 pub struct SpawnBot {
     pub pos: Vec3,
     pub initial_state: BotState,
@@ -44,33 +39,35 @@ impl Command for SpawnBot {
             return;
         };
 
-        let entity = world.spawn((
-            Bot {
-                state: self.initial_state,
-            },
-            LastBulletInfo::default(),
-            SpaceshipBundle::new(assets.enemy_ship.clone(), self.pos),
-            MaxSpeed { max_speed: 30.0 },
-            Health::new(20.0), 
-            BulletTarget {
-                target_type: BulletType::Player, 
-                bullet_damage: Some(10.0)
-            },
-        )).id();
+        let entity = world
+            .spawn((
+                Bot {
+                    state: self.initial_state,
+                },
+                LastBulletInfo::default(),
+                SpaceshipBundle::new(assets.enemy_ship.clone(), self.pos),
+                MaxSpeed { max_speed: 30.0 },
+                Health::new(20.0),
+                BulletTarget {
+                    target_type: BulletType::Player,
+                    bullet_damage: Some(10.0),
+                },
+            ))
+            .id();
 
         SpawnHealthBar {
             entity,
             scale: 0.2,
-            offset: Vec2::new(0., -20.)
-        }.apply(world);
+            offset: Vec2::new(0., -20.),
+        }
+        .apply(world);
 
         SpawnEnemyIndicator { enemy: entity }.apply(world);
-
     }
 }
 
 fn bot_death(
-    mut commands: Commands, 
+    mut commands: Commands,
     mut explosions: EventWriter<ExplosionEvent>,
     mut scores: EventWriter<ScoreEvent>,
     bots: Query<(Entity, &Transform, &Health), IsBot>,
@@ -83,7 +80,7 @@ fn bot_death(
                 radius: 10.0,
             });
             scores.send(ScoreEvent {
-                score: 300, 
+                score: 300,
                 world_pos: transform.translation,
             });
             commands.entity(entity).despawn_recursive();
@@ -109,13 +106,7 @@ fn bot_update(
 ) {
     let mut rng = rand::thread_rng();
 
-    for (
-        mut velocity, 
-        mut transform, 
-        mut bot, 
-        entity, 
-        mut last_bullet
-    ) in &mut bots {
+    for (mut velocity, mut transform, mut bot, entity, mut last_bullet) in &mut bots {
         if !last_bullet.timer.finished() {
             last_bullet.timer.tick(time.delta());
         }
@@ -190,7 +181,6 @@ fn bot_update(
     }
 }
 
-
 fn bot_setup(mut commands: Commands) {
     commands.add(SpawnBot {
         pos: Vec3::new(0.0, 0.0, 100.0),
@@ -212,13 +202,10 @@ pub struct BotPlugin;
 
 impl Plugin for BotPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_systems(Update,(
-                bot_update, 
-                bot_death,
-            ).run_if(in_state(AppState::MainScene)),)
-            .add_systems(OnEnter(AppState::MainScene), (
-                bot_setup,
-            ));
+        app.add_systems(
+            Update,
+            (bot_update, bot_death).run_if(in_state(AppState::MainScene)),
+        )
+        .add_systems(OnEnter(AppState::MainScene), (bot_setup,));
     }
 }
