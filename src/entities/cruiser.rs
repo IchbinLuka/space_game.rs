@@ -16,6 +16,7 @@ use crate::{
 
 use super::bullet::{BulletTarget, BulletType};
 use super::explosion::ExplosionEvent;
+use super::spaceship::SpaceshipCollisions;
 
 #[derive(Component)]
 pub struct Cruiser;
@@ -71,10 +72,16 @@ fn cruiser_setup(
         }, 
         DespawnOnDeath, 
         Health::new(100.0),
+        SpaceshipCollisions {
+            collision_damage: 5.0
+        }, 
     )).id();
 
     let child = commands.spawn((
         CruiserShield, 
+        SpaceshipCollisions {
+            collision_damage: 10.0, 
+        }, 
         PbrBundle {
             mesh: meshes.add(shape::UVSphere {
                 radius: 10., 

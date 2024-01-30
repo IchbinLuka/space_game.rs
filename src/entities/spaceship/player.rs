@@ -4,8 +4,7 @@ use bevy_rapier3d::{dynamics::Velocity, geometry::CollidingEntities};
 
 use crate::{
     components::{
-        gravity::{gravity_step, GravitySource},
-        movement::MaxSpeed,
+        gravity::{gravity_step, GravitySource}, movement::MaxSpeed
     },
     entities::{bullet::{BulletSpawnEvent, Bullet, BulletTarget, BulletType}, planet::Planet},
     utils::{sets::Set, misc::CollidingEntitiesExtension},

@@ -20,7 +20,6 @@ use self::{bot::Bot, player::Player};
 use super::{
     bullet::BULLET_COLLISION_GROUP,
     explosion::ExplosionEvent,
-    planet::Planet,
 };
 
 pub mod bot;
@@ -30,6 +29,19 @@ pub type IsPlayer = (With<Player>, Without<Bot>);
 pub type IsBot = (With<Bot>, Without<Player>);
 
 const BULLET_COOLDOWN: f32 = 0.2;
+
+#[derive(Component)]
+pub struct SpaceshipCollisions {
+    pub collision_damage: f32, 
+}
+
+impl Default for SpaceshipCollisions {
+    fn default() -> Self {
+        Self {
+            collision_damage: 10.0,
+        }
+    }
+}
 
 #[derive(Resource, Component)]
 struct LastBulletInfo {
@@ -133,7 +145,10 @@ fn spaceship_collisions(
         ),
         With<Spaceship>,
     >,
-    planet_query: Query<(&Transform, &Planet), Without<Spaceship>>,
+    planet_query: Query<
+        (&GlobalTransform, &SpaceshipCollisions), 
+        Without<Spaceship>
+    >,
     mut explosions: EventWriter<ExplosionEvent>,
 ) {
     for (
@@ -144,18 +159,21 @@ fn spaceship_collisions(
         mut health
     ) in &mut spaceship {
 
-        for (planet_transform, planet) in colliding_entities.filter_fulfills_query(&planet_query) {
+        for (global_transform, collisions) in colliding_entities.filter_fulfills_query(&planet_query) {
             explosions.send(ExplosionEvent {
                 parent: Some(entity),
                 ..default()
             });
-
-            let normal = (transform.translation - planet_transform.translation).normalize();
-            velocity.linvel = -30.0 * normal.dot(velocity.linvel.normalize()) * normal;
-            transform.translation = planet_transform.translation + normal * (planet.radius + 1.0);
+            let colliding_transform = global_transform.compute_transform();
+            let delta = transform.translation - colliding_transform.translation;
+            let distance = delta.length();
+            let normal = delta.normalize();
+            velocity.linvel = -velocity.linvel.normalize() * 
+                f32::max(velocity.linvel.length() * 0.5, 20.) * normal;
+            transform.translation = colliding_transform.translation + normal * (distance + 2.0);
 
             if let Some(ref mut health) = health {
-                health.take_damage(5.0);
+                health.take_damage(collisions.collision_damage);
             }
         }
     }
