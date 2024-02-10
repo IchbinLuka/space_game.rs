@@ -1,5 +1,8 @@
 use bevy::{ecs::system::Command, prelude::*};
-use bevy_rapier3d::dynamics::Velocity;
+use bevy_rapier3d::{
+    dynamics::Velocity,
+    geometry::{CollisionGroups, Group},
+};
 use rand::Rng;
 
 use crate::{
@@ -9,6 +12,7 @@ use crate::{
         explosion::ExplosionEvent,
     },
     ui::{enemy_indicator::SpawnEnemyIndicator, health_bar_3d::SpawnHealthBar, score::ScoreEvent},
+    utils::collisions::{BOT_COLLISION_GROUP, CRUISER_COLLISION_GROUP},
     AppState,
 };
 
@@ -39,28 +43,37 @@ impl Command for SpawnBot {
             return;
         };
 
-        let entity = world.spawn((
-            Bot {
-                state: self.initial_state,
-            },
-            LastBulletInfo::default(),
-            SpaceshipBundle::new(assets.enemy_ship.clone(), self.pos),
-            MaxSpeed { max_speed: 30.0 },
-            Health::new(20.0), 
-            BulletTarget {
-                target_type: BulletType::Player, 
-                bullet_damage: Some(10.0)
-            },
+        const COLLISION_GROUPS: CollisionGroups = CollisionGroups::new(
+            BOT_COLLISION_GROUP,
+            Group::ALL.difference(CRUISER_COLLISION_GROUP),
+        );
 
-        )).id();
-
+        let entity = world
+            .spawn((
+                Bot {
+                    state: self.initial_state,
+                },
+                LastBulletInfo::default(),
+                SpaceshipBundle {
+                    collision_groups: COLLISION_GROUPS,
+                    ..SpaceshipBundle::new(assets.enemy_ship.clone(), self.pos)
+                },
+                MaxSpeed { max_speed: 30.0 },
+                Health::new(20.0),
+                BulletTarget {
+                    target_type: BulletType::Player,
+                    bullet_damage: Some(10.0),
+                },
+            ))
+            .id();
 
         SpawnHealthBar {
             entity,
             scale: 0.2,
-            offset: Vec2::new(0., -20.), 
+            offset: Vec2::new(0., -20.),
             shield_entity: None,
-        }.apply(world);
+        }
+        .apply(world);
 
         SpawnEnemyIndicator { enemy: entity }.apply(world);
     }

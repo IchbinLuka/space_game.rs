@@ -12,6 +12,7 @@ use crate::{
     particles::ParticleMaterial,
     ui::score::ScoreEvent,
     utils::{
+        collisions::BULLET_COLLISION_GROUP,
         materials::{default_outline, matte_material},
         misc::CollidingEntitiesExtension,
         sets::Set,
@@ -19,11 +20,7 @@ use crate::{
     AppState,
 };
 
-use super::{
-    bullet::{Bullet, BULLET_COLLISION_GROUP},
-    explosion::ExplosionEvent,
-    spaceship::player::Player,
-};
+use super::{bullet::Bullet, explosion::ExplosionEvent, spaceship::player::Player};
 
 #[derive(Component)]
 pub struct Asteroid;

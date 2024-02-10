@@ -1,8 +1,5 @@
 use bevy::prelude::*;
 
-
-
-
 #[derive(Component)]
 pub struct Health {
     pub health: f32,
@@ -36,7 +33,6 @@ pub struct HealthComponent(pub Health);
 
 #[derive(Component)]
 pub struct Shield;
-
 
 #[derive(Component)]
 pub struct DespawnOnDeath;

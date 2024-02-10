@@ -12,13 +12,13 @@ use crate::{
         health::Health,
     },
     particles::fire_particles::FireParticleRes,
-    utils::{misc::CollidingEntitiesExtension, sets::Set},
+    utils::{collisions::BULLET_COLLISION_GROUP, misc::CollidingEntitiesExtension, sets::Set},
     AppState,
 };
 
 use self::{bot::Bot, player::Player};
 
-use super::{bullet::BULLET_COLLISION_GROUP, explosion::ExplosionEvent};
+use super::explosion::ExplosionEvent;
 
 pub mod bot;
 pub mod player;

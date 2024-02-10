@@ -8,7 +8,7 @@ use bevy_rapier3d::prelude::*;
 
 use crate::{
     components::{gravity::GravityAffected, health::Health},
-    utils::sets::Set,
+    utils::{collisions::BULLET_COLLISION_GROUP, sets::Set},
     AppState,
 };
 
@@ -32,6 +32,7 @@ pub struct BulletTarget {
 pub enum BulletType {
     Player,
     Bot,
+    Both,
 }
 
 #[derive(Event)]
@@ -43,9 +44,7 @@ pub struct BulletSpawnEvent {
     pub bullet_type: BulletType,
 }
 
-pub const BULLET_COLLISION_GROUP: Group = Group::GROUP_2;
-
-const BULLET_GROUP: CollisionGroups = CollisionGroups::new(Group::GROUP_1, Group::GROUP_2);
+const BULLET_GROUP: CollisionGroups = CollisionGroups::new(BULLET_COLLISION_GROUP, Group::ALL);
 
 const BULLET_CORNER_1: Vec3 = Vec3::new(0.04, 0.04, 0.7);
 const BULLET_CORNER_2: Vec3 = Vec3::new(-0.04, -0.04, 0.0);
@@ -157,7 +156,7 @@ fn bullet_despawn(time: Res<Time>, mut commands: Commands, query: Query<(Entity,
 
 fn bullet_collision(
     query: Query<(Entity, &Bullet, &CollidingEntities, &Transform)>,
-    mut bullet_target_query: Query<(&BulletTarget, &mut Health)>,
+    mut bullet_target_query: Query<(&BulletTarget, Option<&mut Health>)>,
     mut commands: Commands,
     mut explosions: EventWriter<ExplosionEvent>,
 ) {
@@ -169,15 +168,19 @@ fn bullet_collision(
         let mut despawn: bool = false;
 
         for entity in colliding_entities.iter() {
-            let Ok((bullet_target, mut health)) = bullet_target_query.get_mut(entity) else {
+            let Ok((bullet_target, health)) = bullet_target_query.get_mut(entity) else {
                 continue;
             };
 
-            if bullet_target.target_type != bullet.bullet_type {
+            if bullet_target.target_type != BulletType::Both
+                && bullet_target.target_type != bullet.bullet_type
+            {
                 continue;
             }
 
-            if let Some(damage) = bullet_target.bullet_damage {
+            if let Some(damage) = bullet_target.bullet_damage
+                && let Some(mut health) = health
+            {
                 health.take_damage(damage);
             }
             despawn = true;

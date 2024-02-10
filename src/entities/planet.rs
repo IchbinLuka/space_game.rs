@@ -5,11 +5,17 @@ use rand::Rng;
 
 use crate::{
     components::gravity::GravitySource,
-    utils::materials::{default_outline, matte_material},
+    utils::{
+        collisions::PLANET_COLLISION_GROUP,
+        materials::{default_outline, matte_material},
+    },
     AppState,
 };
 
-use super::{bullet::BULLET_COLLISION_GROUP, spaceship::SpaceshipCollisions};
+use super::{
+    bullet::{BulletTarget, BulletType},
+    spaceship::SpaceshipCollisions,
+};
 
 pub struct PlanetPlugin;
 
@@ -29,8 +35,7 @@ fn planet_setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
-    let collision_groups =
-        CollisionGroups::new(BULLET_COLLISION_GROUP | Group::GROUP_3, Group::ALL);
+    let collision_groups = CollisionGroups::new(PLANET_COLLISION_GROUP, Group::ALL);
 
     let mesh = meshes.add(
         shape::UVSphere {
@@ -88,6 +93,10 @@ fn planet_setup(
             },
             SpaceshipCollisions {
                 collision_damage: 10.0,
+            },
+            BulletTarget {
+                target_type: BulletType::Both,
+                bullet_damage: None,
             },
         ));
     }
