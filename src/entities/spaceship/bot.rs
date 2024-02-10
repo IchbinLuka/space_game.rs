@@ -56,12 +56,15 @@ impl Command for SpawnBot {
                 target_type: BulletType::Player, 
                 bullet_damage: Some(10.0)
             },
+
         )).id();
+
 
         SpawnHealthBar {
             entity,
             scale: 0.2,
-            offset: Vec2::new(0., -20.)
+            offset: Vec2::new(0., -20.), 
+            shield_entity: None,
         }.apply(world);
 
         SpawnEnemyIndicator { enemy: entity }.apply(world);

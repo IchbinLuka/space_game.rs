@@ -43,8 +43,8 @@ pub const BULLET_COLLISION_GROUP: Group = Group::GROUP_2;
 
 const BULLET_GROUP: CollisionGroups = CollisionGroups::new(Group::GROUP_1, Group::GROUP_2);
 
-const BULLET_CORNER_1: Vec3 = Vec3::new(0.03, 0.03, 0.6);
-const BULLET_CORNER_2: Vec3 = Vec3::new(-0.03, -0.03, 0.0);
+const BULLET_CORNER_1: Vec3 = Vec3::new(0.04, 0.04, 0.7);
+const BULLET_CORNER_2: Vec3 = Vec3::new(-0.04, -0.04, 0.0);
 
 const BULLET_SPEED: f32 = 40.0;
 
@@ -108,7 +108,7 @@ fn bullet_spawn(
             OutlineBundle {
                 outline: OutlineVolume {
                     colour: Color::RED,
-                    width: 1.0,
+                    width: 2.0,
                     visible: true,
                 },
                 ..default()

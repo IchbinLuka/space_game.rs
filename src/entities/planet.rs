@@ -43,7 +43,7 @@ fn planet_setup(
 
     let mut rng = rand::thread_rng();
 
-    let asteroids = [("549335", 20.0), ("f77d36", 30.0), ("365df7", 15.0)];
+    let asteroids = [("549335", 10.0), ("f77d36", 15.0), ("365df7", 7.0)];
 
     for (color, size) in asteroids {
         let material = materials.add(StandardMaterial {

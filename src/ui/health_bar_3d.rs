@@ -1,6 +1,6 @@
 use bevy::{ecs::system::Command, prelude::*, render::view::RenderLayers, sprite::Anchor};
 
-use crate::{components::health::Health, entities::camera::RENDER_LAYER_2D, AppState};
+use crate::{components::health::{Health, Shield}, entities::camera::RENDER_LAYER_2D, AppState};
 
 use super::sprite_3d_renderer::Sprite3DObject;
 
@@ -11,9 +11,15 @@ const HEALTH_BAR_PADDING: f32 = 2.;
 
 const HEALTH_BAR_CONTENT_WIDTH: f32 = HEALTH_BAR_WIDTH - HEALTH_BAR_PADDING * 2.;
 const HEALTH_BAR_CONTENT_TRANSFORM: Vec3 = Vec3::new(HEALTH_BAR_WIDTH * -0.5 + HEALTH_BAR_PADDING, 0., 1.);
+const HEALTH_BAR_SHIELD_TRANSFORM: Vec3 = Vec3::new(HEALTH_BAR_WIDTH * -0.5, 0., 2.);
 
 #[derive(Component)]
 pub struct HealthBar3d {
+    entity: Entity,
+}
+
+#[derive(Component)]
+pub struct ShieldBar3d {
     entity: Entity,
 }
 
@@ -31,6 +37,7 @@ pub struct SpawnHealthBar {
     pub entity: Entity,
     pub scale: f32, 
     pub offset: Vec2, 
+    pub shield_entity: Option<Entity>,
 }
 
 impl Command for SpawnHealthBar {
@@ -63,6 +70,23 @@ impl Command for SpawnHealthBar {
                 },
                 RenderLayers::layer(RENDER_LAYER_2D), 
             ));
+
+            if let Some(shield_entity) = self.shield_entity {
+                c.spawn((
+                    ShieldBar3d { entity: shield_entity },
+                    SpriteBundle {
+                        sprite: Sprite {
+                            color: Color::hex("2ae0ed80").unwrap(),
+                            custom_size: Some(Vec2::new(HEALTH_BAR_WIDTH, HEALTH_BAR_HEIGHT)),
+                            anchor: Anchor::CenterLeft,
+                            ..default()
+                        }, 
+                        transform: Transform::from_translation(HEALTH_BAR_SHIELD_TRANSFORM),
+                        ..default()
+                    }, 
+                    RenderLayers::layer(RENDER_LAYER_2D), 
+                ));
+            }
         });
     }
 }
@@ -78,6 +102,18 @@ fn health_bar_3d_update(
     }
 }
 
+fn shield_3d_update(
+    mut shield_bar_query: Query<(&mut Transform, &ShieldBar3d)>,
+    shield_query: Query<&Health, (Changed<Health>, With<Shield>)>,
+) {
+    // TODO: Duplicate code
+    for (mut transform, shield_bar) in &mut shield_bar_query {
+        if let Ok(shield) = shield_query.get(shield_bar.entity) {
+            transform.scale.x = shield.health / shield.max_health;
+        }
+    }
+}
+
 
 pub struct HealthBar3DPlugin;
 
@@ -86,6 +122,7 @@ impl Plugin for HealthBar3DPlugin {
         app
             .add_systems(Update, (
                 health_bar_3d_update, 
+                shield_3d_update,
             ).run_if(in_state(AppState::MainScene)));
     }
 }

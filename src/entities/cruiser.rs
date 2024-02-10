@@ -1,12 +1,14 @@
+use bevy::ecs::system::EntityCommand;
 use bevy::prelude::*;
 use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
 use bevy_mod_outline::OutlineBundle;
 use bevy_rapier3d::{dynamics::Velocity, geometry::Collider};
 use bevy_rapier3d::prelude::*;
 
-use crate::components::health::{DespawnOnDeath, Health};
+use crate::components::health::{DespawnOnDeath, Health, Shield};
 use crate::ui::enemy_indicator::SpawnEnemyIndicator;
 use crate::ui::health_bar_3d::SpawnHealthBar;
+use crate::utils::misc::CollidingEntitiesExtension;
 use crate::utils::sets::Set;
 use crate::{
     components::colliders::VelocityColliderBundle, 
@@ -14,15 +16,22 @@ use crate::{
     AppState,
 };
 
-use super::bullet::{BulletTarget, BulletType};
+use super::bullet::{Bullet, BulletTarget, BulletType};
 use super::explosion::ExplosionEvent;
+use super::spaceship::bot::{BotState, SpawnBot};
+use super::spaceship::IsBot;
 
 #[derive(Component)]
-pub struct Cruiser;
+pub struct Cruiser {
+    enemy_spawn_cooldown: Timer,
+}
 
 
 #[derive(Component)]
 pub struct CruiserShield;
+
+#[derive(Component)]
+struct ShieldDisabled;
 
 #[derive(AssetCollection, Resource)]
 struct CruiserAssets {
@@ -31,6 +40,30 @@ struct CruiserAssets {
 }
 
 const CRUISER_HITBOX_SIZE: Vec3 = Vec3::new(3.5, 3., 13.);
+
+#[derive(Component)]
+struct ShieldRegenerate(pub Timer);
+
+struct DeactivateShield;
+impl EntityCommand for DeactivateShield {
+    fn apply(self, id: Entity, world: &mut World) {
+        world.entity_mut(id)
+            .insert(Visibility::Hidden)
+            .insert(ColliderDisabled)
+            .insert(ShieldDisabled)
+            .insert(ShieldRegenerate(Timer::from_seconds(5.0, TimerMode::Once)));
+    }
+}
+
+struct ActivateShield;
+impl EntityCommand for ActivateShield {
+    fn apply(self, id: Entity, world: &mut World) {
+        world.entity_mut(id)
+            .insert(Visibility::Visible)
+            .remove::<ColliderDisabled>()
+            .remove::<ShieldDisabled>();
+    }
+}
 
 fn cruiser_setup(
     mut commands: Commands, 
@@ -60,7 +93,9 @@ fn cruiser_setup(
             collider: Collider::cuboid(x, y, z), 
             ..default()
         },
-        Cruiser,
+        Cruiser {
+            enemy_spawn_cooldown: Timer::from_seconds(5.0, TimerMode::Repeating),
+        },
         BulletTarget {
             target_type: BulletType::Player, 
             bullet_damage: Some(20.)
@@ -73,7 +108,7 @@ fn cruiser_setup(
         Health::new(100.0),
     )).id();
 
-    let child = commands.spawn((
+    let shield = commands.spawn((
         CruiserShield, 
         PbrBundle {
             mesh: meshes.add(shape::UVSphere {
@@ -93,6 +128,7 @@ fn cruiser_setup(
             ..default()
         }, 
         Collider::ball(10.), 
+        CollidingEntities::default(), 
         RigidBody::Fixed,  
         ActiveCollisionTypes::KINEMATIC_STATIC,
         BulletTarget {
@@ -100,27 +136,44 @@ fn cruiser_setup(
             bullet_damage: Some(10.0)
         },
         Health::new(100.0),
+        Shield, 
     )).id();
 
-    commands.entity(entity).add_child(child);
+    commands.entity(entity).add_child(shield);
 
-    commands.add(SpawnHealthBar { entity: child, scale: 1., offset: Vec2::ZERO });
+    commands.add(SpawnHealthBar { 
+        entity, 
+        scale: 1., 
+        offset: Vec2::ZERO, 
+        shield_entity: Some(shield), 
+    });
     commands.add(SpawnEnemyIndicator { enemy: entity });
 }
 
 fn cruiser_shield_death(
-    query: Query<(Entity, &Health, &Parent), With<CruiserShield>>, 
+    query: Query<(Entity, &Health), (With<CruiserShield>, Without<ShieldDisabled>)>, 
     mut commands: Commands, 
 ) {
-    for (entity, health, parent) in &query {
+    for (entity, health) in &query {
         if health.is_dead() {
-            commands.add(SpawnHealthBar {
-                entity: parent.get(), 
-                scale: 1., 
-                offset: Vec2::ZERO
-            });
+            commands.entity(entity).add(DeactivateShield);
+        }
+    }
+}
 
-            commands.entity(entity).despawn_recursive();
+fn cruiser_shield_regenerate(
+    mut query: Query<(Entity, &mut Health, &mut ShieldRegenerate), With<CruiserShield>>,
+    time: Res<Time>,
+    mut commands: Commands,
+) {
+    for (entity, mut health, mut timer) in &mut query {
+        timer.0.tick(time.delta());
+
+        if timer.0.just_finished() {
+            commands.entity(entity).add(ActivateShield);
+        }
+        if timer.0.finished() {
+            health.heal(10.0 * time.delta_seconds());
         }
     }
 }
@@ -153,6 +206,55 @@ fn cruiser_death(
     }
 }
 
+fn cruiser_shield_collisions(
+    mut shield_query: Query<(&CollidingEntities, &mut ShieldRegenerate), With<CruiserShield>>, 
+    bullet_query: Query<&Bullet>
+) {
+    for (colliding, mut regen) in &mut shield_query {
+        for bullet in colliding.filter_fulfills_query(&bullet_query) {
+            if bullet.bullet_type != BulletType::Player {
+                continue;
+            }
+            info!("Resetting timer");
+            regen.0.reset();
+        }
+    }
+}
+
+
+#[derive(Component)]
+struct EnemySpawnCooldown(pub Timer);
+
+impl Default for EnemySpawnCooldown {
+    fn default() -> Self {
+        Self(Timer::from_seconds(5.0, TimerMode::Repeating))
+    }
+}
+
+fn cruiser_spawn_bots(
+    mut commands: Commands, 
+    time: Res<Time>, 
+    mut cruisers: Query<(&Transform, &mut Cruiser)>, 
+    bots: Query<Entity, IsBot>,
+) {
+    const MAX_BOT_COUNT: usize = 5;
+
+    if bots.iter().count() >= MAX_BOT_COUNT {
+        return;
+    }
+
+    for (transform, mut spawn_cooldown) in &mut cruisers {
+        spawn_cooldown.enemy_spawn_cooldown.tick(time.delta());
+
+        if spawn_cooldown.enemy_spawn_cooldown.just_finished() {
+            commands.add(SpawnBot {
+                pos: transform.translation,
+                initial_state: BotState::Chasing,  
+            });
+        }
+    }
+}
+
 
 pub struct CruiserPLugin;
 
@@ -161,8 +263,11 @@ impl Plugin for CruiserPLugin {
         app.add_collection_to_loading_state::<_, CruiserAssets>(AppState::MainSceneLoading)
             .add_systems(OnEnter(AppState::MainScene), cruiser_setup,)
             .add_systems(Update, (
-                cruiser_shield_death, 
+                cruiser_shield_death,
+                cruiser_shield_regenerate, 
                 cruiser_death.in_set(Set::ExplosionEvents), 
+                cruiser_spawn_bots,
+                cruiser_shield_collisions, 
             ).run_if(in_state(AppState::MainScene)));
     }
 }
