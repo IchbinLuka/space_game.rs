@@ -52,7 +52,6 @@ fn despawn_on_death(
     }
 }
 
-
 pub struct HealthPlugin;
 
 impl Plugin for HealthPlugin {

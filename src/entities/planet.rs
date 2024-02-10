@@ -9,7 +9,7 @@ use crate::{
     AppState,
 };
 
-use super::bullet::BULLET_COLLISION_GROUP;
+use super::{bullet::BULLET_COLLISION_GROUP, spaceship::SpaceshipCollisions};
 
 pub struct PlanetPlugin;
 
@@ -85,6 +85,9 @@ fn planet_setup(
             OutlineBundle {
                 outline: default_outline(),
                 ..default()
+            },
+            SpaceshipCollisions {
+                collision_damage: 10.0,
             },
         ));
     }

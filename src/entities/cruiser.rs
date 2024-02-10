@@ -2,8 +2,8 @@ use bevy::ecs::system::EntityCommand;
 use bevy::prelude::*;
 use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
 use bevy_mod_outline::OutlineBundle;
-use bevy_rapier3d::{dynamics::Velocity, geometry::Collider};
 use bevy_rapier3d::prelude::*;
+use bevy_rapier3d::{dynamics::Velocity, geometry::Collider};
 
 use crate::components::health::{DespawnOnDeath, Health, Shield};
 use crate::ui::enemy_indicator::SpawnEnemyIndicator;
@@ -11,15 +11,14 @@ use crate::ui::health_bar_3d::SpawnHealthBar;
 use crate::utils::misc::CollidingEntitiesExtension;
 use crate::utils::sets::Set;
 use crate::{
-    components::colliders::VelocityColliderBundle, 
-    utils::materials::default_outline, 
-    AppState,
+    components::colliders::VelocityColliderBundle, utils::materials::default_outline, AppState,
 };
 
 use super::bullet::{Bullet, BulletTarget, BulletType};
 use super::explosion::ExplosionEvent;
 use super::spaceship::bot::{BotState, SpawnBot};
 use super::spaceship::IsBot;
+use super::spaceship::SpaceshipCollisions;
 
 #[derive(Component)]
 pub struct Cruiser {
@@ -66,11 +65,10 @@ impl EntityCommand for ActivateShield {
 }
 
 fn cruiser_setup(
-    mut commands: Commands, 
-    assets: Res<CruiserAssets>, 
+    mut commands: Commands,
+    assets: Res<CruiserAssets>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-
 ) {
     let Vec3 { x, y, z } = CRUISER_HITBOX_SIZE;
     let entity = commands.spawn((
@@ -106,6 +104,9 @@ fn cruiser_setup(
         }, 
         DespawnOnDeath, 
         Health::new(100.0),
+        SpaceshipCollisions {
+            collision_damage: 5.0,
+        },
     )).id();
 
     let shield = commands.spawn((
@@ -127,6 +128,9 @@ fn cruiser_setup(
             }), 
             ..default()
         }, 
+        SpaceshipCollisions {
+            collision_damage: 10.0,
+        },
         Collider::ball(10.), 
         CollidingEntities::default(), 
         RigidBody::Fixed,  
@@ -187,18 +191,18 @@ fn cruiser_death(
             let forward = transform.forward();
             explosion_events.send_batch([
                 ExplosionEvent {
-                    position: transform.translation, 
-                    radius: 10., 
-                    ..default()
-                }, 
-                ExplosionEvent {
-                    position: transform.translation + forward * 7., 
-                    radius: 10., 
+                    position: transform.translation,
+                    radius: 10.,
                     ..default()
                 },
                 ExplosionEvent {
-                    position: transform.translation - forward * 7., 
-                    radius: 10., 
+                    position: transform.translation + forward * 7.,
+                    radius: 10.,
+                    ..default()
+                },
+                ExplosionEvent {
+                    position: transform.translation - forward * 7.,
+                    radius: 10.,
                     ..default()
                 },
             ]);

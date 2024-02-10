@@ -4,9 +4,7 @@ use bevy_round_ui::{
     prelude::{RoundUiBorder, RoundUiMaterial},
 };
 
-use crate::{
-    components::health::Health, entities::spaceship::IsPlayer, AppState
-};
+use crate::{components::health::Health, entities::spaceship::IsPlayer, AppState};
 
 #[derive(Component)]
 struct HealthBarContent;

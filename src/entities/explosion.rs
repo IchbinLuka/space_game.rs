@@ -74,7 +74,8 @@ fn spawn_explosion(
                             rng.gen_range(-1.0..1.0),
                         )
                         .normalize()
-                            * rng.gen_range(0.3..1.3) * event.radius,
+                            * rng.gen_range(0.3..1.3)
+                            * event.radius,
                     ..default()
                 },
             ));
@@ -94,8 +95,8 @@ fn explosion_particle_update(
         if lifetime < START_PHASE_LENGTH {
             transform.scale = Vec3::splat(lifetime / START_PHASE_LENGTH) * particle.size;
         } else if lifetime < START_PHASE_LENGTH + END_PHASE_LENGTH {
-            transform.scale =
-                Vec3::splat(1.0 - (lifetime - START_PHASE_LENGTH) / END_PHASE_LENGTH) * particle.size;
+            transform.scale = Vec3::splat(1.0 - (lifetime - START_PHASE_LENGTH) / END_PHASE_LENGTH)
+                * particle.size;
         } else {
             commands.entity(entity).despawn();
         }

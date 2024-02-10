@@ -32,11 +32,7 @@ fn setup_fire_particles(
 
     let materials = colors
         .iter()
-        .map(|color| {
-            materials.add(ParticleMaterial {
-                color: *color,
-            })
-        })
+        .map(|color| materials.add(ParticleMaterial { color: *color }))
         .collect::<Vec<_>>()
         .try_into()
         .unwrap();

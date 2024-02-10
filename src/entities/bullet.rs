@@ -6,7 +6,11 @@ use bevy_audio::VolumeLevel;
 use bevy_mod_outline::{OutlineBundle, OutlineVolume};
 use bevy_rapier3d::prelude::*;
 
-use crate::{components::{gravity::GravityAffected, health::Health}, utils::sets::Set, AppState};
+use crate::{
+    components::{gravity::GravityAffected, health::Health},
+    utils::sets::Set,
+    AppState,
+};
 
 use super::{explosion::ExplosionEvent, spaceship::player::Player};
 
@@ -24,7 +28,7 @@ pub struct BulletTarget {
     pub bullet_damage: Option<f32>,
 }
 
-#[derive(Clone, Copy, PartialEq,  Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum BulletType {
     Player,
     Bot,
@@ -152,9 +156,9 @@ fn bullet_despawn(time: Res<Time>, mut commands: Commands, query: Query<(Entity,
 }
 
 fn bullet_collision(
-    query: Query<(Entity, &Bullet, &CollidingEntities, &Transform)>, 
+    query: Query<(Entity, &Bullet, &CollidingEntities, &Transform)>,
     mut bullet_target_query: Query<(&BulletTarget, &mut Health)>,
-    mut commands: Commands, 
+    mut commands: Commands,
     mut explosions: EventWriter<ExplosionEvent>,
 ) {
     for (entity, bullet, colliding_entities, transform) in &query {
@@ -169,7 +173,9 @@ fn bullet_collision(
                 continue;
             };
 
-            if bullet_target.target_type != bullet.bullet_type { continue; }
+            if bullet_target.target_type != bullet.bullet_type {
+                continue;
+            }
 
             if let Some(damage) = bullet_target.bullet_damage {
                 health.take_damage(damage);

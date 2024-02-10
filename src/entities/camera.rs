@@ -1,18 +1,20 @@
 use bevy::{
     core_pipeline::{clear_color::ClearColorConfig, Skybox},
     prelude::*,
-    render::{render_resource::{TextureViewDescriptor, TextureViewDimension}, view::RenderLayers},
+    render::{
+        render_resource::{TextureViewDescriptor, TextureViewDimension},
+        view::RenderLayers,
+    },
 };
 use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
 use bevy_toon_shader::ToonShaderMainCamera;
 
-use crate::{AppState, Movement, utils::sets::Set};
+use crate::{utils::sets::Set, AppState, Movement};
 
 use super::spaceship::player::Player;
 
 #[derive(Component)]
 pub struct CameraComponent;
-
 
 pub const RENDER_LAYER_2D: u8 = 1;
 
@@ -75,15 +77,15 @@ fn camera_setup(
     commands.spawn((
         Camera2dBundle {
             camera_2d: Camera2d {
-                clear_color: ClearColorConfig::None, 
-            },  
+                clear_color: ClearColorConfig::None,
+            },
             camera: Camera {
-                order: 1, 
+                order: 1,
                 ..default()
-            }, 
+            },
             ..default()
-        }, 
-        RenderLayers::layer(RENDER_LAYER_2D), 
+        },
+        RenderLayers::layer(RENDER_LAYER_2D),
     ));
 }
 

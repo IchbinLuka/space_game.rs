@@ -8,25 +8,33 @@ use rand::Rng;
 
 use crate::{
     components::{colliders::VelocityColliderBundle, despawn_after::DespawnAfter},
+    entities::bullet::BulletType,
+    particles::ParticleMaterial,
+    ui::score::ScoreEvent,
     utils::{
         materials::{default_outline, matte_material},
-        sets::Set, misc::CollidingEntitiesExtension,
+        misc::CollidingEntitiesExtension,
+        sets::Set,
     },
-    AppState, particles::ParticleMaterial, ui::score::ScoreEvent, entities::bullet::BulletType,
+    AppState,
 };
 
-use super::{bullet::{BULLET_COLLISION_GROUP, Bullet}, explosion::ExplosionEvent, spaceship::player::Player};
+use super::{
+    bullet::{Bullet, BULLET_COLLISION_GROUP},
+    explosion::ExplosionEvent,
+    spaceship::player::Player,
+};
 
 #[derive(Component)]
 pub struct Asteroid;
 
 impl Asteroid {
-    const COLLISION_GROUPS: CollisionGroups = CollisionGroups::new(BULLET_COLLISION_GROUP, Group::ALL);
+    const COLLISION_GROUPS: CollisionGroups =
+        CollisionGroups::new(BULLET_COLLISION_GROUP, Group::ALL);
 }
 
 #[derive(Component)]
 pub struct AsteroidField;
-
 
 #[derive(Event)]
 pub struct AsteroidDestructionEvent {
@@ -49,9 +57,9 @@ fn spawn_asteroid_field(
         });
         if spawn_asteroid_field {
             let mut rng = rand::thread_rng();
-            let position = player_transform.translation + 
-                player_velocity.linvel.normalize() * 100.0 + 
-                Vec3::new(rng.gen_range(-50.0..50.0), 0.0, rng.gen_range(-50.0..50.0));
+            let position = player_transform.translation
+                + player_velocity.linvel.normalize() * 100.0
+                + Vec3::new(rng.gen_range(-50.0..50.0), 0.0, rng.gen_range(-50.0..50.0));
             commands
                 .spawn((
                     AsteroidField,
@@ -207,7 +215,6 @@ struct AsteroidBundle {
     collision_groups: CollisionGroups,
 }
 
-
 #[derive(AssetCollection, Resource)]
 struct AsteroidAssets {
     #[asset(path = "asteroid1.obj")]
@@ -238,7 +245,7 @@ fn asteroid_setup(
         color: Color::hex("665F64").unwrap(),
     });
 
-    let particle_mesh = meshes.add(shape::Quad::new(Vec2::splat(0.2)).into(),);
+    let particle_mesh = meshes.add(shape::Quad::new(Vec2::splat(0.2)).into());
 
     commands.insert_resource(AsteroidRes {
         material,

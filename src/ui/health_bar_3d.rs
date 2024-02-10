@@ -26,7 +26,6 @@ pub struct ShieldBar3d {
 #[derive(Component)]
 pub struct HealthBar3dBackground;
 
-
 #[derive(Bundle)]
 pub struct HealthBar3dBundle {
     pub health_bar: HealthBar3d,

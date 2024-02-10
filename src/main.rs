@@ -6,27 +6,25 @@ extern crate rust_i18n;
 
 i18n!();
 
-
-use bevy::{prelude::*, log::LogPlugin, window::PresentMode};
-use bevy_asset_loader::loading_state::{LoadingStateAppExt, LoadingState};
-use bevy_mod_outline::{OutlinePlugin, AutoGenerateOutlineNormalsPlugin};
+use bevy::{log::LogPlugin, prelude::*, window::PresentMode};
+use bevy_asset_loader::loading_state::{LoadingState, LoadingStateAppExt};
+use bevy_mod_outline::{AutoGenerateOutlineNormalsPlugin, OutlinePlugin};
 use bevy_obj::ObjPlugin;
 use bevy_rapier3d::prelude::*;
 use bevy_round_ui::prelude::RoundUiPlugin;
 use bevy_screen_diagnostics::{ScreenDiagnosticsPlugin, ScreenFrameDiagnosticsPlugin};
 use bevy_toon_shader::{ToonShaderPlugin, ToonShaderSun};
-use entities::EntitiesPlugin;
 use components::ComponentsPlugin;
+use entities::EntitiesPlugin;
 use particles::ParticlesPlugin;
 use ui::UIPlugin;
 use utils::scene_outline::SceneOutlinePlugin;
 
-mod entities;
-mod utils;
 mod components;
+mod entities;
 mod particles;
 mod ui;
-
+mod utils;
 
 #[derive(Component)]
 pub struct Movement {
@@ -52,10 +50,7 @@ impl Default for Movement {
     }
 }
 
-fn movement_system(
-    time: Res<Time>, 
-    mut query: Query<(&mut Transform, &mut Movement)>
-) {
+fn movement_system(time: Res<Time>, mut query: Query<(&mut Transform, &mut Movement)>) {
     for (mut transform, mut movement) in &mut query {
         let acc = movement.acc;
         movement.vel += acc * time.delta_seconds();
@@ -71,51 +66,48 @@ fn movement_system(
     }
 }
 
-
 pub struct ScenePlugin3D;
 
 impl Plugin for ScenePlugin3D {
     fn build(&self, app: &mut App) {
-        app
-            .add_systems(OnEnter(AppState::MainScene), scene_setup_3d)
-            .add_systems(Update, movement_system.run_if(in_state(AppState::MainScene)));
+        app.add_systems(OnEnter(AppState::MainScene), scene_setup_3d)
+            .add_systems(
+                Update,
+                movement_system.run_if(in_state(AppState::MainScene)),
+            );
     }
 }
 
-fn setup_physics(
-    mut rapier_config: ResMut<RapierConfiguration>,
-) {
+fn setup_physics(mut rapier_config: ResMut<RapierConfiguration>) {
     rapier_config.gravity = Vec3::ZERO;
 }
 
-fn scene_setup_3d(
-    mut commands: Commands,
-) {
-
+fn scene_setup_3d(mut commands: Commands) {
     commands.insert_resource(AmbientLight {
-        color: Color::WHITE, 
+        color: Color::WHITE,
         brightness: 0.5,
     });
 
     commands.spawn((
         DirectionalLightBundle {
             directional_light: DirectionalLight {
-                illuminance: 10000.0, 
-                color: Color::hex("fcd4b5").unwrap(), 
-                shadows_enabled: false, 
+                illuminance: 10000.0,
+                color: Color::hex("fcd4b5").unwrap(),
+                shadows_enabled: false,
                 ..default()
-            }, 
-            transform: Transform::from_xyz(0.0, 40.0, 0.0).with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2 + 0.1)),
+            },
+            transform: Transform::from_xyz(0.0, 40.0, 0.0)
+                .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2 + 0.1)),
             ..default()
-        }, 
-        ToonShaderSun
+        },
+        ToonShaderSun,
     ));
 }
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash, Default, States, Copy)]
 enum AppState {
     #[default]
-    MainSceneLoading, 
+    MainSceneLoading,
     MainScene,
     ParticleTestScene,
 }
@@ -126,12 +118,10 @@ struct LoadingStateItem {
 }
 
 impl AppState {
-    pub const LOADING_STATES: &'static [LoadingStateItem] = &[
-        LoadingStateItem {
-            loading_state: AppState::MainSceneLoading,
-            next_state: AppState::MainScene,
-        },
-    ];
+    pub const LOADING_STATES: &'static [LoadingStateItem] = &[LoadingStateItem {
+        loading_state: AppState::MainSceneLoading,
+        next_state: AppState::MainScene,
+    }];
 }
 
 fn main() {
@@ -140,15 +130,16 @@ fn main() {
     let mut app = App::new();
 
     // Add loading states
-    for LoadingStateItem { loading_state, next_state } in AppState::LOADING_STATES {
-        app.add_loading_state(
-            LoadingState::new(*loading_state)
-                .continue_to_state(*next_state)
-        );
+    for LoadingStateItem {
+        loading_state,
+        next_state,
+    } in AppState::LOADING_STATES
+    {
+        app.add_loading_state(LoadingState::new(*loading_state).continue_to_state(*next_state));
     }
 
-    app
-        .add_plugins(DefaultPlugins
+    app.add_plugins(
+        DefaultPlugins
             .set(LogPlugin {
                 level: bevy::log::Level::INFO,
                 ..default()
@@ -158,31 +149,31 @@ fn main() {
                     title: "Space Game".into(),
                     present_mode: PresentMode::AutoVsync,
                     ..default()
-                }), 
+                }),
                 ..default()
-            })
-        )
-        .add_plugins((
-            OutlinePlugin, 
-            AutoGenerateOutlineNormalsPlugin, 
-            RapierPhysicsPlugin::<NoUserData>::default(), 
-            // RapierDebugRenderPlugin::default(),
-            ToonShaderPlugin, 
-            ObjPlugin, 
-            ScreenDiagnosticsPlugin::default(), 
-            ScreenFrameDiagnosticsPlugin, 
-            RoundUiPlugin, 
-        ))
-        .add_state::<AppState>()
-        .add_systems(Startup, setup_physics)
-        .add_plugins((
-            ScenePlugin3D, 
-            EntitiesPlugin, 
-            ComponentsPlugin, 
-            ParticlesPlugin, 
-            SceneOutlinePlugin, 
-            UIPlugin, 
-        ));
-    
+            }),
+    )
+    .add_plugins((
+        OutlinePlugin,
+        AutoGenerateOutlineNormalsPlugin,
+        RapierPhysicsPlugin::<NoUserData>::default(),
+        // RapierDebugRenderPlugin::default(),
+        ToonShaderPlugin,
+        ObjPlugin,
+        ScreenDiagnosticsPlugin::default(),
+        ScreenFrameDiagnosticsPlugin,
+        RoundUiPlugin,
+    ))
+    .add_state::<AppState>()
+    .add_systems(Startup, setup_physics)
+    .add_plugins((
+        ScenePlugin3D,
+        EntitiesPlugin,
+        ComponentsPlugin,
+        ParticlesPlugin,
+        SceneOutlinePlugin,
+        UIPlugin,
+    ));
+
     app.run();
 }

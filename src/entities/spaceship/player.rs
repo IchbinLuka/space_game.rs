@@ -7,8 +7,11 @@ use crate::{
         gravity::{gravity_step, GravitySource},
         movement::MaxSpeed,
     },
-    entities::{bullet::{BulletSpawnEvent, Bullet, BulletTarget, BulletType}, planet::Planet},
-    utils::{sets::Set, misc::CollidingEntitiesExtension},
+    entities::{
+        bullet::{Bullet, BulletSpawnEvent, BulletTarget, BulletType},
+        planet::Planet,
+    },
+    utils::{misc::CollidingEntitiesExtension, sets::Set},
     AppState,
 };
 
@@ -64,11 +67,11 @@ fn player_setup(mut commands: Commands, assets: Res<SpaceshipAssets>) {
         SpaceshipBundle::new(assets.player_ship.clone(), Vec3::ZERO),
         Health::new(100.0),
         MaxSpeed { max_speed: 60.0 },
-        LastHit(None), 
+        LastHit(None),
         BulletTarget {
-            target_type: BulletType::Bot, 
-            bullet_damage: Some(10.0)
-        }
+            target_type: BulletType::Bot,
+            bullet_damage: Some(10.0),
+        },
     ));
 }
 
@@ -82,7 +85,8 @@ fn player_input(
         for key in keyboard_input.get_pressed() {
             match key {
                 KeyCode::Up | KeyCode::W => {
-                    velocity.linvel += transform.forward().normalize() * timer.delta_seconds() * 60.0;
+                    velocity.linvel +=
+                        transform.forward().normalize() * timer.delta_seconds() * 60.0;
                     particle_spawn.send(ParticleSpawnEvent { entity });
                 }
                 KeyCode::Left | KeyCode::A => transform.rotate_y(5.0 * timer.delta_seconds()),
@@ -191,10 +195,7 @@ fn player_line_update(
     }
 }
 
-fn player_regeneration(
-    mut players: Query<(&mut Health, &LastHit), IsPlayer>,
-    time: Res<Time>,
-) {
+fn player_regeneration(mut players: Query<(&mut Health, &LastHit), IsPlayer>, time: Res<Time>) {
     const HEAL_COOLDOWN: f32 = 4.0;
 
     for (mut health, last_hit) in &mut players {
@@ -209,8 +210,8 @@ fn player_regeneration(
 }
 
 fn player_collision(
-    mut players: Query<(&CollidingEntities, &mut LastHit), IsPlayer>, 
-    bullet_query: Query<(), (With<Bullet>, Without<Player>)>, 
+    mut players: Query<(&CollidingEntities, &mut LastHit), IsPlayer>,
+    bullet_query: Query<(), (With<Bullet>, Without<Player>)>,
     time: Res<Time>,
 ) {
     for (colliding, mut last_hit) in &mut players {
@@ -236,7 +237,8 @@ impl Plugin for PlayerPlugin {
                 player_line_update,
                 player_regeneration,
                 player_collision,
-            ).run_if(in_state(AppState::MainScene)),
+            )
+                .run_if(in_state(AppState::MainScene)),
         );
     }
 }
