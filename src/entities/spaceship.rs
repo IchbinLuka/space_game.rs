@@ -47,6 +47,15 @@ struct LastBulletInfo {
     timer: Timer,
 }
 
+impl LastBulletInfo {
+    fn with_cooldown(seconds: f32) -> Self {
+        Self {
+            timer: Timer::from_seconds(seconds, TimerMode::Repeating),
+            ..default()
+        }
+    }
+}
+
 impl Default for LastBulletInfo {
     fn default() -> Self {
         Self {
@@ -104,7 +113,7 @@ impl SpaceshipBundle {
     fn new(model: Handle<Scene>, pos: Vec3) -> Self {
         Self {
             velocity_collider_bundle: VelocityColliderBundle {
-                collider: Collider::ball(1.0),
+                collider: Collider::ball(1.2),
                 velocity: Velocity {
                     linvel: Vec3::X,
                     ..default()

@@ -53,7 +53,7 @@ impl Command for SpawnBot {
                 Bot {
                     state: self.initial_state,
                 },
-                LastBulletInfo::default(),
+                LastBulletInfo::with_cooldown(0.5),
                 SpaceshipBundle {
                     collision_groups: COLLISION_GROUPS,
                     ..SpaceshipBundle::new(assets.enemy_ship.clone(), self.pos)

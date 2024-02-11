@@ -24,7 +24,7 @@ use super::{
 
 #[derive(Component)]
 pub struct Player {
-    auxiliary_drive: bool,
+    pub auxiliary_drive: bool,
 }
 
 #[derive(Component)]

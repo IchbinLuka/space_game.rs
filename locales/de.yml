@@ -2,3 +2,6 @@ _version: 1
 hello: Hallo Welt!
 score: "Punkte: %{score}"
 cruiser: Kreuzer
+auxiliary_drive: "Hilfsantrieb: %{state}"
+state_on: "An"
+state_off: "Aus"

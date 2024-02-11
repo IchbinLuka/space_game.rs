@@ -100,7 +100,7 @@ fn spawn_asteroid_field(
                             asteroid: Asteroid,
                             velocity_collider_bundle: VelocityColliderBundle {
                                 velocity: Velocity { linvel, angvel },
-                                collider: Collider::ball(1.0),
+                                collider: Collider::ball(1.2),
                                 ..default()
                             },
                             outline_bundle: OutlineBundle {

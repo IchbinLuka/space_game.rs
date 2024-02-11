@@ -157,10 +157,17 @@ fn main() {
         OutlinePlugin,
         AutoGenerateOutlineNormalsPlugin,
         RapierPhysicsPlugin::<NoUserData>::default(),
-        // RapierDebugRenderPlugin::default(),
+        RapierDebugRenderPlugin::default(),
         ToonShaderPlugin,
         ObjPlugin,
-        ScreenDiagnosticsPlugin::default(),
+        ScreenDiagnosticsPlugin {
+            style: Style {
+                top: Val::Px(10.),
+                left: Val::Px(10.),
+                ..default()
+            }, 
+            ..default()
+        },
         ScreenFrameDiagnosticsPlugin,
         RoundUiPlugin,
     ))
