@@ -1,6 +1,9 @@
+use std::collections::VecDeque;
+
 use bevy::{prelude::*, render::render_resource::PrimitiveTopology};
 
 use bevy_rapier3d::{dynamics::Velocity, geometry::CollidingEntities};
+use rand::Rng;
 
 use crate::{
     components::{
@@ -20,7 +23,9 @@ use super::{
 };
 
 #[derive(Component)]
-pub struct Player;
+pub struct Player {
+    auxiliary_drive: bool,
+}
 
 #[derive(Component)]
 struct LastHit(Option<f32>);
@@ -63,7 +68,9 @@ fn player_shoot(
 
 fn player_setup(mut commands: Commands, assets: Res<SpaceshipAssets>) {
     commands.spawn((
-        Player,
+        Player {
+            auxiliary_drive: false,
+        },
         SpaceshipBundle::new(assets.player_ship.clone(), Vec3::ZERO),
         Health::new(100.0),
         MaxSpeed { max_speed: 60.0 },
@@ -78,27 +85,187 @@ fn player_setup(mut commands: Commands, assets: Res<SpaceshipAssets>) {
 fn player_input(
     timer: Res<Time>,
     keyboard_input: Res<Input<KeyCode>>,
-    mut query: Query<(&mut Velocity, &mut Transform, Entity), IsPlayer>,
+    mut query: Query<(&mut Velocity, &mut Transform, Entity, &mut Player), IsPlayer>,
     mut particle_spawn: EventWriter<ParticleSpawnEvent>,
 ) {
-    for (mut velocity, mut transform, entity) in &mut query {
-        for key in keyboard_input.get_pressed() {
-            match key {
-                KeyCode::Up | KeyCode::W => {
-                    velocity.linvel +=
-                        transform.forward().normalize() * timer.delta_seconds() * 60.0;
-                    particle_spawn.send(ParticleSpawnEvent { entity });
-                }
-                KeyCode::Left | KeyCode::A => transform.rotate_y(5.0 * timer.delta_seconds()),
-                KeyCode::Right | KeyCode::D => transform.rotate_y(-5.0 * timer.delta_seconds()),
-                _ => (),
-            }
+    for (mut velocity, mut transform, entity, mut player) in &mut query {
+        if keyboard_input.any_pressed([KeyCode::Up, KeyCode::W]) {
+            velocity.linvel += transform.forward().normalize() * timer.delta_seconds() * 60.0;
+            particle_spawn.send(ParticleSpawnEvent {
+                entity,
+                direction: None,
+            });
+        }
+
+        if keyboard_input.any_pressed([KeyCode::Left, KeyCode::A, KeyCode::Right, KeyCode::D]) {
+            let sign = if keyboard_input.any_pressed([KeyCode::Left, KeyCode::A]) {
+                1.0
+            } else {
+                -1.0
+            };
+
+            const AUXILIARY_TURN_SPEED: f32 = 3.0;
+            const TURN_SPEED: f32 = 5.0;
+
+            let speed = if player.auxiliary_drive {
+                AUXILIARY_TURN_SPEED
+            } else {
+                TURN_SPEED
+            };
+
+            transform.rotate_y(sign * speed * timer.delta_seconds());
+
+            // if player.auxiliary_drive {
+            //     let vel = velocity.linvel;
+            //     velocity.linvel = 0.9 * velocity.linvel + 0.1 * transform.forward().normalize() * vel.length();
+            //     particle_spawn.send(ParticleSpawnEvent { entity });
+            // }
+        }
+
+        if keyboard_input.just_pressed(KeyCode::ShiftLeft) {
+            player.auxiliary_drive = !player.auxiliary_drive;
+        }
+    }
+}
+
+fn player_auxiliary_drive(
+    mut player_query: Query<(&Transform, &mut Velocity, &Player, Entity)>,
+    time: Res<Time>,
+    mut particle_events: EventWriter<ParticleSpawnEvent>,
+) {
+    let mut rng = rand::thread_rng();
+
+    for (transform, mut velocity, player, entity) in &mut player_query {
+        if !player.auxiliary_drive {
+            continue;
+        }
+        let forward = transform.forward();
+        let vel = velocity.linvel;
+        let delta = forward * vel.length() - vel;
+        velocity.linvel += delta * f32::min(time.delta_seconds() * 4., 1.);
+
+        if rng.gen_bool(f64::min(
+            delta.length() as f64 * time.delta_seconds_f64() * 2.,
+            1.,
+        )) {
+            particle_events.send(ParticleSpawnEvent {
+                entity,
+                direction: Some(-delta.normalize()),
+            });
         }
     }
 }
 
 const PREDICTION_LENGTH: usize = 100;
 const LINE_THICKNESS: f32 = 0.1;
+
+#[derive(Component)]
+struct PlayerTrail {
+    offset: Vec3,
+    pos_history: VecDeque<Vec3>,
+}
+
+fn player_trail_setup(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    let material = materials.add(StandardMaterial {
+        base_color: Color::WHITE,
+        emissive: Color::WHITE,
+        double_sided: true,
+        ..default()
+    });
+
+    const TRAILS: [PlayerTrail; 2] = [
+        PlayerTrail {
+            offset: Vec3 {
+                x: -1.,
+                y: -0.4,
+                z: 0.,
+            },
+            pos_history: VecDeque::new(),
+        },
+        PlayerTrail {
+            offset: Vec3 {
+                x: 1.,
+                y: -0.4,
+                z: 0.,
+            },
+            pos_history: VecDeque::new(),
+        },
+    ];
+
+    for trail in TRAILS {
+        let mesh = Mesh::new(PrimitiveTopology::TriangleStrip);
+        let mesh_handle = meshes.add(mesh);
+        commands.spawn((
+            PbrBundle {
+                mesh: mesh_handle,
+                material: material.clone(),
+                ..default()
+            },
+            trail,
+        ));
+    }
+}
+
+fn player_trail_update(
+    mut trails: Query<(&mut Handle<Mesh>, &mut PlayerTrail, &mut Transform), Without<Player>>,
+    player_query: Query<(&Transform, &Player, &GlobalTransform, Entity), IsPlayer>,
+    player_changed: Query<(), Changed<Player>>,
+    mut assets: ResMut<Assets<Mesh>>,
+) {
+    const HISTORY_LENGTH: usize = 50;
+
+    let Ok((player_transform, player, player_global, player_entity)) = player_query.get_single()
+    else {
+        return;
+    };
+
+    let player_changed = player_changed.get(player_entity).is_ok();
+
+    if !player_changed && !player.auxiliary_drive {
+        return;
+    }
+
+    for (mesh, mut trail, mut transform) in &mut trails {
+        if player_changed && !player.auxiliary_drive {
+            trail.pos_history.clear();
+        }
+
+        let current_pos = player_transform.translation - Vec3::Y * 0.1;
+        transform.translation = current_pos;
+
+        let Some(mesh) = assets.get_mut(mesh.id()) else {
+            continue;
+        };
+
+        let offset = trail.offset;
+        trail
+            .pos_history
+            .push_back(player_global.transform_point(offset));
+
+        if trail.pos_history.len() > HISTORY_LENGTH {
+            trail.pos_history.pop_front();
+        }
+
+        let mut positions = Vec::<Vec3>::with_capacity(HISTORY_LENGTH * 2);
+
+        for (i, pos) in trail.pos_history.iter().enumerate().skip(1) {
+            let previous = trail.pos_history[i - 1];
+
+            let perpendicular = (*pos - previous).cross(Vec3::Y).normalize();
+            let thickness = (i as f32 / HISTORY_LENGTH as f32).powf(2.0) * LINE_THICKNESS;
+
+            positions.push(*pos - current_pos - perpendicular * thickness);
+            positions.push(*pos - current_pos + perpendicular * thickness);
+        }
+
+        mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, [Vec3::Y].repeat(positions.len()));
+        mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
+    }
+}
 
 #[derive(Component)]
 struct PlayerLine;
@@ -138,7 +305,8 @@ fn player_line_setup(
 
 fn player_line_update(
     mut line_query: Query<(&mut Handle<Mesh>, &mut Transform), (With<PlayerLine>, Without<Player>)>,
-    player_query: Query<(&Transform, &Velocity), IsPlayer>,
+    player_query: Query<(&Transform, &Velocity, &Player, Entity), IsPlayer>,
+    player_changed: Query<(), Changed<Player>>,
     gravity_sources: Query<
         (&Transform, &GravitySource, Option<&Planet>),
         (Without<Player>, Without<PlayerLine>),
@@ -149,7 +317,15 @@ fn player_line_update(
         let Some(mesh) = assets.get_mut(mesh_handle.id()) else {
             continue;
         };
-        for (player_transform, player_velocity) in &player_query {
+        for (player_transform, player_velocity, player, entity) in &player_query {
+            if player.auxiliary_drive {
+                if player_changed.get(entity).is_ok() {
+                    mesh.remove_attribute(Mesh::ATTRIBUTE_POSITION);
+                    mesh.remove_attribute(Mesh::ATTRIBUTE_NORMAL);
+                }
+                continue;
+            }
+
             transform.translation = player_transform.translation - Vec3::Y * 0.1;
 
             let mut positions: Vec<Vec3> = Vec::with_capacity(PREDICTION_LENGTH * 2);
@@ -227,7 +403,7 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             OnEnter(AppState::MainScene),
-            (player_setup, player_line_setup),
+            (player_setup, player_line_setup, player_trail_setup),
         )
         .add_systems(
             Update,
@@ -237,6 +413,8 @@ impl Plugin for PlayerPlugin {
                 player_line_update,
                 player_regeneration,
                 player_collision,
+                player_trail_update,
+                player_auxiliary_drive,
             )
                 .run_if(in_state(AppState::MainScene)),
         );

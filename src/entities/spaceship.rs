@@ -184,6 +184,16 @@ struct SpaceshipExhaustParticle;
 #[derive(Event)]
 struct ParticleSpawnEvent {
     entity: Entity,
+    direction: Option<Vec3>,
+}
+
+impl ParticleSpawnEvent {
+    fn main_exhaust(entity: Entity) -> Self {
+        Self {
+            entity,
+            direction: None,
+        }
+    }
 }
 
 fn spawn_exhaust_particle(
@@ -203,9 +213,12 @@ fn spawn_exhaust_particle(
         };
         let scale = Vec3::splat(rng.gen_range(0.7..1.4));
         let lifetime = rng.gen_range(LIFE_TIME_RANGE);
-        let linvel = velocity.linvel -
-            transform.forward() * 10.0 + // Speed relative to spaceship
-            transform.forward().cross(Vec3::Y).normalize() * rng.gen_range(RANDOM_VEL_RANGE); // Random sideways velocity
+
+        let direction = event.direction.unwrap_or(-transform.forward());
+
+        let linvel = velocity.linvel +
+            direction * 10.0 + // Speed relative to spaceship
+            direction.cross(Vec3::Y).normalize() * rng.gen_range(RANDOM_VEL_RANGE); // Random sideways velocity
 
         commands.spawn((
             MaterialMeshBundle {

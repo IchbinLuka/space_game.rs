@@ -145,7 +145,7 @@ fn bot_update(
 
                 if angle < 0.1 || distance < 20.0 {
                     velocity.linvel += transform.forward().normalize();
-                    exhaust_particles.send(ParticleSpawnEvent { entity });
+                    exhaust_particles.send(ParticleSpawnEvent::main_exhaust(entity));
                 }
 
                 if last_bullet.timer.finished() &&
