@@ -53,6 +53,7 @@ fn planet_setup(
     for (color, size) in asteroids {
         let material = materials.add(OutlineMaterial {
             color: Color::hex(color).unwrap(),
+            scale: 5., 
             // ..matte_material()
         });
 

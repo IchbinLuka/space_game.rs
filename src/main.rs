@@ -8,7 +8,7 @@ i18n!();
 
 use bevy::{log::LogPlugin, prelude::*, render::render_resource::{AsBindGroup, ShaderRef}, window::PresentMode};
 use bevy_asset_loader::loading_state::{LoadingState, LoadingStateAppExt};
-use bevy_mod_outline::{AutoGenerateOutlineNormalsPlugin, OutlinePlugin};
+use bevy_mod_outline::{AutoGenerateOutlineNormalsPlugin, OutlineBundle, OutlinePlugin};
 use bevy_obj::ObjPlugin;
 use bevy_rapier3d::prelude::*;
 use bevy_round_ui::prelude::RoundUiPlugin;
@@ -18,8 +18,9 @@ use components::ComponentsPlugin;
 use entities::EntitiesPlugin;
 use particles::ParticlesPlugin;
 use postprocessing::PostprocessingPlugin;
+
 use ui::UIPlugin;
-use utils::scene_outline::SceneOutlinePlugin;
+use utils::{materials::default_outline, scene_outline::SceneOutlinePlugin};
 
 mod components;
 mod entities;
@@ -114,9 +115,14 @@ fn scene_setup_3d(
             mesh: meshes.add(shape::Cube::new(10.0).into()), 
             material: materials.add(OutlineMaterial {
                 color: Color::hex("ea6d25").unwrap(),
+                scale: 5.0, 
             }),
             ..default()
         }, 
+        OutlineBundle {
+            outline: default_outline(), 
+            ..default()
+        }
     ));
 }
 
@@ -125,6 +131,8 @@ fn scene_setup_3d(
 pub struct OutlineMaterial {
     #[uniform(0)]
     pub color: Color, 
+    #[uniform(1)]
+    pub scale: f32, 
 }
 
 impl Material for OutlineMaterial {

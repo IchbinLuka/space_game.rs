@@ -198,6 +198,7 @@ fn player_trail_setup(
 
     for trail in TRAILS {
         let mesh = Mesh::new(PrimitiveTopology::TriangleStrip);
+
         let mesh_handle = meshes.add(mesh);
         commands.spawn((
             PbrBundle {
@@ -320,8 +321,8 @@ fn player_line_update(
         for (player_transform, player_velocity, player, entity) in &player_query {
             if player.auxiliary_drive {
                 if player_changed.get(entity).is_ok() {
-                    mesh.remove_attribute(Mesh::ATTRIBUTE_POSITION);
-                    mesh.remove_attribute(Mesh::ATTRIBUTE_NORMAL);
+                    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, Vec::<Vec3>::new());
+                    mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, Vec::<Vec3>::new());
                 }
                 continue;
             }

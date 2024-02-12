@@ -1,5 +1,6 @@
 use bevy::ecs::system::EntityCommand;
 use bevy::prelude::*;
+use bevy::scene::SceneInstance;
 use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
 use bevy_mod_outline::OutlineBundle;
 use bevy_rapier3d::prelude::*;
@@ -11,6 +12,7 @@ use crate::ui::health_bar_3d::SpawnHealthBar;
 use crate::utils::collisions::CRUISER_COLLISION_GROUP;
 use crate::utils::misc::CollidingEntitiesExtension;
 use crate::utils::sets::Set;
+use crate::OutlineMaterial;
 use crate::{
     components::colliders::VelocityColliderBundle, utils::materials::default_outline, AppState,
 };
@@ -164,6 +166,39 @@ fn cruiser_setup(
     commands.add(SpawnEnemyIndicator { enemy: entity });
 }
 
+#[derive(Component)]
+struct UpdatedMaterials;
+
+fn cruiser_material_setup(
+    query: Query<(&SceneInstance, Entity), (Changed<SceneInstance>, With<Cruiser>, Without<UpdatedMaterials>)>, 
+    mut commands: Commands, 
+    scene_manager: Res<SceneSpawner>,
+    mut materials: ResMut<Assets<OutlineMaterial>>,
+    standard_materials: ResMut<Assets<StandardMaterial>>,  
+    standard_material_query: Query<&Handle<StandardMaterial>>
+) {
+    for (scene_instance, entity) in &query {
+        if scene_manager.instance_is_ready(**scene_instance) {
+            for entity in scene_manager.iter_instance_entities(**scene_instance) {
+                if let Ok(handle) =  standard_material_query.get(entity) {
+                    let Some(material) =  standard_materials.get(handle) else { continue; };
+                    
+                    let outline_material = materials.add(OutlineMaterial { 
+                        color: material.base_color, 
+                        scale: 5., 
+                    });
+
+                    commands.entity(entity)
+                        .remove::<Handle<StandardMaterial>>()
+                        .insert(outline_material);
+                    
+                }
+            }
+        }
+        commands.entity(entity).insert(UpdatedMaterials);
+    }
+}
+
 fn cruiser_shield_death(
     query: Query<(Entity, &Health), (With<CruiserShield>, Without<ShieldDisabled>)>,
     mut commands: Commands,
@@ -282,6 +317,7 @@ impl Plugin for CruiserPLugin {
                     cruiser_death.in_set(Set::ExplosionEvents),
                     cruiser_spawn_bots,
                     cruiser_shield_collisions,
+                    cruiser_material_setup, 
                 )
                     .run_if(in_state(AppState::MainScene)),
             );

@@ -238,10 +238,11 @@ fn asteroid_setup(
     //     ..matte_material()
     // });
     let material = standard_materials.add(OutlineMaterial { 
-        color: Color::hex("747a8c").unwrap(),
+        color: Color::hex("665F64").unwrap(),
+        scale: 2., 
      });
 
-    let particle_material = particle_materials.add(ParticleMaterial {
+    let particle_material: Handle<ParticleMaterial> = particle_materials.add(ParticleMaterial {
         color: Color::hex("665F64").unwrap(),
     });
 

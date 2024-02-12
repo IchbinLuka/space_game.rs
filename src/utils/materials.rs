@@ -12,7 +12,7 @@ pub fn _matte_material() -> StandardMaterial {
 pub fn default_outline() -> OutlineVolume {
     OutlineVolume {
         visible: true,
-        width: 4.0,
+        width: 2.0,
         colour: Color::BLACK,
     }
 }
