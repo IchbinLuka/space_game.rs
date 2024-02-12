@@ -10,7 +10,7 @@ bevy = { version = "0.12.1", features = ["dynamic_linking", "jpeg", "mp3"] }
 bevy_asset_loader = "0.18.0"
 bevy_kira_audio = "0.18.0"
 bevy_audio = "0.12.1"
-bevy_mod_outline = "0.6.0"
+bevy_mod_outline = "0.6.2"
 rand = "0.8.5"
 bevy_rapier3d = { version = "0.23.0", features = ["parallel", "debug-render-3d"]}
 bevy_obj = "0.12.0"

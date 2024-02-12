@@ -7,9 +7,9 @@ use crate::{
     components::gravity::GravitySource,
     utils::{
         collisions::PLANET_COLLISION_GROUP,
-        materials::{default_outline, matte_material},
+        materials::default_outline,
     },
-    AppState,
+    AppState, OutlineMaterial,
 };
 
 use super::{
@@ -32,7 +32,7 @@ pub struct Planet {
 
 fn planet_setup(
     mut commands: Commands,
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut materials: ResMut<Assets<OutlineMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
     let collision_groups = CollisionGroups::new(PLANET_COLLISION_GROUP, Group::ALL);
@@ -51,9 +51,9 @@ fn planet_setup(
     let asteroids = [("549335", 10.0), ("f77d36", 15.0), ("365df7", 7.0)];
 
     for (color, size) in asteroids {
-        let material = materials.add(StandardMaterial {
-            base_color: Color::hex(color).unwrap(),
-            ..matte_material()
+        let material = materials.add(OutlineMaterial {
+            color: Color::hex(color).unwrap(),
+            // ..matte_material()
         });
 
         let angvel = Vec3 {

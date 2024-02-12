@@ -13,11 +13,11 @@ use crate::{
     ui::score::ScoreEvent,
     utils::{
         collisions::BULLET_COLLISION_GROUP,
-        materials::{default_outline, matte_material},
+        materials::default_outline,
         misc::CollidingEntitiesExtension,
         sets::Set,
     },
-    AppState,
+    AppState, OutlineMaterial,
 };
 
 use super::{bullet::Bullet, explosion::ExplosionEvent, spaceship::player::Player};
@@ -205,7 +205,7 @@ fn asteroid_collisions(
 
 #[derive(Bundle)]
 struct AsteroidBundle {
-    mesh_bundle: MaterialMeshBundle<StandardMaterial>,
+    mesh_bundle: MaterialMeshBundle<OutlineMaterial>,
     asteroid: Asteroid,
     velocity_collider_bundle: VelocityColliderBundle,
     outline_bundle: OutlineBundle,
@@ -222,21 +222,24 @@ struct AsteroidAssets {
 
 #[derive(Resource)]
 struct AsteroidRes {
-    material: Handle<StandardMaterial>,
+    material: Handle<OutlineMaterial>,
     particle_mesh: Handle<Mesh>,
     particle_material: Handle<ParticleMaterial>,
 }
 
 fn asteroid_setup(
-    mut standard_materials: ResMut<Assets<StandardMaterial>>,
+    mut standard_materials: ResMut<Assets<OutlineMaterial>>,
     mut particle_materials: ResMut<Assets<ParticleMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut commands: Commands,
 ) {
-    let material = standard_materials.add(StandardMaterial {
-        base_color: Color::hex("747a8c").unwrap(),
-        ..matte_material()
-    });
+    // let material = standard_materials.add(StandardMaterial {
+    //     base_color: Color::hex("747a8c").unwrap(),
+    //     ..matte_material()
+    // });
+    let material = standard_materials.add(OutlineMaterial { 
+        color: Color::hex("747a8c").unwrap(),
+     });
 
     let particle_material = particle_materials.add(ParticleMaterial {
         color: Color::hex("665F64").unwrap(),

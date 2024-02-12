@@ -6,7 +6,7 @@ extern crate rust_i18n;
 
 i18n!();
 
-use bevy::{log::LogPlugin, prelude::*, window::PresentMode};
+use bevy::{log::LogPlugin, prelude::*, render::render_resource::{AsBindGroup, ShaderRef}, window::PresentMode};
 use bevy_asset_loader::loading_state::{LoadingState, LoadingStateAppExt};
 use bevy_mod_outline::{AutoGenerateOutlineNormalsPlugin, OutlinePlugin};
 use bevy_obj::ObjPlugin;
@@ -17,6 +17,7 @@ use bevy_toon_shader::{ToonShaderPlugin, ToonShaderSun};
 use components::ComponentsPlugin;
 use entities::EntitiesPlugin;
 use particles::ParticlesPlugin;
+use postprocessing::PostprocessingPlugin;
 use ui::UIPlugin;
 use utils::scene_outline::SceneOutlinePlugin;
 
@@ -25,6 +26,7 @@ mod entities;
 mod particles;
 mod ui;
 mod utils;
+mod postprocessing;
 
 #[derive(Component)]
 pub struct Movement {
@@ -82,7 +84,11 @@ fn setup_physics(mut rapier_config: ResMut<RapierConfiguration>) {
     rapier_config.gravity = Vec3::ZERO;
 }
 
-fn scene_setup_3d(mut commands: Commands) {
+fn scene_setup_3d(
+    mut commands: Commands, 
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<OutlineMaterial>>,
+) {
     commands.insert_resource(AmbientLight {
         color: Color::WHITE,
         brightness: 0.5,
@@ -102,6 +108,29 @@ fn scene_setup_3d(mut commands: Commands) {
         },
         ToonShaderSun,
     ));
+
+    commands.spawn((
+        MaterialMeshBundle {
+            mesh: meshes.add(shape::Cube::new(10.0).into()), 
+            material: materials.add(OutlineMaterial {
+                color: Color::hex("ea6d25").unwrap(),
+            }),
+            ..default()
+        }, 
+    ));
+}
+
+
+#[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
+pub struct OutlineMaterial {
+    #[uniform(0)]
+    pub color: Color, 
+}
+
+impl Material for OutlineMaterial {
+    fn fragment_shader() -> ShaderRef {
+        "shaders/outline.wgsl".into()
+    }
 }
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash, Default, States, Copy)]
@@ -157,7 +186,11 @@ fn main() {
         OutlinePlugin,
         AutoGenerateOutlineNormalsPlugin,
         RapierPhysicsPlugin::<NoUserData>::default(),
-        RapierDebugRenderPlugin::default(),
+        // RapierDebugRenderPlugin::default(),
+        MaterialPlugin::<OutlineMaterial> {
+            prepass_enabled: true, 
+            ..default()
+        },
         ToonShaderPlugin,
         ObjPlugin,
         ScreenDiagnosticsPlugin {
@@ -180,6 +213,7 @@ fn main() {
         ParticlesPlugin,
         SceneOutlinePlugin,
         UIPlugin,
+        PostprocessingPlugin, 
     ));
 
     app.run();
