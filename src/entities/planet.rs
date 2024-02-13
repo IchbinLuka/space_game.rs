@@ -5,10 +5,8 @@ use rand::Rng;
 
 use crate::{
     components::gravity::GravitySource,
-    utils::{
-        collisions::PLANET_COLLISION_GROUP,
-        materials::default_outline,
-    },
+    materials::outline::OutlineMaterialSettings,
+    utils::{collisions::PLANET_COLLISION_GROUP, materials::default_outline},
     AppState, OutlineMaterial,
 };
 
@@ -53,7 +51,10 @@ fn planet_setup(
     for (color, size) in asteroids {
         let material = materials.add(OutlineMaterial {
             color: Color::hex(color).unwrap(),
-            scale: 5., 
+            settings: OutlineMaterialSettings {
+                cross_scale: 5.,
+                ..default()
+            },
             // ..matte_material()
         });
 

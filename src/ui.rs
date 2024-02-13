@@ -1,12 +1,12 @@
 use bevy::app::{App, Plugin};
 
+pub mod auxiliary_drive;
 pub mod enemy_indicator;
 pub mod fonts;
 pub mod health_bar;
 pub mod health_bar_3d;
 pub mod score;
 pub mod sprite_3d_renderer;
-pub mod auxiliary_drive;
 
 pub struct UIPlugin;
 

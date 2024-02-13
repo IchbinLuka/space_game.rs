@@ -14,9 +14,15 @@
 @group(1) @binding(0)
 var<uniform> color: vec4<f32>;
 @group(1) @binding(1)
-var<uniform> scale: f32;
+var<uniform> settings: ShaderSettings;
 
-const SCALE: f32 = 5.0;
+struct ShaderSettings {
+    cross_scale: f32, 
+    depth_threshold: f32,
+    normal_threshold: f32,
+    depth_normal_threshold_scale: f32,
+    depth_normal_threshold: f32,
+}
 
 @fragment
 fn fragment(
@@ -31,8 +37,8 @@ fn fragment(
 
     
 
-    let half_scale_floor = floor(scale * 0.5);
-    let half_scale_ceil = ceil(scale * 0.5);
+    let half_scale_floor = floor(settings.cross_scale * 0.5);
+    let half_scale_ceil = ceil(settings.cross_scale * 0.5);
 
     let bottom_left = vec4<f32>(mesh.position.x - half_scale_floor, mesh.position.y - half_scale_floor, mesh.position.z, 1.0);
     let bottom_right = vec4<f32>(mesh.position.x + half_scale_ceil, mesh.position.y - half_scale_floor, mesh.position.z, 1.0);
@@ -52,27 +58,27 @@ fn fragment(
     let normal_diff0 = normal1 - normal0;
     let normal_diff1 = normal3 - normal2;
 
-    let edge_normal = sqrt(dot(normal_diff0, normal_diff0) + dot(normal_diff1, normal_diff1)) > 1.0;
+    let clip_pos = vec4<f32>(mesh.position.x / view.viewport.z, mesh.position.y / view.viewport.w, 0.0, 1.0) * 2.0 - 1.0;
 
-    let edge_depth = sqrt(pow(depth1 - depth0, 2.0) + pow(depth3 - depth2, 2.0)) > 0.001;
-    
+    let view_space_dir = mesh.world_position.xyz - view.world_position;
+
+    let view_normal = view.view_proj * vec4<f32>(normal0, 0.0);
+
+
+    let n_dot_v = 1.0 - dot(normal0, -1.0 * normalize(view_space_dir));
+
+    let normal_threshold_1 = saturate((n_dot_v - settings.depth_normal_threshold) / (1.0 - settings.depth_normal_threshold));
+    let normal_threshold = normal_threshold_1 * settings.depth_normal_threshold_scale + 1.0;
+
+    let depth_threshold = settings.depth_threshold * depth0 * normal_threshold;
+
+    let edge_normal = dot(normal_diff0, normal_diff0) + dot(normal_diff1, normal_diff1) > settings.normal_threshold * settings.normal_threshold;
+
+    let edge_depth = pow(depth1 - depth0, 2.0) + pow(depth3 - depth2, 2.0) > depth_threshold * depth_threshold;
+
     if edge_normal || edge_depth {
         return vec4(0.0, 0.0, 0.0, 1.0);
     }
 
     return color;
-
-    // TODO: Use normal to get threshold for depth difference
-
-    // let clip_pos = vec4<f32>(mesh.position.x / view.viewport.z, mesh.position.y / view.viewport.w, 0.0, 1.0) * 2.0 - 1.0;
-
-    // let view_space_dir = (view.inverse_projection * clip_pos).xyz;
-
-    // let view_normal = mesh.world_normal * 2.0 - 1.0;
-
-
-    // let n_dot_v = 1.0 - dot(view_normal, -1.0 * view_space_dir);
-
-    // return vec4<f32>(n_dot_v, n_dot_v, n_dot_v, 1.0);
-
 }

@@ -1,5 +1,9 @@
 use bevy::{
-    core_pipeline::{clear_color::ClearColorConfig, prepass::{DepthPrepass, NormalPrepass}, Skybox},
+    core_pipeline::{
+        clear_color::ClearColorConfig,
+        prepass::{DepthPrepass, NormalPrepass},
+        Skybox,
+    },
     prelude::*,
     render::{
         render_resource::{TextureViewDescriptor, TextureViewDimension},
@@ -71,8 +75,8 @@ fn camera_setup(
         Skybox(camera_assets.skybox.clone()),
         CameraComponent,
         ToonShaderMainCamera,
-        DepthPrepass, 
-        NormalPrepass, 
+        DepthPrepass,
+        NormalPrepass,
         Movement::default(),
     ));
 
