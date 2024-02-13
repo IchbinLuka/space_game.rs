@@ -9,7 +9,6 @@ use rand::Rng;
 use crate::{
     components::{colliders::VelocityColliderBundle, despawn_after::DespawnAfter},
     entities::bullet::BulletType,
-    materials::outline::OutlineMaterialSettings,
     particles::ParticleMaterial,
     ui::score::ScoreEvent,
     utils::{
@@ -238,10 +237,9 @@ fn asteroid_setup(
     // });
     let material = standard_materials.add(OutlineMaterial {
         color: Color::hex("665F64").unwrap(),
-        settings: OutlineMaterialSettings {
-            cross_scale: 2.,
-            ..default()
-        },
+        filter_scale: 2.,
+        normal_threshold: 1.2,
+        ..default()
     });
 
     let particle_material: Handle<ParticleMaterial> = particle_materials.add(ParticleMaterial {

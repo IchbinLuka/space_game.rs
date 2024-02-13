@@ -149,6 +149,7 @@ impl AppState {
 }
 
 fn main() {
+
     rust_i18n::set_locale("de");
 
     let mut app = App::new();
