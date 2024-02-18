@@ -9,7 +9,7 @@ use bevy::{
     },
 };
 
-use crate::AppState;
+use crate::states::AppState;
 
 pub mod fire_particles;
 

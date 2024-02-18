@@ -1,21 +1,22 @@
 use bevy::ecs::system::EntityCommand;
 use bevy::prelude::*;
-use bevy::scene::SceneInstance;
 use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
 use bevy_mod_outline::OutlineBundle;
 use bevy_rapier3d::prelude::*;
 use bevy_rapier3d::{dynamics::Velocity, geometry::Collider};
 
 use crate::components::health::{DespawnOnDeath, Health, Shield};
+use crate::materials::outline::ApplyOutlineMaterial;
 use crate::ui::enemy_indicator::SpawnEnemyIndicator;
 use crate::ui::health_bar_3d::SpawnHealthBar;
 use crate::utils::collisions::CRUISER_COLLISION_GROUP;
 use crate::utils::misc::CollidingEntitiesExtension;
 use crate::utils::sets::Set;
-use crate::OutlineMaterial;
+
 use crate::{
-    components::colliders::VelocityColliderBundle, utils::materials::default_outline, AppState,
+    components::colliders::VelocityColliderBundle, utils::materials::default_outline,
 };
+use crate::states::{game_running, AppState, ON_GAME_STARTED};
 
 use super::bullet::{Bullet, BulletTarget, BulletType};
 use super::explosion::ExplosionEvent;
@@ -87,6 +88,7 @@ fn cruiser_setup(
                 }),
                 ..default()
             },
+            ApplyOutlineMaterial::default(), 
             VelocityColliderBundle {
                 velocity: Velocity {
                     linvel: Vec3 {
@@ -166,48 +168,6 @@ fn cruiser_setup(
     commands.add(SpawnEnemyIndicator { enemy: entity });
 }
 
-#[derive(Component)]
-struct UpdatedMaterials;
-
-fn cruiser_material_setup(
-    query: Query<
-        (&SceneInstance, Entity),
-        (
-            Changed<SceneInstance>,
-            With<Cruiser>,
-            Without<UpdatedMaterials>,
-        ),
-    >,
-    mut commands: Commands,
-    scene_manager: Res<SceneSpawner>,
-    mut materials: ResMut<Assets<OutlineMaterial>>,
-    standard_materials: ResMut<Assets<StandardMaterial>>,
-    standard_material_query: Query<&Handle<StandardMaterial>>,
-) {
-    for (scene_instance, entity) in &query {
-        if scene_manager.instance_is_ready(**scene_instance) {
-            for entity in scene_manager.iter_instance_entities(**scene_instance) {
-                if let Ok(handle) = standard_material_query.get(entity) {
-                    let Some(material) = standard_materials.get(handle) else {
-                        continue;
-                    };
-
-                    let outline_material = materials.add(OutlineMaterial {
-                        color: material.base_color,
-                        ..default()
-                    });
-
-                    commands
-                        .entity(entity)
-                        .remove::<Handle<StandardMaterial>>()
-                        .insert(outline_material);
-                }
-            }
-        }
-        commands.entity(entity).insert(UpdatedMaterials);
-    }
-}
-
 fn cruiser_shield_death(
     query: Query<(Entity, &Health), (With<CruiserShield>, Without<ShieldDisabled>)>,
     mut commands: Commands,
@@ -279,15 +239,6 @@ fn cruiser_shield_collisions(
     }
 }
 
-#[derive(Component)]
-struct EnemySpawnCooldown(pub Timer);
-
-impl Default for EnemySpawnCooldown {
-    fn default() -> Self {
-        Self(Timer::from_seconds(5.0, TimerMode::Repeating))
-    }
-}
-
 fn cruiser_spawn_bots(
     mut commands: Commands,
     time: Res<Time>,
@@ -317,7 +268,7 @@ pub struct CruiserPLugin;
 impl Plugin for CruiserPLugin {
     fn build(&self, app: &mut App) {
         app.add_collection_to_loading_state::<_, CruiserAssets>(AppState::MainSceneLoading)
-            .add_systems(OnEnter(AppState::MainScene), cruiser_setup)
+            .add_systems(ON_GAME_STARTED, cruiser_setup)
             .add_systems(
                 Update,
                 (
@@ -326,9 +277,8 @@ impl Plugin for CruiserPLugin {
                     cruiser_death.in_set(Set::ExplosionEvents),
                     cruiser_spawn_bots,
                     cruiser_shield_collisions,
-                    cruiser_material_setup,
                 )
-                    .run_if(in_state(AppState::MainScene)),
+                    .run_if(game_running()),
             );
     }
 }

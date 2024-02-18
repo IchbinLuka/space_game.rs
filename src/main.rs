@@ -7,7 +7,6 @@ extern crate rust_i18n;
 i18n!();
 
 use bevy::{log::LogPlugin, prelude::*, window::PresentMode};
-use bevy_asset_loader::loading_state::{LoadingState, LoadingStateAppExt};
 use bevy_mod_outline::{AutoGenerateOutlineNormalsPlugin, OutlineBundle, OutlinePlugin};
 use bevy_obj::ObjPlugin;
 use bevy_rapier3d::prelude::*;
@@ -16,9 +15,10 @@ use bevy_screen_diagnostics::{ScreenDiagnosticsPlugin, ScreenFrameDiagnosticsPlu
 use bevy_toon_shader::{ToonShaderPlugin, ToonShaderSun};
 use components::ComponentsPlugin;
 use entities::EntitiesPlugin;
-use materials::{outline::OutlineMaterial, MaterialsPlugin};
+use materials::{MaterialsPlugin, outline::OutlineMaterial};
 use particles::ParticlesPlugin;
 use postprocessing::PostprocessingPlugin;
+use states::{game_running, StatesPlugin, ON_GAME_STARTED};
 
 use ui::UIPlugin;
 use utils::{materials::default_outline, scene_outline::SceneOutlinePlugin};
@@ -30,6 +30,7 @@ mod particles;
 mod postprocessing;
 mod ui;
 mod utils;
+mod states;
 
 #[derive(Component)]
 pub struct Movement {
@@ -75,10 +76,10 @@ pub struct ScenePlugin3D;
 
 impl Plugin for ScenePlugin3D {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(AppState::MainScene), scene_setup_3d)
+        app.add_systems(ON_GAME_STARTED, scene_setup_3d)
             .add_systems(
                 Update,
-                movement_system.run_if(in_state(AppState::MainScene)),
+                movement_system.run_if(game_running()),
             );
     }
 }
@@ -128,41 +129,10 @@ fn scene_setup_3d(
     ));
 }
 
-#[derive(Clone, Eq, PartialEq, Debug, Hash, Default, States, Copy)]
-enum AppState {
-    #[default]
-    MainSceneLoading,
-    MainScene,
-    ParticleTestScene,
-}
-
-struct LoadingStateItem {
-    loading_state: AppState,
-    next_state: AppState,
-}
-
-impl AppState {
-    pub const LOADING_STATES: &'static [LoadingStateItem] = &[LoadingStateItem {
-        loading_state: AppState::MainSceneLoading,
-        next_state: AppState::MainScene,
-    }];
-}
-
 fn main() {
-
     rust_i18n::set_locale("de");
 
     let mut app = App::new();
-
-    // Add loading states
-    for LoadingStateItem {
-        loading_state,
-        next_state,
-    } in AppState::LOADING_STATES
-    {
-        app.add_loading_state(LoadingState::new(*loading_state).continue_to_state(*next_state));
-    }
-
     app.add_plugins(
         DefaultPlugins
             .set(LogPlugin {
@@ -182,7 +152,6 @@ fn main() {
         OutlinePlugin,
         AutoGenerateOutlineNormalsPlugin,
         RapierPhysicsPlugin::<NoUserData>::default(),
-        // RapierDebugRenderPlugin::default(),
         ToonShaderPlugin,
         ObjPlugin,
         ScreenDiagnosticsPlugin {
@@ -196,9 +165,9 @@ fn main() {
         ScreenFrameDiagnosticsPlugin,
         RoundUiPlugin,
     ))
-    .add_state::<AppState>()
     .add_systems(Startup, setup_physics)
     .add_plugins((
+        StatesPlugin, 
         ScenePlugin3D,
         EntitiesPlugin,
         ComponentsPlugin,

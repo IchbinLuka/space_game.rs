@@ -1,6 +1,6 @@
 use bevy::{
     prelude::*,
-    render::{render_asset::RenderAssets, render_resource::{AsBindGroup, AsBindGroupShaderType, ShaderRef, ShaderType}},
+    render::{render_asset::RenderAssets, render_resource::{AsBindGroup, AsBindGroupShaderType, ShaderRef, ShaderType}}, scene::SceneInstance,
 };
 
 
@@ -88,13 +88,57 @@ impl Material for OutlineMaterial {
     }
 }
 
+#[derive(Component, Default)]
+pub struct ApplyOutlineMaterial {
+    pub base_material: OutlineMaterial, 
+}
+
+fn apply_outline_materials(
+    query: Query<
+        (&SceneInstance, Entity, &ApplyOutlineMaterial),
+        (
+            Changed<SceneInstance>,
+        ),
+    >,
+    mut commands: Commands,
+    scene_manager: Res<SceneSpawner>,
+    mut materials: ResMut<Assets<OutlineMaterial>>,
+    standard_materials: ResMut<Assets<StandardMaterial>>,
+    standard_material_query: Query<&Handle<StandardMaterial>>,
+) {
+    for (scene_instance, entity, apply_outline) in &query {
+        if scene_manager.instance_is_ready(**scene_instance) {
+            for entity in scene_manager.iter_instance_entities(**scene_instance) {
+                if let Ok(handle) = standard_material_query.get(entity) {
+                    let Some(material) = standard_materials.get(handle) else {
+                        continue;
+                    };
+
+                    let outline_material = materials.add(OutlineMaterial {
+                        color: material.base_color,
+                        ..apply_outline.base_material.clone()
+                    });
+
+                    commands
+                        .entity(entity)
+                        .remove::<Handle<StandardMaterial>>()
+                        .insert(outline_material);
+                }
+            }
+        }
+        commands.entity(entity).remove::<ApplyOutlineMaterial>();
+    }
+}
+
 pub struct OutlineMaterialPlugin;
 
 impl Plugin for OutlineMaterialPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(MaterialPlugin::<OutlineMaterial> {
-            prepass_enabled: true,
-            ..default()
-        });
+        app
+            .add_plugins(MaterialPlugin::<OutlineMaterial> {
+                prepass_enabled: true,
+                ..default()
+            })
+            .add_systems(Update, apply_outline_materials);
     }
 }

@@ -7,16 +7,12 @@ use bevy_rapier3d::prelude::*;
 use rand::Rng;
 
 use crate::{
-    components::{colliders::VelocityColliderBundle, despawn_after::DespawnAfter},
-    entities::bullet::BulletType,
-    particles::ParticleMaterial,
-    ui::score::ScoreEvent,
-    utils::{
+    components::{colliders::VelocityColliderBundle, despawn_after::DespawnTimer}, entities::bullet::BulletType, particles::ParticleMaterial, states::game_running, ui::score::ScoreEvent, utils::{
         collisions::BULLET_COLLISION_GROUP, materials::default_outline,
         misc::CollidingEntitiesExtension, sets::Set,
-    },
-    AppState, OutlineMaterial,
+    }, OutlineMaterial
 };
+use crate::states::{AppState, ON_GAME_STARTED};
 
 use super::{bullet::Bullet, explosion::ExplosionEvent, spaceship::player::Player};
 
@@ -137,7 +133,6 @@ fn asteroid_collisions(
     mut explosions: EventWriter<ExplosionEvent>,
     bullet_query: Query<&Bullet>,
     res: Res<AsteroidRes>,
-    time: Res<Time>,
     mut score_events: EventWriter<ScoreEvent>,
 ) {
     const NUM_DESTRUCTION_PARTICLES: usize = 20;
@@ -192,10 +187,7 @@ fn asteroid_collisions(
                         * rng.gen_range(1.0..4.0),
                 ),
                 RigidBody::KinematicVelocityBased,
-                DespawnAfter {
-                    time: Duration::from_secs(1),
-                    spawn_time: time.elapsed() + Duration::from_millis(rng.gen_range(0..500)),
-                },
+                DespawnTimer::new(Duration::from_secs(1)),
             ));
         }
     }
@@ -260,7 +252,7 @@ pub struct AsteroidPlugin;
 impl Plugin for AsteroidPlugin {
     fn build(&self, app: &mut App) {
         app.add_collection_to_loading_state::<_, AsteroidAssets>(AppState::MainSceneLoading)
-            .add_systems(OnEnter(AppState::MainScene), asteroid_setup)
+            .add_systems(ON_GAME_STARTED, asteroid_setup)
             .add_systems(
                 Update,
                 (
@@ -270,7 +262,7 @@ impl Plugin for AsteroidPlugin {
                     spawn_asteroid_field,
                     despawn_asteroid_field,
                 )
-                    .run_if(in_state(AppState::MainScene)),
+                    .run_if(game_running()),
             )
             .add_event::<AsteroidDestructionEvent>();
     }

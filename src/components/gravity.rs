@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 use bevy_rapier3d::dynamics::Velocity;
 
+use crate::states::game_running;
+
 #[derive(Component)]
 pub struct GravitySource {
     pub mass: f32,
@@ -70,6 +72,6 @@ pub struct GravityPlugin;
 
 impl Plugin for GravityPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, gravity_system);
+        app.add_systems(Update, gravity_system.run_if(game_running()));
     }
 }

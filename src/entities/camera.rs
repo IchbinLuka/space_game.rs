@@ -13,7 +13,8 @@ use bevy::{
 use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
 use bevy_toon_shader::ToonShaderMainCamera;
 
-use crate::{utils::sets::Set, AppState, Movement};
+use crate::{states::{game_running, ON_GAME_STARTED}, utils::sets::Set, Movement};
+use crate::states::AppState;
 
 use super::spaceship::player::Player;
 
@@ -106,12 +107,12 @@ pub struct CameraComponentPlugin;
 impl Plugin for CameraComponentPlugin {
     fn build(&self, app: &mut App) {
         app.add_collection_to_loading_state::<_, CameraAssets>(AppState::MainSceneLoading)
-            .add_systems(OnEnter(AppState::MainScene), camera_setup)
+            .add_systems(ON_GAME_STARTED, camera_setup)
             .add_systems(
                 Update,
                 camera_follow_system
                     .in_set(Set::CameraMovement)
-                    .run_if(in_state(AppState::MainScene)),
+                    .run_if(game_running()),
             );
     }
 }

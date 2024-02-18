@@ -1,7 +1,8 @@
 use bevy::prelude::*;
 use bevy_round_ui::autosize::RoundUiAutosizeMaterial;
 
-use crate::{entities::spaceship::player::Player, AppState};
+use crate::entities::spaceship::player::Player;
+use crate::states::ON_GAME_STARTED;
 
 use super::fonts::FontsResource;
 
@@ -58,7 +59,7 @@ pub struct AuxiliaryDriveUIPlugin;
 
 impl Plugin for AuxiliaryDriveUIPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(AppState::MainScene), (auxiliary_drive_setup,))
+        app.add_systems(ON_GAME_STARTED, (auxiliary_drive_setup,))
             .add_systems(Update, (auxiliary_drive_update,));
     }
 }

@@ -29,9 +29,6 @@ impl Health {
 }
 
 #[derive(Component)]
-pub struct HealthComponent(pub Health);
-
-#[derive(Component)]
 pub struct Shield;
 
 #[derive(Component)]

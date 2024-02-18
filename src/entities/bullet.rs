@@ -9,8 +9,8 @@ use bevy_rapier3d::prelude::*;
 use crate::{
     components::{gravity::GravityAffected, health::Health},
     utils::{collisions::BULLET_COLLISION_GROUP, sets::Set},
-    AppState,
 };
+use crate::states::{AppState, game_running, ON_GAME_STARTED};
 
 use super::{explosion::ExplosionEvent, spaceship::player::Player};
 
@@ -225,7 +225,7 @@ pub struct BulletPlugin;
 impl Plugin for BulletPlugin {
     fn build(&self, app: &mut App) {
         app.add_collection_to_loading_state::<_, BulletAssets>(AppState::MainSceneLoading)
-            .add_systems(OnEnter(AppState::MainScene), bullet_setup)
+            .add_systems(ON_GAME_STARTED, bullet_setup)
             .add_systems(
                 Update,
                 (
@@ -234,7 +234,7 @@ impl Plugin for BulletPlugin {
                     bullet_rotation_correction,
                     bullet_spawn.after(Set::BulletEvents),
                 )
-                    .run_if(in_state(AppState::MainScene)),
+                    .run_if(game_running()),
             )
             .add_event::<BulletSpawnEvent>();
     }

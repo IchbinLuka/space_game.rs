@@ -5,13 +5,10 @@ use bevy::{
     sprite::MaterialMesh2dBundle,
 };
 
-use crate::{
-    entities::{
-        camera::RENDER_LAYER_2D,
-        spaceship::{bot::Bot, player::Player, IsPlayer},
-    },
-    AppState,
-};
+use crate::{entities::{
+    camera::RENDER_LAYER_2D,
+    spaceship::{bot::Bot, player::Player, IsPlayer},
+}, states::game_running};
 
 #[derive(Component)]
 pub struct EnemyIndicator {
@@ -106,9 +103,10 @@ pub struct EnemyIndicatorPlugin;
 
 impl Plugin for EnemyIndicatorPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup_enemy_indicator).add_systems(
+        app.add_systems(Startup, setup_enemy_indicator)
+            .add_systems(
             Update,
-            (update_enemy_indicator,).run_if(in_state(AppState::MainScene)),
+            (update_enemy_indicator,).run_if(game_running()),
         );
     }
 }

@@ -9,14 +9,12 @@ use crate::{
     components::{
         gravity::{gravity_step, GravitySource},
         movement::MaxSpeed,
-    },
-    entities::{
+    }, entities::{
         bullet::{Bullet, BulletSpawnEvent, BulletTarget, BulletType},
         planet::Planet,
-    },
-    utils::{misc::CollidingEntitiesExtension, sets::Set},
-    AppState,
+    }, states::game_running, utils::{misc::CollidingEntitiesExtension, sets::Set}
 };
+use crate::states::ON_GAME_STARTED;
 
 use super::{
     Health, IsPlayer, LastBulletInfo, ParticleSpawnEvent, SpaceshipAssets, SpaceshipBundle,
@@ -403,7 +401,7 @@ pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
-            OnEnter(AppState::MainScene),
+            ON_GAME_STARTED,
             (player_setup, player_line_setup, player_trail_setup),
         )
         .add_systems(
@@ -417,7 +415,7 @@ impl Plugin for PlayerPlugin {
                 player_trail_update,
                 player_auxiliary_drive,
             )
-                .run_if(in_state(AppState::MainScene)),
+                .run_if(game_running()),
         );
     }
 }

@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
 
-use crate::AppState;
+use crate::states::AppState;
 
 #[derive(Resource, AssetCollection)]
 pub struct FontsResource {

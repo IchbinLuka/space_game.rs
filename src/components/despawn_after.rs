@@ -1,20 +1,27 @@
+
 use std::time::Duration;
 
 use bevy::prelude::*;
 
+use crate::states::game_running;
+
 #[derive(Component)]
-pub struct DespawnAfter {
-    pub time: Duration,
-    pub spawn_time: Duration,
+pub struct DespawnTimer(pub Timer);
+
+impl DespawnTimer {
+    pub fn new(duration: Duration) -> Self {
+        Self(Timer::new(duration, TimerMode::Once))
+    }
 }
 
 fn despawn_after_system(
-    query: Query<(Entity, &DespawnAfter)>,
+    mut query: Query<(Entity, &mut DespawnTimer)>,
     time: Res<Time>,
     mut commands: Commands,
 ) {
-    for (entity, despawn_after) in &mut query.iter() {
-        if despawn_after.spawn_time + despawn_after.time < time.elapsed() {
+    for (entity, mut timer) in &mut query {
+        timer.0.tick(time.delta());
+        if timer.0.finished() {
             commands.entity(entity).despawn_recursive();
         }
     }
@@ -24,6 +31,6 @@ pub struct DespawnAfterPlugin;
 
 impl Plugin for DespawnAfterPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, despawn_after_system);
+        app.add_systems(Update, despawn_after_system.run_if(game_running()));
     }
 }

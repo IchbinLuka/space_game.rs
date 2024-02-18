@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::{AppState, LoadingStateItem};
+use crate::states::{AppState, LoadingStateItem};
 
 #[derive(Component)]
 pub struct LoadingScreen;

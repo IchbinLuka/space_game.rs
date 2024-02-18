@@ -4,17 +4,15 @@ use bevy::prelude::*;
 use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
 use bevy_mod_outline::{OutlineBundle, OutlineVolume};
 use bevy_rapier3d::prelude::*;
-use rand::{seq::SliceRandom, Rng};
+use rand::{Rng, seq::SliceRandom};
 
 use crate::{
     components::{
-        colliders::VelocityColliderBundle, despawn_after::DespawnAfter, gravity::GravityAffected,
+        colliders::VelocityColliderBundle, despawn_after::DespawnTimer, gravity::GravityAffected,
         health::Health,
-    },
-    particles::fire_particles::FireParticleRes,
-    utils::{collisions::BULLET_COLLISION_GROUP, misc::CollidingEntitiesExtension, sets::Set},
-    AppState,
+    }, particles::fire_particles::FireParticleRes, states::game_running, utils::{collisions::BULLET_COLLISION_GROUP, misc::CollidingEntitiesExtension, sets::Set}
 };
+use crate::states::AppState;
 
 use self::{bot::Bot, player::Player};
 
@@ -209,7 +207,6 @@ fn spawn_exhaust_particle(
     mut events: EventReader<ParticleSpawnEvent>,
     mut commands: Commands,
     res: Res<FireParticleRes>,
-    time: Res<Time>,
     space_ship_query: Query<(&Transform, &Velocity), With<Spaceship>>,
 ) {
     let mut rng = rand::thread_rng();
@@ -246,10 +243,7 @@ fn spawn_exhaust_particle(
                 ..default()
             },
             RigidBody::KinematicVelocityBased,
-            DespawnAfter {
-                time: Duration::from_millis(lifetime),
-                spawn_time: time.elapsed(),
-            },
+            DespawnTimer::new(Duration::from_millis(lifetime)),
         ));
     }
 }
@@ -277,7 +271,7 @@ impl Plugin for SpaceshipPlugin {
                     exhaust_particle_update,
                     spaceship_collisions.in_set(Set::ExplosionEvents),
                 )
-                    .run_if(in_state(AppState::MainScene)),
+                    .run_if(game_running()),
             );
     }
 }

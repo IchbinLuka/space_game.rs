@@ -5,10 +5,9 @@ use bevy_rapier3d::prelude::*;
 use rand::Rng;
 
 use crate::{
-    components::gravity::GravitySource,
-    utils::{collisions::PLANET_COLLISION_GROUP, materials::default_outline},
-    AppState, OutlineMaterial,
+    components::gravity::GravitySource, states::ON_GAME_STARTED, utils::{collisions::PLANET_COLLISION_GROUP, materials::default_outline}, OutlineMaterial
 };
+use crate::states::AppState;
 
 use super::{
     bullet::{BulletTarget, BulletType},
@@ -21,7 +20,7 @@ impl Plugin for PlanetPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_collection_to_loading_state::<_, PlanetAssets>(AppState::MainSceneLoading)
-            .add_systems(OnEnter(AppState::MainScene), planet_setup);
+            .add_systems(ON_GAME_STARTED, planet_setup);
     }
 }
 
