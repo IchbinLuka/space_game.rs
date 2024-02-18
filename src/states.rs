@@ -50,10 +50,7 @@ impl Plugin for StatesPlugin {
             app.add_loading_state(LoadingState::new(*loading_state).continue_to_state(*next_state));
         }
 
-        app
-            .add_state::<AppState>()
-            .add_plugins((
-                pause::PausePlugin,
-            ));
+        app.add_state::<AppState>()
+            .add_plugins((pause::PausePlugin,));
     }
 }

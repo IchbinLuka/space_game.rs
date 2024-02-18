@@ -13,10 +13,8 @@ use crate::utils::collisions::CRUISER_COLLISION_GROUP;
 use crate::utils::misc::CollidingEntitiesExtension;
 use crate::utils::sets::Set;
 
-use crate::{
-    components::colliders::VelocityColliderBundle, utils::materials::default_outline,
-};
 use crate::states::{game_running, AppState, ON_GAME_STARTED};
+use crate::{components::colliders::VelocityColliderBundle, utils::materials::default_outline};
 
 use super::bullet::{Bullet, BulletTarget, BulletType};
 use super::explosion::ExplosionEvent;
@@ -88,7 +86,7 @@ fn cruiser_setup(
                 }),
                 ..default()
             },
-            ApplyOutlineMaterial::default(), 
+            ApplyOutlineMaterial::default(),
             VelocityColliderBundle {
                 velocity: Velocity {
                     linvel: Vec3 {

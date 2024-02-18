@@ -5,16 +5,19 @@ use bevy::{prelude::*, render::render_resource::PrimitiveTopology};
 use bevy_rapier3d::{dynamics::Velocity, geometry::CollidingEntities};
 use rand::Rng;
 
+use crate::states::ON_GAME_STARTED;
 use crate::{
     components::{
         gravity::{gravity_step, GravitySource},
         movement::MaxSpeed,
-    }, entities::{
+    },
+    entities::{
         bullet::{Bullet, BulletSpawnEvent, BulletTarget, BulletType},
         planet::Planet,
-    }, states::game_running, utils::{misc::CollidingEntitiesExtension, sets::Set}
+    },
+    states::game_running,
+    utils::{misc::CollidingEntitiesExtension, sets::Set},
 };
-use crate::states::ON_GAME_STARTED;
 
 use super::{
     Health, IsPlayer, LastBulletInfo, ParticleSpawnEvent, SpaceshipAssets, SpaceshipBundle,

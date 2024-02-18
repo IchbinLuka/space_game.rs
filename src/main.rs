@@ -15,7 +15,7 @@ use bevy_screen_diagnostics::{ScreenDiagnosticsPlugin, ScreenFrameDiagnosticsPlu
 use bevy_toon_shader::{ToonShaderPlugin, ToonShaderSun};
 use components::ComponentsPlugin;
 use entities::EntitiesPlugin;
-use materials::{MaterialsPlugin, outline::OutlineMaterial};
+use materials::{outline::OutlineMaterial, MaterialsPlugin};
 use particles::ParticlesPlugin;
 use postprocessing::PostprocessingPlugin;
 use states::{game_running, StatesPlugin, ON_GAME_STARTED};
@@ -28,9 +28,9 @@ mod entities;
 mod materials;
 mod particles;
 mod postprocessing;
+mod states;
 mod ui;
 mod utils;
-mod states;
 
 #[derive(Component)]
 pub struct Movement {
@@ -77,10 +77,7 @@ pub struct ScenePlugin3D;
 impl Plugin for ScenePlugin3D {
     fn build(&self, app: &mut App) {
         app.add_systems(ON_GAME_STARTED, scene_setup_3d)
-            .add_systems(
-                Update,
-                movement_system.run_if(game_running()),
-            );
+            .add_systems(Update, movement_system.run_if(game_running()));
     }
 }
 
@@ -167,7 +164,7 @@ fn main() {
     ))
     .add_systems(Startup, setup_physics)
     .add_plugins((
-        StatesPlugin, 
+        StatesPlugin,
         ScenePlugin3D,
         EntitiesPlugin,
         ComponentsPlugin,

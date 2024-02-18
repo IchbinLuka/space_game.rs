@@ -4,10 +4,13 @@ use bevy_mod_outline::OutlineBundle;
 use bevy_rapier3d::prelude::*;
 use rand::Rng;
 
-use crate::{
-    components::gravity::GravitySource, states::ON_GAME_STARTED, utils::{collisions::PLANET_COLLISION_GROUP, materials::default_outline}, OutlineMaterial
-};
 use crate::states::AppState;
+use crate::{
+    components::gravity::GravitySource,
+    states::ON_GAME_STARTED,
+    utils::{collisions::PLANET_COLLISION_GROUP, materials::default_outline},
+    OutlineMaterial,
+};
 
 use super::{
     bullet::{BulletTarget, BulletType},
@@ -18,8 +21,7 @@ pub struct PlanetPlugin;
 
 impl Plugin for PlanetPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_collection_to_loading_state::<_, PlanetAssets>(AppState::MainSceneLoading)
+        app.add_collection_to_loading_state::<_, PlanetAssets>(AppState::MainSceneLoading)
             .add_systems(ON_GAME_STARTED, planet_setup);
     }
 }
@@ -32,7 +34,7 @@ pub struct Planet {
 #[derive(AssetCollection, Resource)]
 struct PlanetAssets {
     #[asset(path = "textures/planet_1.png")]
-    texture: Handle<Image>, 
+    texture: Handle<Image>,
 }
 
 fn planet_setup(
@@ -83,7 +85,7 @@ fn planet_setup(
                         EulerRot::XYZ,
                         rng.gen_range(0.0..std::f32::consts::PI),
                         rng.gen_range(0.0..std::f32::consts::PI),
-                        rng.gen_range(0.0..std::f32::consts::PI), 
+                        rng.gen_range(0.0..std::f32::consts::PI),
                     ),
                     scale: Vec3::splat(size),
                 },

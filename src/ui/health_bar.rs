@@ -4,8 +4,11 @@ use bevy_round_ui::{
     prelude::{RoundUiBorder, RoundUiMaterial},
 };
 
-use crate::{components::health::Health, entities::spaceship::IsPlayer, states::{game_running, ON_GAME_STARTED}};
-
+use crate::{
+    components::health::Health,
+    entities::spaceship::IsPlayer,
+    states::{game_running, ON_GAME_STARTED},
+};
 
 #[derive(Component)]
 struct HealthBarContent;
@@ -73,9 +76,6 @@ pub struct HealthBarPlugin;
 impl Plugin for HealthBarPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(ON_GAME_STARTED, health_bar_setup)
-            .add_systems(
-                Update,
-                health_bar_update.run_if(game_running()),
-            );
+            .add_systems(Update, health_bar_update.run_if(game_running()));
     }
 }

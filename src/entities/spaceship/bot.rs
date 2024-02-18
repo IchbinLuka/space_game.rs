@@ -5,13 +5,17 @@ use bevy_rapier3d::{
 };
 use rand::Rng;
 
+use crate::states::ON_GAME_STARTED;
 use crate::{
-    components::movement::MaxSpeed, entities::{
+    components::movement::MaxSpeed,
+    entities::{
         bullet::{BulletSpawnEvent, BulletTarget, BulletType},
         explosion::ExplosionEvent,
-    }, states::game_running, ui::{enemy_indicator::SpawnEnemyIndicator, health_bar_3d::SpawnHealthBar, score::ScoreEvent}, utils::collisions::{BOT_COLLISION_GROUP, CRUISER_COLLISION_GROUP}
+    },
+    states::game_running,
+    ui::{enemy_indicator::SpawnEnemyIndicator, health_bar_3d::SpawnHealthBar, score::ScoreEvent},
+    utils::collisions::{BOT_COLLISION_GROUP, CRUISER_COLLISION_GROUP},
 };
-use crate::states::ON_GAME_STARTED;
 
 use super::{
     Health, IsBot, IsPlayer, LastBulletInfo, ParticleSpawnEvent, SpaceshipAssets, SpaceshipBundle,
@@ -212,10 +216,7 @@ pub struct BotPlugin;
 
 impl Plugin for BotPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
-            Update,
-            (bot_update, bot_death).run_if(game_running()),
-        )
-        .add_systems(ON_GAME_STARTED, (bot_setup,));
+        app.add_systems(Update, (bot_update, bot_death).run_if(game_running()))
+            .add_systems(ON_GAME_STARTED, (bot_setup,));
     }
 }

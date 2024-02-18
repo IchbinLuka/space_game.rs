@@ -1,8 +1,8 @@
 use ::bevy::prelude::*;
 use bevy::{render::view::RenderLayers, sprite::Anchor};
 
-use crate::{entities::camera::RENDER_LAYER_2D, utils::sets::Set};
 use crate::states::{game_running, ON_GAME_STARTED};
+use crate::{entities::camera::RENDER_LAYER_2D, utils::sets::Set};
 
 use super::fonts::FontsResource;
 

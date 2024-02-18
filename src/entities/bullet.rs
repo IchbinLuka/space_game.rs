@@ -6,11 +6,11 @@ use bevy_audio::VolumeLevel;
 use bevy_mod_outline::{OutlineBundle, OutlineVolume};
 use bevy_rapier3d::prelude::*;
 
+use crate::states::{game_running, AppState, ON_GAME_STARTED};
 use crate::{
     components::{gravity::GravityAffected, health::Health},
     utils::{collisions::BULLET_COLLISION_GROUP, sets::Set},
 };
-use crate::states::{AppState, game_running, ON_GAME_STARTED};
 
 use super::{explosion::ExplosionEvent, spaceship::player::Player};
 

@@ -2,9 +2,9 @@ use bevy::{ecs::system::Command, prelude::*, render::view::RenderLayers, sprite:
 
 use crate::{
     components::health::{Health, Shield},
-    entities::camera::RENDER_LAYER_2D, states::game_running,
+    entities::camera::RENDER_LAYER_2D,
+    states::game_running,
 };
-
 
 use super::sprite_3d_renderer::Sprite3DObject;
 

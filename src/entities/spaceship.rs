@@ -4,15 +4,18 @@ use bevy::prelude::*;
 use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
 use bevy_mod_outline::{OutlineBundle, OutlineVolume};
 use bevy_rapier3d::prelude::*;
-use rand::{Rng, seq::SliceRandom};
+use rand::{seq::SliceRandom, Rng};
 
+use crate::states::AppState;
 use crate::{
     components::{
         colliders::VelocityColliderBundle, despawn_after::DespawnTimer, gravity::GravityAffected,
         health::Health,
-    }, particles::fire_particles::FireParticleRes, states::game_running, utils::{collisions::BULLET_COLLISION_GROUP, misc::CollidingEntitiesExtension, sets::Set}
+    },
+    particles::fire_particles::FireParticleRes,
+    states::game_running,
+    utils::{collisions::BULLET_COLLISION_GROUP, misc::CollidingEntitiesExtension, sets::Set},
 };
-use crate::states::AppState;
 
 use self::{bot::Bot, player::Player};
 

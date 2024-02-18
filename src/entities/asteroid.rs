@@ -6,13 +6,19 @@ use bevy_mod_outline::OutlineBundle;
 use bevy_rapier3d::prelude::*;
 use rand::Rng;
 
+use crate::states::{AppState, ON_GAME_STARTED};
 use crate::{
-    components::{colliders::VelocityColliderBundle, despawn_after::DespawnTimer}, entities::bullet::BulletType, particles::ParticleMaterial, states::game_running, ui::score::ScoreEvent, utils::{
+    components::{colliders::VelocityColliderBundle, despawn_after::DespawnTimer},
+    entities::bullet::BulletType,
+    particles::ParticleMaterial,
+    states::game_running,
+    ui::score::ScoreEvent,
+    utils::{
         collisions::BULLET_COLLISION_GROUP, materials::default_outline,
         misc::CollidingEntitiesExtension, sets::Set,
-    }, OutlineMaterial
+    },
+    OutlineMaterial,
 };
-use crate::states::{AppState, ON_GAME_STARTED};
 
 use super::{bullet::Bullet, explosion::ExplosionEvent, spaceship::player::Player};
 

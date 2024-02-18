@@ -13,8 +13,12 @@ use bevy::{
 use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
 use bevy_toon_shader::ToonShaderMainCamera;
 
-use crate::{states::{game_running, ON_GAME_STARTED}, utils::sets::Set, Movement};
 use crate::states::AppState;
+use crate::{
+    states::{game_running, ON_GAME_STARTED},
+    utils::sets::Set,
+    Movement,
+};
 
 use super::spaceship::player::Player;
 
