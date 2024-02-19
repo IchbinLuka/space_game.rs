@@ -40,7 +40,7 @@ fn on_pause(
         .with_children(|c| {
             c.spawn(TextBundle {
                 text: Text::from_section(
-                    "Paused",
+                    t!("game_paused"),
                     TextStyle {
                         font_size: 70.,
                         color: Color::WHITE,
@@ -53,13 +53,17 @@ fn on_pause(
             c.spawn((
                 TextBundle {
                     text: Text::from_section(
-                        "Resume",
+                        t!("resume"),
                         TextStyle {
                             font_size: 50.,
                             color: Color::WHITE,
                             font: font_res.mouse_memoirs.clone(),
                         },
                     ),
+                    style: Style {
+                        margin: UiRect::top(Val::Px(20.)), 
+                        ..default()
+                    }, 
                     ..default()
                 },
                 ResumeButton,

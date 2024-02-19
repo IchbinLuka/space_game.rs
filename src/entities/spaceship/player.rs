@@ -20,7 +20,7 @@ use crate::{
 };
 
 use super::{
-    Health, IsPlayer, LastBulletInfo, ParticleSpawnEvent, SpaceshipAssets, SpaceshipBundle,
+    Health, IsPlayer, LastBulletInfo, ParticleSpawnEvent, Spaceship, SpaceshipAssets, SpaceshipBundle
 };
 
 #[derive(Component)]
@@ -34,7 +34,7 @@ struct LastHit(Option<f32>);
 fn player_shoot(
     keyboard_input: Res<Input<KeyCode>>,
     time: Res<Time>,
-    query: Query<(&Transform, &Velocity, Entity), With<Player>>,
+    query: Query<(&Transform, &Velocity, Entity, &Spaceship), With<Player>>,
     mut bullet_spawn_events: EventWriter<BulletSpawnEvent>,
     mut last_bullet_info: Local<LastBulletInfo>,
 ) {
@@ -43,26 +43,19 @@ fn player_shoot(
         return;
     }
 
-    for (transform, velocity, entity) in &query {
+    for (transform, velocity, entity, spaceship) in &query {
         if keyboard_input.pressed(KeyCode::Space) {
             // If finished, the timer should wait for the player to shoot before ticking again
             last_bullet_info.timer.tick(time.delta());
-            let side = last_bullet_info.side;
 
-            let pos = transform.translation + transform.rotation.mul_vec3(side.into());
-            let mut bullet_transform = Transform::from_translation(pos);
-
-            bullet_transform.rotate(transform.rotation);
-            debug!("Spawning bullet");
-            bullet_spawn_events.send(BulletSpawnEvent {
-                position: bullet_transform,
-                entity_velocity: *velocity,
-                direction: transform.forward(),
-                entity,
-                bullet_type: BulletType::Player,
-            });
-
-            last_bullet_info.side = side.other();
+            spaceship.shoot(
+                &mut last_bullet_info, 
+                &mut bullet_spawn_events, 
+                entity, 
+                &transform, 
+                *velocity, 
+                BulletType::Player
+            );
         }
     }
 }

@@ -18,7 +18,7 @@ use crate::{
 };
 
 use super::{
-    Health, IsBot, IsPlayer, LastBulletInfo, ParticleSpawnEvent, SpaceshipAssets, SpaceshipBundle,
+    Health, IsBot, IsPlayer, LastBulletInfo, ParticleSpawnEvent, Spaceship, SpaceshipAssets, SpaceshipBundle
 };
 
 #[derive(Component)]
@@ -110,6 +110,7 @@ fn bot_update(
             &mut Bot,
             Entity,
             &mut LastBulletInfo,
+            &Spaceship
         ),
         IsBot,
     >,
@@ -120,7 +121,7 @@ fn bot_update(
 ) {
     let mut rng = rand::thread_rng();
 
-    for (mut velocity, mut transform, mut bot, entity, mut last_bullet) in &mut bots {
+    for (mut velocity, mut transform, mut bot, entity, mut last_bullet, spaceship) in &mut bots {
         if !last_bullet.timer.finished() {
             last_bullet.timer.tick(time.delta());
         }
@@ -154,22 +155,14 @@ fn bot_update(
                        distance < 50.0
                 // Enemy should only shoot when close
                 {
-                    // TODO: duplicate code
-                    let side = last_bullet.side;
-                    let pos = transform.translation + transform.rotation.mul_vec3(side.into());
-                    let mut bullet_transform = Transform::from_translation(pos);
-
-                    bullet_transform.rotate(transform.rotation);
-                    debug!("Spawning bullet");
-                    bullet_spawn_events.send(BulletSpawnEvent {
-                        position: bullet_transform,
-                        entity_velocity: *velocity,
-                        direction: transform.forward(),
-                        entity,
-                        bullet_type: BulletType::Bot,
-                    });
-
-                    last_bullet.side = side.other();
+                    spaceship.shoot(
+                        &mut last_bullet, 
+                        &mut bullet_spawn_events, 
+                        entity, 
+                        &transform, 
+                        *velocity, 
+                        BulletType::Bot
+                    );
                     last_bullet.timer.tick(time.delta());
                 }
 

@@ -5,3 +5,5 @@ cruiser: Kreuzer
 auxiliary_drive: "Hilfsantrieb: %{state}"
 state_on: "An"
 state_off: "Aus"
+game_paused: "Pausiert"
+resume: "Fortsetzen"

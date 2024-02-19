@@ -72,7 +72,7 @@ fn update_enemy_indicator(
         let mut dir = player_transform.translation.xz() - transform.translation.xz();
         dir.x *= -1.;
 
-        indicator_transform.translation = (dir.normalize() * 200.0).extend(0.); // TODO: Adapt to screen size
+        indicator_transform.translation = (dir.normalize() * 200.0).extend(0.);
         indicator_transform.rotation = Quat::from_rotation_z(dir.y.atan2(dir.x));
         indicator_transform.scale = Vec3::splat((MAX_SCALE - dir.length() * 0.1).max(0.));
     }
@@ -80,8 +80,8 @@ fn update_enemy_indicator(
 
 fn setup_enemy_indicator(
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
     mut commands: Commands,
+    mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
     mesh.insert_attribute(

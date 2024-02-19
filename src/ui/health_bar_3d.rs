@@ -1,7 +1,7 @@
 use bevy::{ecs::system::Command, prelude::*, render::view::RenderLayers, sprite::Anchor};
 
 use crate::{
-    components::health::{Health, Shield},
+    components::health::Health,
     entities::camera::RENDER_LAYER_2D,
     states::game_running,
 };
@@ -20,11 +20,6 @@ const HEALTH_BAR_SHIELD_TRANSFORM: Vec3 = Vec3::new(HEALTH_BAR_WIDTH * -0.5, 0.,
 
 #[derive(Component)]
 pub struct HealthBar3d {
-    entity: Entity,
-}
-
-#[derive(Component)]
-pub struct ShieldBar3d {
     entity: Entity,
 }
 
@@ -87,7 +82,7 @@ impl Command for SpawnHealthBar {
 
                 if let Some(shield_entity) = self.shield_entity {
                     c.spawn((
-                        ShieldBar3d {
+                        HealthBar3d {
                             entity: shield_entity,
                         },
                         SpriteBundle {
@@ -118,25 +113,13 @@ fn health_bar_3d_update(
     }
 }
 
-fn shield_3d_update(
-    mut shield_bar_query: Query<(&mut Transform, &ShieldBar3d)>,
-    shield_query: Query<&Health, (Changed<Health>, With<Shield>)>,
-) {
-    // TODO: Duplicate code
-    for (mut transform, shield_bar) in &mut shield_bar_query {
-        if let Ok(shield) = shield_query.get(shield_bar.entity) {
-            transform.scale.x = shield.health / shield.max_health;
-        }
-    }
-}
-
 pub struct HealthBar3DPlugin;
 
 impl Plugin for HealthBar3DPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (health_bar_3d_update, shield_3d_update).run_if(game_running()),
+            health_bar_3d_update.run_if(game_running()),
         );
     }
 }

@@ -5,3 +5,5 @@ cruiser: Cruiser
 auxiliary_drive: "Auxiliary Drive: %{state}"
 state_on: "On"
 state_off: "Off"
+game_paused: "Paused"
+resume: "Resume"

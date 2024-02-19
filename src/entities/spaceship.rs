@@ -19,6 +19,7 @@ use crate::{
 
 use self::{bot::Bot, player::Player};
 
+use super::bullet::{BulletSpawnEvent, BulletType};
 use super::explosion::ExplosionEvent;
 
 pub mod bot;
@@ -96,6 +97,34 @@ impl From<BulletSide> for Vec3 {
 
 #[derive(Component)]
 pub struct Spaceship;
+
+impl Spaceship {
+    fn shoot(
+        &self, 
+        last_bullet: &mut LastBulletInfo, 
+        bullet_spawn_events: &mut EventWriter<BulletSpawnEvent>, 
+        player_entity: Entity, 
+        transform: &Transform,
+        velocity: Velocity,
+        bullet_type: BulletType,
+    ) {
+        let side = last_bullet.side;
+        let pos = transform.translation + transform.rotation.mul_vec3(side.into());
+        let mut bullet_transform = Transform::from_translation(pos);
+
+        bullet_transform.rotate(transform.rotation);
+        debug!("Spawning bullet");
+        bullet_spawn_events.send(BulletSpawnEvent {
+            position: bullet_transform,
+            entity_velocity: velocity,
+            direction: transform.forward(),
+            entity: player_entity,
+            bullet_type,
+        });
+
+        last_bullet.side = side.other();
+    }
+}
 
 #[derive(Bundle)]
 pub struct SpaceshipBundle {
