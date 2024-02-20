@@ -1,10 +1,6 @@
 use bevy::{ecs::system::Command, prelude::*, render::view::RenderLayers, sprite::Anchor};
 
-use crate::{
-    components::health::Health,
-    entities::camera::RENDER_LAYER_2D,
-    states::game_running,
-};
+use crate::{components::health::Health, entities::camera::RENDER_LAYER_2D, states::game_running};
 
 use super::sprite_3d_renderer::Sprite3DObject;
 
@@ -117,9 +113,6 @@ pub struct HealthBar3DPlugin;
 
 impl Plugin for HealthBar3DPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
-            Update,
-            health_bar_3d_update.run_if(game_running()),
-        );
+        app.add_systems(Update, health_bar_3d_update.run_if(game_running()));
     }
 }

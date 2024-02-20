@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use bevy_round_ui::autosize::RoundUiAutosizeMaterial;
 
 use crate::entities::spaceship::player::Player;
+use crate::entities::spaceship::{IsPlayer, Spaceship};
 use crate::states::ON_GAME_STARTED;
 
 use super::fonts::FontsResource;
@@ -38,7 +39,7 @@ fn auxiliary_drive_setup(mut commands: Commands, font_resource: Res<FontsResourc
 
 fn auxiliary_drive_update(
     mut query: Query<&mut Text, (Without<Player>, With<AuxiliaryDriveUI>)>,
-    player_query: Query<&Player, Changed<Player>>,
+    player_query: Query<&Spaceship, (Changed<Spaceship>, IsPlayer)>,
 ) {
     for mut text in query.iter_mut() {
         for player in player_query.iter() {

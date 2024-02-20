@@ -61,9 +61,9 @@ fn on_pause(
                         },
                     ),
                     style: Style {
-                        margin: UiRect::top(Val::Px(20.)), 
+                        margin: UiRect::top(Val::Px(20.)),
                         ..default()
-                    }, 
+                    },
                     ..default()
                 },
                 ResumeButton,

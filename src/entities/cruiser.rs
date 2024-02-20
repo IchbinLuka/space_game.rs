@@ -6,6 +6,7 @@ use bevy_rapier3d::prelude::*;
 use bevy_rapier3d::{dynamics::Velocity, geometry::Collider};
 
 use crate::components::health::{DespawnOnDeath, Health, Shield};
+use crate::entities::spaceship::bot::SpawnSquad;
 use crate::materials::outline::ApplyOutlineMaterial;
 use crate::ui::enemy_indicator::SpawnEnemyIndicator;
 use crate::ui::health_bar_3d::SpawnHealthBar;
@@ -18,7 +19,6 @@ use crate::{components::colliders::VelocityColliderBundle, utils::materials::def
 
 use super::bullet::{Bullet, BulletTarget, BulletType};
 use super::explosion::ExplosionEvent;
-use super::spaceship::bot::{BotState, SpawnBot};
 use super::spaceship::IsBot;
 use super::spaceship::SpaceshipCollisions;
 
@@ -99,7 +99,7 @@ fn cruiser_setup(
                 ..default()
             },
             Cruiser {
-                enemy_spawn_cooldown: Timer::from_seconds(5.0, TimerMode::Repeating),
+                enemy_spawn_cooldown: Timer::from_seconds(10.0, TimerMode::Repeating),
             },
             BulletTarget {
                 target_type: BulletType::Player,
@@ -253,9 +253,9 @@ fn cruiser_spawn_bots(
         spawn_cooldown.enemy_spawn_cooldown.tick(time.delta());
 
         if spawn_cooldown.enemy_spawn_cooldown.just_finished() {
-            commands.add(SpawnBot {
-                pos: transform.translation,
-                initial_state: BotState::Chasing,
+            commands.add(SpawnSquad {
+                squad_size: 3,
+                leader_pos: transform.translation,
             });
         }
     }

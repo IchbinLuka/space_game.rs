@@ -96,14 +96,16 @@ impl From<BulletSide> for Vec3 {
 }
 
 #[derive(Component)]
-pub struct Spaceship;
+pub struct Spaceship {
+    pub auxiliary_drive: bool,
+}
 
 impl Spaceship {
     fn shoot(
-        &self, 
-        last_bullet: &mut LastBulletInfo, 
-        bullet_spawn_events: &mut EventWriter<BulletSpawnEvent>, 
-        player_entity: Entity, 
+        &self,
+        last_bullet: &mut LastBulletInfo,
+        bullet_spawn_events: &mut EventWriter<BulletSpawnEvent>,
+        player_entity: Entity,
         transform: &Transform,
         velocity: Velocity,
         bullet_type: BulletType,
@@ -165,7 +167,9 @@ impl SpaceshipBundle {
                 inherited_visibility: InheritedVisibility::VISIBLE,
                 ..default()
             },
-            spaceship: Spaceship,
+            spaceship: Spaceship {
+                auxiliary_drive: true,
+            },
             collision_groups: Self::COLLISION_GROUPS,
         }
     }
@@ -205,6 +209,34 @@ fn spaceship_collisions(
             if let Some(ref mut health) = health {
                 health.take_damage(collisions.collision_damage);
             }
+        }
+    }
+}
+
+fn auxiliary_drive(
+    mut spaceships: Query<(&Transform, &mut Velocity, &Spaceship, Entity)>,
+    time: Res<Time>,
+    mut particle_events: EventWriter<ParticleSpawnEvent>,
+) {
+    let mut rng = rand::thread_rng();
+
+    for (transform, mut velocity, spaceship, entity) in &mut spaceships {
+        if !spaceship.auxiliary_drive {
+            continue;
+        }
+        let forward = transform.forward();
+        let vel = velocity.linvel;
+        let delta = forward * vel.length() - vel;
+        velocity.linvel += delta * f32::min(time.delta_seconds() * 4., 1.);
+
+        if rng.gen_bool(f64::min(
+            delta.length() as f64 * time.delta_seconds_f64() * 2.,
+            1.,
+        )) {
+            particle_events.send(ParticleSpawnEvent {
+                entity,
+                direction: Some(-delta.normalize()),
+            });
         }
     }
 }
@@ -302,6 +334,7 @@ impl Plugin for SpaceshipPlugin {
                     spawn_exhaust_particle,
                     exhaust_particle_update,
                     spaceship_collisions.in_set(Set::ExplosionEvents),
+                    auxiliary_drive,
                 )
                     .run_if(game_running()),
             );
