@@ -11,7 +11,6 @@ use bevy::{
     },
 };
 use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
-use bevy_toon_shader::ToonShaderMainCamera;
 
 use crate::states::AppState;
 use crate::{
@@ -79,7 +78,6 @@ fn camera_setup(
         },
         Skybox(camera_assets.skybox.clone()),
         CameraComponent,
-        ToonShaderMainCamera,
         DepthPrepass,
         NormalPrepass,
         Movement::default(),

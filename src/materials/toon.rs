@@ -8,8 +8,8 @@ use bevy::{
 };
 
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
-#[uniform(0, OutlineMaterialUniform)]
-pub struct OutlineMaterial {
+#[uniform(0, ToonMaterialUniform)]
+pub struct ToonMaterial {
     pub color: Color,
 
     #[texture(1)]
@@ -25,7 +25,7 @@ pub struct OutlineMaterial {
 }
 
 #[derive(Debug, Clone, AsBindGroup, ShaderType)]
-pub struct OutlineMaterialUniform {
+pub struct ToonMaterialUniform {
     pub filter_scale: f32,
     pub depth_threshold: f32,
     pub normal_threshold: f32,
@@ -35,9 +35,9 @@ pub struct OutlineMaterialUniform {
     pub color: Color,
 }
 
-impl AsBindGroupShaderType<OutlineMaterialUniform> for OutlineMaterial {
-    fn as_bind_group_shader_type(&self, _images: &RenderAssets<Image>) -> OutlineMaterialUniform {
-        OutlineMaterialUniform {
+impl AsBindGroupShaderType<ToonMaterialUniform> for ToonMaterial {
+    fn as_bind_group_shader_type(&self, _images: &RenderAssets<Image>) -> ToonMaterialUniform {
+        ToonMaterialUniform {
             filter_scale: self.filter_scale,
             depth_threshold: self.depth_threshold,
             normal_threshold: self.normal_threshold,
@@ -49,7 +49,7 @@ impl AsBindGroupShaderType<OutlineMaterialUniform> for OutlineMaterial {
     }
 }
 
-impl Default for OutlineMaterial {
+impl Default for ToonMaterial {
     fn default() -> Self {
         Self {
             color: Color::WHITE,
@@ -63,43 +63,23 @@ impl Default for OutlineMaterial {
     }
 }
 
-#[derive(Debug, Clone, AsBindGroup, ShaderType)]
-pub struct OutlineMaterialSettings {
-    pub filter_scale: f32,
-    pub depth_threshold: f32,
-    pub normal_threshold: f32,
-    pub depth_normal_threshold_scale: f32,
-    pub depth_normal_threshold: f32,
-}
 
-impl Default for OutlineMaterialSettings {
-    fn default() -> Self {
-        Self {
-            filter_scale: 5.0,
-            depth_threshold: 0.01,
-            normal_threshold: 0.8,
-            depth_normal_threshold_scale: 20.0,
-            depth_normal_threshold: 0.5,
-        }
-    }
-}
-
-impl Material for OutlineMaterial {
+impl Material for ToonMaterial {
     fn fragment_shader() -> ShaderRef {
-        "shaders/outline.wgsl".into()
+        "shaders/toon.wgsl".into()
     }
 }
 
 #[derive(Component, Default)]
-pub struct ApplyOutlineMaterial {
-    pub base_material: OutlineMaterial,
+pub struct ApplyToonMaterial {
+    pub base_material: ToonMaterial,
 }
 
-fn apply_outline_materials(
-    query: Query<(&SceneInstance, Entity, &ApplyOutlineMaterial), (Changed<SceneInstance>,)>,
+fn apply_toon_materials(
+    query: Query<(&SceneInstance, Entity, &ApplyToonMaterial), (Changed<SceneInstance>,)>,
     mut commands: Commands,
     scene_manager: Res<SceneSpawner>,
-    mut materials: ResMut<Assets<OutlineMaterial>>,
+    mut materials: ResMut<Assets<ToonMaterial>>,
     standard_materials: ResMut<Assets<StandardMaterial>>,
     standard_material_query: Query<&Handle<StandardMaterial>>,
 ) {
@@ -111,7 +91,7 @@ fn apply_outline_materials(
                         continue;
                     };
 
-                    let outline_material = materials.add(OutlineMaterial {
+                    let outline_material = materials.add(ToonMaterial {
                         color: material.base_color,
                         ..apply_outline.base_material.clone()
                     });
@@ -123,18 +103,18 @@ fn apply_outline_materials(
                 }
             }
         }
-        commands.entity(entity).remove::<ApplyOutlineMaterial>();
+        commands.entity(entity).remove::<ApplyToonMaterial>();
     }
 }
 
-pub struct OutlineMaterialPlugin;
+pub struct ToonMaterialPlugin;
 
-impl Plugin for OutlineMaterialPlugin {
+impl Plugin for ToonMaterialPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(MaterialPlugin::<OutlineMaterial> {
+        app.add_plugins(MaterialPlugin::<ToonMaterial> {
             prepass_enabled: true,
             ..default()
         })
-        .add_systems(Update, apply_outline_materials);
+        .add_systems(Update, apply_toon_materials);
     }
 }

@@ -17,7 +17,7 @@ use crate::{
         collisions::BULLET_COLLISION_GROUP, materials::default_outline,
         misc::CollidingEntitiesExtension, sets::Set,
     },
-    OutlineMaterial,
+    ToonMaterial,
 };
 
 use super::{bullet::Bullet, explosion::ExplosionEvent, spaceship::player::Player};
@@ -193,7 +193,7 @@ fn asteroid_collisions(
                         * rng.gen_range(1.0..4.0),
                 ),
                 RigidBody::KinematicVelocityBased,
-                DespawnTimer::new(Duration::from_secs(1)),
+                DespawnTimer::new(Duration::from_millis(rng.gen_range(500..1500))),
             ));
         }
     }
@@ -201,7 +201,7 @@ fn asteroid_collisions(
 
 #[derive(Bundle)]
 struct AsteroidBundle {
-    mesh_bundle: MaterialMeshBundle<OutlineMaterial>,
+    mesh_bundle: MaterialMeshBundle<ToonMaterial>,
     asteroid: Asteroid,
     velocity_collider_bundle: VelocityColliderBundle,
     outline_bundle: OutlineBundle,
@@ -218,13 +218,13 @@ struct AsteroidAssets {
 
 #[derive(Resource)]
 struct AsteroidRes {
-    material: Handle<OutlineMaterial>,
+    material: Handle<ToonMaterial>,
     particle_mesh: Handle<Mesh>,
     particle_material: Handle<ParticleMaterial>,
 }
 
 fn asteroid_setup(
-    mut standard_materials: ResMut<Assets<OutlineMaterial>>,
+    mut standard_materials: ResMut<Assets<ToonMaterial>>,
     mut particle_materials: ResMut<Assets<ParticleMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut commands: Commands,
@@ -233,7 +233,7 @@ fn asteroid_setup(
     //     base_color: Color::hex("747a8c").unwrap(),
     //     ..matte_material()
     // });
-    let material = standard_materials.add(OutlineMaterial {
+    let material = standard_materials.add(ToonMaterial {
         color: Color::hex("665F64").unwrap(),
         filter_scale: 2.,
         normal_threshold: 1.2,

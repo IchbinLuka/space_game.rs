@@ -6,16 +6,17 @@ extern crate rust_i18n;
 
 i18n!();
 
+use std::f32::consts::FRAC_PI_4;
+
 use bevy::{log::LogPlugin, prelude::*, window::PresentMode};
 use bevy_mod_outline::{AutoGenerateOutlineNormalsPlugin, OutlineBundle, OutlinePlugin};
 use bevy_obj::ObjPlugin;
 use bevy_rapier3d::prelude::*;
 use bevy_round_ui::prelude::RoundUiPlugin;
 use bevy_screen_diagnostics::{ScreenDiagnosticsPlugin, ScreenFrameDiagnosticsPlugin};
-use bevy_toon_shader::{ToonShaderPlugin, ToonShaderSun};
 use components::ComponentsPlugin;
 use entities::EntitiesPlugin;
-use materials::{outline::OutlineMaterial, MaterialsPlugin};
+use materials::{toon::ToonMaterial, MaterialsPlugin};
 use particles::ParticlesPlugin;
 use postprocessing::PostprocessingPlugin;
 use states::{game_running, StatesPlugin, ON_GAME_STARTED};
@@ -88,32 +89,32 @@ fn setup_physics(mut rapier_config: ResMut<RapierConfiguration>) {
 fn scene_setup_3d(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<OutlineMaterial>>,
+    mut materials: ResMut<Assets<ToonMaterial>>,
 ) {
     commands.insert_resource(AmbientLight {
         color: Color::WHITE,
         brightness: 0.5,
     });
 
-    commands.spawn((
-        DirectionalLightBundle {
-            directional_light: DirectionalLight {
-                illuminance: 10000.0,
-                color: Color::hex("fcd4b5").unwrap(),
-                shadows_enabled: false,
-                ..default()
-            },
-            transform: Transform::from_xyz(0.0, 40.0, 0.0)
-                .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2 + 0.1)),
+    let mut transform = Transform::from_xyz(0.0, 40.0, 0.0);
+    transform.rotate_x(-FRAC_PI_4);
+    transform.rotate_y(FRAC_PI_4 * 0.7);
+
+    commands.spawn((DirectionalLightBundle {
+        directional_light: DirectionalLight {
+            illuminance: 10000.0,
+            color: Color::hex("ffffff").unwrap(),
+            shadows_enabled: true,
             ..default()
         },
-        ToonShaderSun,
-    ));
+        transform,
+        ..default()
+    },));
 
     commands.spawn((
         MaterialMeshBundle {
             mesh: meshes.add(shape::Cube::new(10.0).into()),
-            material: materials.add(OutlineMaterial {
+            material: materials.add(ToonMaterial {
                 color: Color::hex("ea6d25").unwrap(),
                 ..default()
             }),
@@ -149,7 +150,6 @@ fn main() {
         OutlinePlugin,
         AutoGenerateOutlineNormalsPlugin,
         RapierPhysicsPlugin::<NoUserData>::default(),
-        ToonShaderPlugin,
         ObjPlugin,
         ScreenDiagnosticsPlugin {
             style: Style {

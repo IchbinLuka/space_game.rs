@@ -1,4 +1,5 @@
 use bevy::ecs::system::EntityCommand;
+use bevy::pbr::NotShadowCaster;
 use bevy::prelude::*;
 use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
 use bevy_mod_outline::OutlineBundle;
@@ -7,7 +8,7 @@ use bevy_rapier3d::{dynamics::Velocity, geometry::Collider};
 
 use crate::components::health::{DespawnOnDeath, Health, Shield};
 use crate::entities::spaceship::bot::SpawnSquad;
-use crate::materials::outline::ApplyOutlineMaterial;
+use crate::materials::toon::ApplyToonMaterial;
 use crate::ui::enemy_indicator::SpawnEnemyIndicator;
 use crate::ui::health_bar_3d::SpawnHealthBar;
 use crate::utils::collisions::CRUISER_COLLISION_GROUP;
@@ -86,7 +87,7 @@ fn cruiser_setup(
                 }),
                 ..default()
             },
-            ApplyOutlineMaterial::default(),
+            ApplyToonMaterial::default(),
             VelocityColliderBundle {
                 velocity: Velocity {
                     linvel: Vec3 {
@@ -138,6 +139,7 @@ fn cruiser_setup(
                 transform: Transform::from_scale(Vec3 { z: 2., ..Vec3::ONE }),
                 ..default()
             },
+            NotShadowCaster,
             SpaceshipCollisions {
                 collision_damage: 10.0,
             },

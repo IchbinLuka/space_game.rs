@@ -9,7 +9,7 @@ use crate::{
     components::gravity::GravitySource,
     states::ON_GAME_STARTED,
     utils::{collisions::PLANET_COLLISION_GROUP, materials::default_outline},
-    OutlineMaterial,
+    ToonMaterial,
 };
 
 use super::{
@@ -39,32 +39,32 @@ struct PlanetAssets {
 
 fn planet_setup(
     mut commands: Commands,
-    mut materials: ResMut<Assets<OutlineMaterial>>,
+    mut materials: ResMut<Assets<ToonMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
     planet_assets: Res<PlanetAssets>,
 ) {
     let collision_groups = CollisionGroups::new(PLANET_COLLISION_GROUP, Group::ALL);
-
-    let mesh = meshes.add(
-        shape::UVSphere {
-            sectors: 20,
-            radius: 1.0,
-            ..default()
-        }
-        .into(),
-    );
 
     let mut rng = rand::thread_rng();
 
     let asteroids = [("d0d0d0", 10.0), ("db4123", 15.0), ("365df7", 7.0)];
 
     for (color, size) in asteroids {
-        let material = materials.add(OutlineMaterial {
+        let material = materials.add(ToonMaterial {
             color: Color::hex(color).unwrap(),
             filter_scale: 5.,
             texture: Some(planet_assets.texture.clone()),
             ..default()
         });
+
+        let mesh = meshes.add(
+            shape::UVSphere {
+                sectors: 20,
+                radius: size,
+                ..default()
+            }
+            .into(),
+        );
 
         let angvel = Vec3 {
             y: rng.gen_range(-0.1..0.1),
@@ -73,7 +73,7 @@ fn planet_setup(
 
         commands.spawn((
             MaterialMeshBundle {
-                mesh: mesh.clone(),
+                mesh,
                 material,
                 transform: Transform {
                     translation: Vec3::new(
@@ -87,7 +87,7 @@ fn planet_setup(
                         rng.gen_range(0.0..std::f32::consts::PI),
                         rng.gen_range(0.0..std::f32::consts::PI),
                     ),
-                    scale: Vec3::splat(size),
+                    ..default()
                 },
                 ..default()
             },
