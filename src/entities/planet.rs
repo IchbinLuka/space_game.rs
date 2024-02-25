@@ -4,12 +4,12 @@ use bevy_mod_outline::OutlineBundle;
 use bevy_rapier3d::prelude::*;
 use rand::Rng;
 
+use crate::materials::toon::PlanetMaterial;
 use crate::states::AppState;
 use crate::{
     components::gravity::GravitySource,
     states::ON_GAME_STARTED,
     utils::{collisions::PLANET_COLLISION_GROUP, materials::default_outline},
-    ToonMaterial,
 };
 
 use super::{
@@ -39,7 +39,7 @@ struct PlanetAssets {
 
 fn planet_setup(
     mut commands: Commands,
-    mut materials: ResMut<Assets<ToonMaterial>>,
+    mut materials: ResMut<Assets<PlanetMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
     planet_assets: Res<PlanetAssets>,
 ) {
@@ -50,11 +50,17 @@ fn planet_setup(
     let asteroids = [("d0d0d0", 10.0), ("db4123", 15.0), ("365df7", 7.0)];
 
     for (color, size) in asteroids {
-        let material = materials.add(ToonMaterial {
+        let pos = Vec3::new(
+            rng.gen_range(50.0..250.0),
+            0.0,
+            rng.gen_range(-100.0..100.0),
+        );
+
+        let material = materials.add(PlanetMaterial {
+            center: pos, 
             color: Color::hex(color).unwrap(),
-            filter_scale: 5.,
-            texture: Some(planet_assets.texture.clone()),
-            ..default()
+            // filter_scale: 5.,
+            texture: planet_assets.texture.clone(),
         });
 
         let mesh = meshes.add(
@@ -76,11 +82,7 @@ fn planet_setup(
                 mesh,
                 material,
                 transform: Transform {
-                    translation: Vec3::new(
-                        rng.gen_range(50.0..250.0),
-                        0.0,
-                        rng.gen_range(-100.0..100.0),
-                    ),
+                    translation: pos,
                     rotation: Quat::from_euler(
                         EulerRot::XYZ,
                         rng.gen_range(0.0..std::f32::consts::PI),
