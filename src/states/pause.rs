@@ -1,6 +1,9 @@
 use crate::{
     states::{game_running, AppState},
-    ui::{button::TextButtonBundle, fonts::FontsResource, settings::OpenSettings, theme::text_button_style},
+    ui::{
+        button::TextButtonBundle, fonts::FontsResource, settings::OpenSettings,
+        theme::text_button_style,
+    },
 };
 use bevy::prelude::*;
 use bevy_rapier3d::plugin::RapierConfiguration;
@@ -53,17 +56,17 @@ fn on_pause(
                 ),
                 style: Style {
                     margin: UiRect {
-                        bottom: Val::Px(50.), 
+                        bottom: Val::Px(50.),
                         ..default()
-                    }, 
+                    },
                     ..default()
-                }, 
+                },
                 ..default()
             });
 
             c.spawn((
                 TextButtonBundle::from_section(t!("settings"), text_style.clone()),
-                SettingsButton, 
+                SettingsButton,
             ));
 
             c.spawn((
@@ -85,7 +88,7 @@ fn resume_button(
 }
 
 fn settings_button(
-    mut commands: Commands, 
+    mut commands: Commands,
     query: Query<&Interaction, (Changed<Interaction>, With<SettingsButton>)>,
 ) {
     for interaction in &query {

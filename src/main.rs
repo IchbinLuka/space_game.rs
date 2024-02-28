@@ -90,7 +90,7 @@ fn scene_setup_3d(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ToonMaterial>>,
-    settings: Res<Settings>
+    settings: Res<Settings>,
 ) {
     commands.insert_resource(AmbientLight {
         color: Color::WHITE,

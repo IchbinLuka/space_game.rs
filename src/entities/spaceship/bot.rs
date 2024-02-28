@@ -5,7 +5,6 @@ use bevy_rapier3d::{
 };
 use rand::Rng;
 
-use crate::{materials::toon::{ApplyToonMaterial, ToonMaterial}, states::ON_GAME_STARTED};
 use crate::{
     components::movement::MaxSpeed,
     entities::{
@@ -15,6 +14,10 @@ use crate::{
     states::game_running,
     ui::{enemy_indicator::SpawnEnemyIndicator, health_bar_3d::SpawnHealthBar, score::ScoreEvent},
     utils::collisions::{BOT_COLLISION_GROUP, CRUISER_COLLISION_GROUP},
+};
+use crate::{
+    materials::toon::{ApplyToonMaterial, ToonMaterial},
+    states::ON_GAME_STARTED,
 };
 
 use super::{
@@ -122,10 +125,10 @@ fn spawn_bot_from_world(world: &mut World, spawn_bot: SpawnBot) -> Result<Entity
         },
         ApplyToonMaterial {
             base_material: ToonMaterial {
-                filter_scale: 0.0, 
+                filter_scale: 0.0,
                 ..default()
-            }
-        }
+            },
+        },
     ));
 
     if let Some(leader) = spawn_bot.squad_leader {
@@ -182,6 +185,7 @@ fn bot_update(
             &mut Velocity,
             &mut Transform,
             &mut Bot,
+            &Health,
             Entity,
             &mut LastBulletInfo,
             &Spaceship,
@@ -200,8 +204,16 @@ fn bot_update(
         return;
     };
 
-    for (mut velocity, mut transform, mut bot, entity, mut last_bullet, spaceship, squad_member) in
-        &mut bots
+    for (
+        mut velocity,
+        mut transform,
+        mut bot,
+        health,
+        entity,
+        mut last_bullet,
+        spaceship,
+        squad_member,
+    ) in &mut bots
     {
         if !last_bullet.timer.finished() {
             last_bullet.timer.tick(time.delta());
@@ -248,7 +260,7 @@ fn bot_update(
                     exhaust_particles.send(ParticleSpawnEvent::main_exhaust(entity));
                 }
 
-                if rng.gen_bool(0.001) {
+                if rng.gen_bool(0.01 * (1. - health.health / health.max_health) as f64) {
                     bot.state = BotState::Fleeing;
                 }
             }
@@ -258,12 +270,15 @@ fn bot_update(
                     let cross = (-transform.forward()).cross(delta);
                     let sign = cross.y.signum();
                     transform.rotate_y(sign * 3.0 * time.delta_seconds());
-                } else {
-                    velocity.linvel +=
-                        transform.forward().normalize() * time.delta_seconds() * BOT_ACCELERATION;
                 }
 
-                if rng.gen_bool(0.01) {
+                if angle < 0.3 {
+                    velocity.linvel +=
+                        transform.forward().normalize() * time.delta_seconds() * BOT_ACCELERATION;
+                    exhaust_particles.send(ParticleSpawnEvent::main_exhaust(entity));
+                }
+
+                if rng.gen_bool(0.01) || distance > 100.0 {
                     bot.state = BotState::Chasing;
                 }
             }
@@ -307,7 +322,10 @@ fn angle_between_sign(a: Vec3, b: Vec3) -> f32 {
     cross.y.signum()
 }
 
-fn bot_repulsion(mut bots: Query<(&mut Transform, &Bot), IsBot>, time: Res<Time>) {
+fn bot_repulsion(
+    mut bots: Query<(&mut Transform, &Bot), (IsBot, Without<SquadLeader>)>,
+    time: Res<Time>,
+) {
     let mut combinations = bots.iter_combinations_mut();
     while let Some([(mut transform, _bot), (transform_2, _bot_2)]) = combinations.fetch_next() {
         let delta = transform_2.translation - transform.translation;

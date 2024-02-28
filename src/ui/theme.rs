@@ -16,7 +16,7 @@ pub fn default_font(res: &FontsResource) -> Handle<Font> {
 }
 
 #[inline]
-pub fn text_button_style(res: &FontsResource,) -> TextStyle {
+pub fn text_button_style(res: &FontsResource) -> TextStyle {
     TextStyle {
         font_size: 50.,
         color: Color::WHITE,

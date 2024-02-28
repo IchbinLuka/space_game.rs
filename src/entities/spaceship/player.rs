@@ -72,10 +72,10 @@ fn player_setup(mut commands: Commands, assets: Res<SpaceshipAssets>) {
         },
         ApplyToonMaterial {
             base_material: ToonMaterial {
-                filter_scale: 0.0, 
+                filter_scale: 0.0,
                 ..default()
-            }
-        }
+            },
+        },
     ));
 }
 

@@ -57,7 +57,7 @@ fn planet_setup(
         );
 
         let material = materials.add(PlanetMaterial {
-            center: pos, 
+            center: pos,
             color: Color::hex(color).unwrap(),
             // filter_scale: 5.,
             texture: planet_assets.texture.clone(),
