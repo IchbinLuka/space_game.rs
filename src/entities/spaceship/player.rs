@@ -4,6 +4,7 @@ use bevy::{prelude::*, render::render_resource::PrimitiveTopology};
 
 use bevy_rapier3d::{dynamics::Velocity, geometry::CollidingEntities};
 
+use crate::materials::toon::{ApplyToonMaterial, ToonMaterial};
 use crate::states::ON_GAME_STARTED;
 use crate::{
     components::{
@@ -69,6 +70,12 @@ fn player_setup(mut commands: Commands, assets: Res<SpaceshipAssets>) {
             target_type: BulletType::Bot,
             bullet_damage: Some(10.0),
         },
+        ApplyToonMaterial {
+            base_material: ToonMaterial {
+                filter_scale: 0.0, 
+                ..default()
+            }
+        }
     ));
 }
 

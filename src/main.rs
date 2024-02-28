@@ -8,7 +8,7 @@ i18n!();
 
 use std::f32::consts::FRAC_PI_4;
 
-use bevy::{log::LogPlugin, prelude::*, window::PresentMode};
+use bevy::{log::LogPlugin, pbr::DirectionalLightShadowMap, prelude::*, window::PresentMode};
 use bevy_mod_outline::{AutoGenerateOutlineNormalsPlugin, OutlineBundle, OutlinePlugin};
 use bevy_obj::ObjPlugin;
 use bevy_rapier3d::prelude::*;
@@ -21,7 +21,7 @@ use particles::ParticlesPlugin;
 use postprocessing::PostprocessingPlugin;
 use states::{game_running, StatesPlugin, ON_GAME_STARTED};
 
-use ui::UIPlugin;
+use ui::{settings::Settings, UIPlugin};
 use utils::{materials::default_outline, scene_outline::SceneOutlinePlugin};
 
 mod components;
@@ -90,6 +90,7 @@ fn scene_setup_3d(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ToonMaterial>>,
+    settings: Res<Settings>
 ) {
     commands.insert_resource(AmbientLight {
         color: Color::WHITE,
@@ -104,7 +105,7 @@ fn scene_setup_3d(
         directional_light: DirectionalLight {
             illuminance: 10000.0,
             color: Color::hex("ffffff").unwrap(),
-            shadows_enabled: true,
+            shadows_enabled: settings.shadows_enabled,
             ..default()
         },
         transform,
@@ -173,7 +174,8 @@ fn main() {
         UIPlugin,
         PostprocessingPlugin,
         MaterialsPlugin,
-    ));
+    ))
+    .insert_resource(DirectionalLightShadowMap { size: 4096 });
 
     app.run();
 }

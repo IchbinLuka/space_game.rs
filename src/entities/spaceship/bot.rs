@@ -5,7 +5,7 @@ use bevy_rapier3d::{
 };
 use rand::Rng;
 
-use crate::states::ON_GAME_STARTED;
+use crate::{materials::toon::{ApplyToonMaterial, ToonMaterial}, states::ON_GAME_STARTED};
 use crate::{
     components::movement::MaxSpeed,
     entities::{
@@ -120,6 +120,12 @@ fn spawn_bot_from_world(world: &mut World, spawn_bot: SpawnBot) -> Result<Entity
             target_type: BulletType::Player,
             bullet_damage: Some(10.0),
         },
+        ApplyToonMaterial {
+            base_material: ToonMaterial {
+                filter_scale: 0.0, 
+                ..default()
+            }
+        }
     ));
 
     if let Some(leader) = spawn_bot.squad_leader {

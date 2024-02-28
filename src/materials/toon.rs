@@ -144,6 +144,7 @@ fn apply_toon_materials(
 
                     let outline_material = materials.add(ToonMaterial {
                         color: material.base_color,
+                        texture: material.base_color_texture.clone(), 
                         ..apply_outline.base_material.clone()
                     });
 

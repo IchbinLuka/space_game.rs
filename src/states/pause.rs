@@ -1,6 +1,6 @@
 use crate::{
     states::{game_running, AppState},
-    ui::fonts::FontsResource,
+    ui::{button::TextButtonBundle, fonts::FontsResource, settings::OpenSettings, theme::text_button_style},
 };
 use bevy::prelude::*;
 use bevy_rapier3d::plugin::RapierConfiguration;
@@ -11,7 +11,10 @@ use super::game_paused;
 pub struct PauseScreen;
 
 #[derive(Component)]
-pub struct ResumeButton;
+struct ResumeButton;
+
+#[derive(Component)]
+struct SettingsButton;
 
 fn on_pause(
     mut rapier_config: ResMut<RapierConfiguration>,
@@ -38,59 +41,57 @@ fn on_pause(
             },
         ))
         .with_children(|c| {
+            let text_style = text_button_style(&font_res);
+
             c.spawn(TextBundle {
                 text: Text::from_section(
                     t!("game_paused"),
                     TextStyle {
                         font_size: 70.,
-                        color: Color::WHITE,
-                        font: font_res.mouse_memoirs.clone(),
+                        ..text_style.clone()
                     },
                 ),
+                style: Style {
+                    margin: UiRect {
+                        bottom: Val::Px(50.), 
+                        ..default()
+                    }, 
+                    ..default()
+                }, 
                 ..default()
             });
 
             c.spawn((
-                TextBundle {
-                    text: Text::from_section(
-                        t!("resume"),
-                        TextStyle {
-                            font_size: 50.,
-                            color: Color::WHITE,
-                            font: font_res.mouse_memoirs.clone(),
-                        },
-                    ),
-                    style: Style {
-                        margin: UiRect::top(Val::Px(20.)),
-                        ..default()
-                    },
-                    ..default()
-                },
+                TextButtonBundle::from_section(t!("settings"), text_style.clone()),
+                SettingsButton, 
+            ));
+
+            c.spawn((
+                TextButtonBundle::from_section(t!("resume"), text_style.clone()),
                 ResumeButton,
-                Interaction::default(),
             ));
         });
 }
 
 fn resume_button(
     mut next_state: ResMut<NextState<AppState>>,
-    mut query: Query<(&Interaction, &mut Text), (Changed<Interaction>, With<ResumeButton>)>,
+    query: Query<&Interaction, (Changed<Interaction>, With<ResumeButton>)>,
 ) {
-    for (interaction, mut text) in &mut query {
-        let Some(section) = text.sections.get_mut(0) else {
-            error!("No text style found");
-            continue;
-        };
-        match interaction {
-            Interaction::Pressed => {
-                next_state.set(AppState::MainScene);
-            }
-            Interaction::None => {
-                section.style.color = Color::WHITE;
-            }
-            Interaction::Hovered => {
-                section.style.color = Color::GRAY;
-            }
+    for interaction in &query {
+        if *interaction == Interaction::Pressed {
+            next_state.set(AppState::MainScene);
+        }
+    }
+}
+
+fn settings_button(
+    mut commands: Commands, 
+    query: Query<&Interaction, (Changed<Interaction>, With<SettingsButton>)>,
+) {
+    for interaction in &query {
+        if *interaction == Interaction::Pressed {
+            commands.add(OpenSettings);
+            break;
         }
     }
 }
@@ -131,6 +132,7 @@ impl Plugin for PausePlugin {
             (
                 pause_game.run_if(game_running().or_else(game_paused())),
                 resume_button.run_if(game_paused()),
+                settings_button.run_if(game_paused()),
             ),
         )
         .add_systems(OnExit(AppState::MainPaused), on_resume)

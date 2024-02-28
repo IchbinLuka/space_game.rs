@@ -47,9 +47,9 @@ fn planet_setup(
 
     let mut rng = rand::thread_rng();
 
-    let asteroids = [("d0d0d0", 10.0), ("db4123", 15.0), ("365df7", 7.0)];
+    let planets = [("d0d0d0", 10.0), ("db4123", 15.0), ("365df7", 7.0)];
 
-    for (color, size) in asteroids {
+    for (color, size) in planets {
         let pos = Vec3::new(
             rng.gen_range(50.0..250.0),
             0.0,
@@ -94,7 +94,7 @@ fn planet_setup(
                 ..default()
             },
             Planet { radius: size },
-            Collider::ball(1.0),
+            Collider::ball(size),
             RigidBody::KinematicVelocityBased,
             Velocity {
                 angvel,

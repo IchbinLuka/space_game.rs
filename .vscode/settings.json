@@ -1,0 +1,12 @@
+{
+    "wgsl-analyzer.diagnostics.nagaVersion": "0.14",
+    "wgsl-analyzer.diagnostics.nagaParsingErrors": false,
+    "wgsl-analyzer.inlayHints.structLayoutHints": true,
+    "wgsl-analyzer.customImports": {
+        "bevy_pbr::forward_io": "https://github.com/bevyengine/bevy/raw/main/crates/bevy_pbr/src/render/forward_io.wgsl", 
+        "bevy_pbr::mesh_view_bindings": "https://github.com/bevyengine/bevy/raw/main/crates/bevy_pbr/src/render/mesh_view_bindings.wgsl", 
+
+    },
+    "wgsl-analyzer.diagnostics.nagaValidationErrors": false,
+    "wgsl-analyzer.diagnostics.typeErrors": false
+}
