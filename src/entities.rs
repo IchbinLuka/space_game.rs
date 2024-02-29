@@ -5,7 +5,6 @@ pub mod bullet;
 pub mod camera;
 pub mod cruiser;
 pub mod explosion;
-pub mod loading_screen;
 pub mod planet;
 pub mod spaceship;
 
@@ -17,7 +16,6 @@ impl Plugin for EntitiesPlugin {
             camera::CameraComponentPlugin,
             spaceship::SpaceshipPlugin,
             bullet::BulletPlugin,
-            loading_screen::LoadingScreenPlugin,
             asteroid::AsteroidPlugin,
             planet::PlanetPlugin,
             explosion::ExplosionPlugin,

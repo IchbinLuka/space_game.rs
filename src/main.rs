@@ -17,16 +17,18 @@ use bevy_screen_diagnostics::{ScreenDiagnosticsPlugin, ScreenFrameDiagnosticsPlu
 use components::ComponentsPlugin;
 use entities::EntitiesPlugin;
 use materials::{toon::ToonMaterial, MaterialsPlugin};
+use model::{settings::Settings, ModelPlugin};
 use particles::ParticlesPlugin;
 use postprocessing::PostprocessingPlugin;
 use states::{game_running, StatesPlugin, ON_GAME_STARTED};
 
-use ui::{settings::Settings, UIPlugin};
+use ui::UIPlugin;
 use utils::{materials::default_outline, scene_outline::SceneOutlinePlugin};
 
 mod components;
 mod entities;
 mod materials;
+mod model;
 mod particles;
 mod postprocessing;
 mod states;
@@ -129,8 +131,6 @@ fn scene_setup_3d(
 }
 
 fn main() {
-    rust_i18n::set_locale("de");
-
     let mut app = App::new();
     app.add_plugins(
         DefaultPlugins
@@ -174,6 +174,7 @@ fn main() {
         UIPlugin,
         PostprocessingPlugin,
         MaterialsPlugin,
+        ModelPlugin,
     ))
     .insert_resource(DirectionalLightShadowMap { size: 4096 });
 

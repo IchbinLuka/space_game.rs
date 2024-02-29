@@ -1,7 +1,9 @@
 use crate::{
     states::{game_running, AppState},
     ui::{
-        button::TextButtonBundle, fonts::FontsResource, settings::OpenSettings,
+        button::TextButtonBundle,
+        fonts::FontsResource,
+        settings::{OpenSettings, SettingsScreen},
         theme::text_button_style,
     },
 };
@@ -116,7 +118,12 @@ fn pause_game(
     keyboard_input: Res<Input<KeyCode>>,
     mut next_state: ResMut<NextState<AppState>>,
     current_state: Res<State<AppState>>,
+    settings_screen: Query<(), With<SettingsScreen>>,
 ) {
+    if settings_screen.get_single().is_ok() {
+        return;
+    }
+
     if keyboard_input.just_pressed(KeyCode::Escape) {
         next_state.set(if current_state.get() == &AppState::MainPaused {
             AppState::MainScene

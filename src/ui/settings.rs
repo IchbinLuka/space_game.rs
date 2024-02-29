@@ -1,23 +1,12 @@
 use bevy::{ecs::system::Command, prelude::*, ui::FocusPolicy};
 
+use crate::model::settings::Settings;
+
 use super::{
     button::{CheckBox, CheckBoxBundle, TextButtonBundle},
     fonts::FontsResource,
     theme::text_button_style,
 };
-
-#[derive(Resource, Clone, Copy)]
-pub struct Settings {
-    pub shadows_enabled: bool,
-}
-
-impl Default for Settings {
-    fn default() -> Self {
-        Settings {
-            shadows_enabled: true,
-        }
-    }
-}
 
 #[derive(Component)]
 pub struct SettingsScreen;
@@ -27,6 +16,12 @@ struct CloseButton;
 
 #[derive(Component)]
 struct ShadowSetting;
+
+#[derive(Component)]
+struct LanguageSetting {
+    lang: String,
+    available_langs: Vec<String>,
+}
 
 pub struct OpenSettings;
 
@@ -39,7 +34,7 @@ impl Command for OpenSettings {
             return;
         };
 
-        let settings = *settings;
+        let settings = settings.clone();
 
         let style = text_button_style(font_res);
 
@@ -57,18 +52,44 @@ impl Command for OpenSettings {
                         align_items: AlignItems::Center,
                         ..default()
                     },
-                    background_color: Color::rgba(0.1, 0.1, 0.1, 0.1).into(),
+                    background_color: Color::rgba(0., 0., 0., 0.5).into(),
                     ..default()
                 },
             ))
             .with_children(|c| {
-                c.settings_item(|c| {
-                    c.spawn(TextBundle {
-                        text: Text::from_section(t!("shadows"), style.clone()),
-                        ..default()
-                    });
+                c.settings_item(false, |c| {
+                    c.spawn(TextBundle::from_section(t!("shadows"), style.clone()));
 
                     c.spawn((CheckBoxBundle::new(settings.shadows_enabled), ShadowSetting));
+                });
+
+                c.settings_item(true, |c| {
+                    c.spawn(TextBundle::from_section(t!("language"), style.clone()));
+
+                    c.spawn((
+                        TextButtonBundle::from_section(settings.lang.clone(), style.clone()),
+                        LanguageSetting {
+                            lang: settings.lang.clone(),
+                            available_langs: rust_i18n::available_locales!()
+                                .iter()
+                                .map(|s| s.to_string())
+                                .collect(),
+                        },
+                    ));
+                });
+
+                c.spawn(TextBundle {
+                    style: Style {
+                        margin: UiRect::top(Val::Percent(10.)),
+                        ..default()
+                    },
+                    ..TextBundle::from_section(
+                        format!("* {}", t!("restart_required")),
+                        TextStyle {
+                            font: style.font.clone(),
+                            ..restart_required_text_style()
+                        },
+                    )
                 });
 
                 c.spawn((
@@ -79,25 +100,55 @@ impl Command for OpenSettings {
     }
 }
 
+fn restart_required_text_style() -> TextStyle {
+    TextStyle {
+        font_size: 30.,
+        color: Color::rgb(0.7, 0.7, 0.7),
+        ..default()
+    }
+}
+
 trait WorldChildBuilderExtension {
-    fn settings_item(&mut self, child_builder: impl FnOnce(&mut WorldChildBuilder));
+    fn settings_item(
+        &mut self,
+        requires_restart: bool,
+        child_builder: impl FnOnce(&mut WorldChildBuilder),
+    );
 }
 
 impl<'w> WorldChildBuilderExtension for WorldChildBuilder<'w> {
-    fn settings_item(&mut self, child_builder: impl FnOnce(&mut WorldChildBuilder)) {
+    fn settings_item(
+        &mut self,
+        requires_restart: bool,
+        child_builder: impl FnOnce(&mut WorldChildBuilder),
+    ) {
         self.spawn(NodeBundle {
             style: Style {
-                width: Val::Px(300.),
                 display: Display::Flex,
                 flex_direction: FlexDirection::Row,
-                justify_content: JustifyContent::SpaceBetween,
                 align_items: AlignItems::Center,
                 ..default()
             },
             ..default()
         })
         .with_children(|c| {
-            child_builder(c);
+            c.spawn(NodeBundle {
+                style: Style {
+                    width: Val::Px(300.),
+                    display: Display::Flex,
+                    flex_direction: FlexDirection::Row,
+                    justify_content: JustifyContent::SpaceBetween,
+                    align_items: AlignItems::Center,
+                    ..default()
+                },
+                ..default()
+            })
+            .with_children(|c| {
+                child_builder(c);
+            });
+            if requires_restart {
+                c.spawn(TextBundle::from_section("*", restart_required_text_style()));
+            }
         });
     }
 }
@@ -130,11 +181,33 @@ fn update_shadows(
     }
 }
 
+fn update_lang(
+    mut query: Query<(&Interaction, &mut LanguageSetting, &mut Text), Changed<Interaction>>,
+    mut settings: ResMut<Settings>,
+) {
+    for (interaction, mut lang_settings, mut text) in &mut query {
+        if *interaction != Interaction::Pressed {
+            continue;
+        }
+
+        let next_lang = lang_settings
+            .available_langs
+            .iter()
+            .cycle()
+            .skip_while(|s| *s != &lang_settings.lang)
+            .nth(1)
+            .unwrap()
+            .clone();
+        lang_settings.lang = next_lang.clone();
+        text.sections[0].value = next_lang.clone();
+        settings.lang = next_lang;
+    }
+}
+
 pub struct SettingsPlugin;
 
 impl Plugin for SettingsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (close_settings, update_shadows))
-            .init_resource::<Settings>();
+        app.add_systems(Update, (close_settings, update_shadows, update_lang));
     }
 }

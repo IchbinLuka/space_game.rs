@@ -1,3 +1,4 @@
+pub mod loading_screen;
 pub mod pause;
 
 use bevy::app::{App, Plugin};
@@ -51,6 +52,6 @@ impl Plugin for StatesPlugin {
         }
 
         app.add_state::<AppState>()
-            .add_plugins((pause::PausePlugin,));
+            .add_plugins((pause::PausePlugin, loading_screen::LoadingScreenPlugin));
     }
 }

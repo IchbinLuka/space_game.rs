@@ -1,11 +1,14 @@
 use bevy::prelude::*;
 
-use crate::states::{AppState, LoadingStateItem};
+use crate::{
+    states::{AppState, LoadingStateItem},
+    ui::fonts::FontsResource,
+};
 
 #[derive(Component)]
 pub struct LoadingScreen;
 
-fn loading_screen_setup(mut commands: Commands) {
+fn loading_screen_setup(mut commands: Commands, font_res: Res<FontsResource>) {
     commands.spawn((Camera2dBundle::default(), LoadingScreen));
 
     commands
@@ -27,11 +30,11 @@ fn loading_screen_setup(mut commands: Commands) {
         ))
         .with_children(|p| {
             p.spawn(TextBundle::from_section(
-                "Loading",
+                t!("loading"),
                 TextStyle {
                     font_size: 100.0,
                     color: Color::WHITE,
-                    ..default()
+                    font: font_res.mouse_memoirs.clone(),
                 },
             ));
         });
