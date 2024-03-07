@@ -196,7 +196,7 @@ fn update_lang(
             .cycle()
             .skip_while(|s| *s != &lang_settings.lang)
             .nth(1)
-            .unwrap()
+            .expect("Error while cycling through available languages: No languages available.")
             .clone();
         lang_settings.lang = next_lang.clone();
         text.sections[0].value = next_lang.clone();
