@@ -4,7 +4,7 @@ use bevy::prelude::*;
 
 use crate::states::game_running;
 
-#[derive(Component)]
+#[derive(Component, Deref, DerefMut)]
 pub struct DespawnTimer(pub Timer);
 
 impl DespawnTimer {
@@ -19,8 +19,8 @@ fn despawn_after_system(
     mut commands: Commands,
 ) {
     for (entity, mut timer) in &mut query {
-        timer.0.tick(time.delta());
-        if timer.0.finished() {
+        timer.tick(time.delta());
+        if timer.finished() {
             commands.entity(entity).despawn_recursive();
         }
     }

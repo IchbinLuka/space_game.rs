@@ -9,7 +9,6 @@ use bevy::scene::SceneInstance;
 use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
 use bevy_mod_outline::OutlineBundle;
 use bevy_rapier3d::prelude::*;
-use bevy_rapier3d::{dynamics::Velocity, geometry::Collider};
 
 use crate::components::despawn_after::DespawnTimer;
 use crate::components::health::{DespawnOnDeath, Health, Shield};
@@ -24,10 +23,11 @@ use crate::utils::sets::Set;
 use crate::states::{game_running, AppState, ON_GAME_STARTED};
 use crate::{components::colliders::VelocityColliderBundle, utils::materials::default_outline};
 
-use super::bullet::{Bullet, BulletTarget, BulletType};
+use super::bullet::{Bullet, BulletSpawnEvent, BulletTarget, BulletType};
 use super::explosion::ExplosionEvent;
-use super::spaceship::IsBot;
+use super::spaceship::player::Player;
 use super::spaceship::SpaceshipCollisions;
+use super::spaceship::{IsBot, IsPlayer};
 
 #[derive(Component)]
 pub struct Cruiser {
@@ -87,6 +87,61 @@ pub struct SpawnCruiser {
 impl Command for SpawnCruiser {
     fn apply(self, world: &mut World) {
         world.run_system_once_with(self.pos, spawn_cruiser)
+    }
+}
+
+#[derive(Component)]
+struct CruiserTurret {
+    shoot_timer: Timer,
+    base_orientation: Vec3,
+}
+
+// Turret contants
+const TURRET_TURN_SPEED: f32 = 1.0;
+const TURRET_ROTATION_BOUNDS: (f32, f32) = (-1., 1.);
+
+fn cruiser_turret_shoot(
+    mut cruiser_turrets: Query<
+        (&GlobalTransform, &mut Transform, &mut CruiserTurret, Entity),
+        Without<Player>,
+    >,
+    player: Query<&Transform, (IsPlayer, Without<CruiserTurret>)>,
+    time: Res<Time>,
+    mut bullet_events: EventWriter<BulletSpawnEvent>,
+) {
+    let Ok(player_transform) = player.get_single() else {
+        return;
+    };
+
+    for (global_transform, mut transform, mut turret, entity) in &mut cruiser_turrets {
+        turret.shoot_timer.tick(time.delta());
+
+        let global_transform = global_transform.compute_transform();
+        let direction = player_transform.translation - global_transform.translation;
+
+        let (min, max) = TURRET_ROTATION_BOUNDS;
+
+        let angle = direction.angle_between(turret.base_orientation);
+
+        if angle < min || angle > max {
+            continue;
+        }
+
+        let turn_sign = global_transform.forward().cross(direction).y.signum();
+
+        transform.rotate_y(turn_sign * TURRET_TURN_SPEED * time.delta_seconds());
+
+        if !turret.shoot_timer.just_finished() {
+            continue;
+        }
+
+        bullet_events.send(BulletSpawnEvent {
+            bullet_type: BulletType::Bot,
+            entity_velocity: Velocity::zero(), // TODO
+            position: global_transform,
+            direction,
+            entity,
+        });
     }
 }
 
@@ -251,9 +306,9 @@ fn cruiser_trail_update(mut trails: Query<(&mut Transform, &DespawnTimer), With<
     }
 }
 
-fn cruiser_trails_setup(
+fn cruiser_scene_setup(
     mut cruisers: Query<(&SceneInstance, Entity), (With<Cruiser>, Changed<SceneInstance>)>,
-    names: Query<&Name, Without<Cruiser>>,
+    names: Query<(&Name, &Transform), Without<Cruiser>>,
     mut animation_players: Query<Entity, With<AnimationPlayer>>,
     mut commands: Commands,
     scene_manager: Res<SceneSpawner>,
@@ -273,7 +328,7 @@ fn cruiser_trails_setup(
                 animation_root.player_entites.push(entity);
             }
 
-            let Ok(name) = names.get(entity) else {
+            let Ok((name, transform)) = names.get(entity) else {
                 continue;
             };
             if name.starts_with("exhaust.") {
@@ -305,6 +360,11 @@ fn cruiser_trails_setup(
                     ))
                     .id();
                 commands.entity(entity).add_child(trail);
+            } else if name.starts_with("turret_bone") {
+                commands.entity(entity).insert(CruiserTurret {
+                    shoot_timer: Timer::from_seconds(1.0, TimerMode::Repeating),
+                    base_orientation: transform.forward(),
+                });
             }
         }
 
@@ -421,10 +481,11 @@ impl Plugin for CruiserPLugin {
                     cruiser_death.in_set(Set::ExplosionEvents),
                     cruiser_spawn_bots,
                     cruiser_shield_collisions,
-                    cruiser_trails_setup,
+                    cruiser_scene_setup,
                     cruiser_animation_start,
                     cruiser_animations,
                     cruiser_trail_update,
+                    cruiser_turret_shoot,
                 )
                     .run_if(game_running()),
             );

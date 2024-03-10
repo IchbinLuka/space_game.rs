@@ -50,13 +50,15 @@ fn spawn_asteroid_field(
             let distance = field_transform
                 .translation
                 .distance(player_transform.translation);
-            distance > 100.0
+            distance > 200.0
         });
         if spawn_asteroid_field {
             let mut rng = rand::thread_rng();
+
+            let player_direction = player_velocity.linvel.normalize();
+            let cross_direction = player_direction.cross(Vec3::Y) * rng.gen_range(-1.0..1.0);
             let position = player_transform.translation
-                + player_velocity.linvel.normalize() * 100.0
-                + Vec3::new(rng.gen_range(-50.0..50.0), 0.0, rng.gen_range(-50.0..50.0));
+                + (player_direction + cross_direction) * rng.gen_range(100.0..150.0);
             commands
                 .spawn((
                     AsteroidField,
@@ -229,10 +231,6 @@ fn asteroid_setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut commands: Commands,
 ) {
-    // let material = standard_materials.add(StandardMaterial {
-    //     base_color: Color::hex("747a8c").unwrap(),
-    //     ..matte_material()
-    // });
     let material = standard_materials.add(ToonMaterial {
         color: Color::hex("665F64").unwrap(),
         filter_scale: 2.,
