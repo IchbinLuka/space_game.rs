@@ -9,6 +9,7 @@ use bevy::scene::SceneInstance;
 use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
 use bevy_mod_outline::OutlineBundle;
 use bevy_rapier3d::prelude::*;
+use rand::Rng;
 
 use crate::components::despawn_after::DespawnTimer;
 use crate::components::health::{DespawnOnDeath, Health, Shield};
@@ -94,6 +95,7 @@ impl Command for SpawnCruiser {
 struct CruiserTurret {
     shoot_timer: Timer,
     base_orientation: Vec3,
+    cruiser: Entity, 
 }
 
 // Turret contants
@@ -106,6 +108,7 @@ fn cruiser_turret_shoot(
         Without<Player>,
     >,
     player: Query<&Transform, (IsPlayer, Without<CruiserTurret>)>,
+    velocities: Query<&Velocity, With<Cruiser>>, 
     time: Res<Time>,
     mut bullet_events: EventWriter<BulletSpawnEvent>,
 ) {
@@ -135,9 +138,14 @@ fn cruiser_turret_shoot(
             continue;
         }
 
+        let Ok(cruiser_velocity) = velocities.get(turret.cruiser) else {
+            warn!("Turret does not have a parent cruiser");
+            continue;
+        };
+
         bullet_events.send(BulletSpawnEvent {
             bullet_type: BulletType::Bot,
-            entity_velocity: Velocity::zero(), // TODO
+            entity_velocity: cruiser_velocity.clone(),
             position: global_transform,
             direction,
             entity,
@@ -320,6 +328,8 @@ fn cruiser_scene_setup(
             continue;
         }
 
+        let mut rng = rand::thread_rng();
+
         let mut animation_root = AnimationRoot::default();
 
         for entity in scene_manager.iter_instance_entities(**scene) {
@@ -361,9 +371,13 @@ fn cruiser_scene_setup(
                     .id();
                 commands.entity(entity).add_child(trail);
             } else if name.starts_with("turret_bone") {
+                let mut shoot_timer = Timer::from_seconds(1.0, TimerMode::Repeating);
+                shoot_timer.tick(Duration::from_millis(rng.gen_range(0..500))); 
+
                 commands.entity(entity).insert(CruiserTurret {
-                    shoot_timer: Timer::from_seconds(1.0, TimerMode::Repeating),
+                    shoot_timer,
                     base_orientation: transform.forward(),
+                    cruiser, 
                 });
             }
         }
