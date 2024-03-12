@@ -88,5 +88,5 @@ fn toon_fragment(in: VertexOutput) -> vec4<f32> {
         return vec4(0.0, 0.0, 0.0, 1.0);
     }
 
-    return settings.color;
+    return out_color;
 }
