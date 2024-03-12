@@ -140,7 +140,6 @@ fn apply_toon_materials(
                     let Some(material) = standard_materials.get(handle) else {
                         continue;
                     };
-
                     let outline_material = materials.add(ToonMaterial {
                         color: material.base_color,
                         texture: material.base_color_texture.clone(),

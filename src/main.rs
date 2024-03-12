@@ -23,7 +23,7 @@ use postprocessing::PostprocessingPlugin;
 use states::{game_running, StatesPlugin, ON_GAME_STARTED};
 
 use ui::UIPlugin;
-use utils::{materials::default_outline, scene_outline::SceneOutlinePlugin};
+use utils::{materials::default_outline, scene::ScenePlugin};
 
 mod components;
 mod entities;
@@ -170,7 +170,7 @@ fn main() {
         EntitiesPlugin,
         ComponentsPlugin,
         ParticlesPlugin,
-        SceneOutlinePlugin,
+        ScenePlugin,
         UIPlugin,
         PostprocessingPlugin,
         MaterialsPlugin,

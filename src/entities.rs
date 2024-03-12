@@ -7,6 +7,7 @@ pub mod cruiser;
 pub mod explosion;
 pub mod planet;
 pub mod spaceship;
+pub mod space_station;
 
 pub struct EntitiesPlugin;
 
@@ -20,6 +21,7 @@ impl Plugin for EntitiesPlugin {
             planet::PlanetPlugin,
             explosion::ExplosionPlugin,
             cruiser::CruiserPLugin,
+            space_station::SpaceStationPlugin, 
         ));
     }
 }

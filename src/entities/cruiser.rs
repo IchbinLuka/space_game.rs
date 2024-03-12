@@ -19,6 +19,7 @@ use crate::ui::enemy_indicator::SpawnEnemyIndicator;
 use crate::ui::health_bar_3d::SpawnHealthBar;
 use crate::utils::collisions::CRUISER_COLLISION_GROUP;
 use crate::utils::misc::CollidingEntitiesExtension;
+use crate::utils::scene::AnimationRoot;
 use crate::utils::sets::Set;
 
 use crate::states::{game_running, AppState, ON_GAME_STARTED};
@@ -151,11 +152,6 @@ fn cruiser_turret_shoot(
             entity,
         });
     }
-}
-
-#[derive(Component, Default)]
-pub struct AnimationRoot {
-    pub player_entites: Vec<Entity>,
 }
 
 fn spawn_cruiser(In(pos): In<Vec3>, mut commands: Commands, assets: Res<CruiserAssets>) {
@@ -317,7 +313,6 @@ fn cruiser_trail_update(mut trails: Query<(&mut Transform, &DespawnTimer), With<
 fn cruiser_scene_setup(
     mut cruisers: Query<(&SceneInstance, Entity), (With<Cruiser>, Changed<SceneInstance>)>,
     names: Query<(&Name, &Transform), Without<Cruiser>>,
-    mut animation_players: Query<Entity, With<AnimationPlayer>>,
     mut commands: Commands,
     scene_manager: Res<SceneSpawner>,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -330,13 +325,7 @@ fn cruiser_scene_setup(
 
         let mut rng = rand::thread_rng();
 
-        let mut animation_root = AnimationRoot::default();
-
         for entity in scene_manager.iter_instance_entities(**scene) {
-            if let Ok(entity) = animation_players.get_mut(entity) {
-                info!("Adding animation player");
-                animation_root.player_entites.push(entity);
-            }
 
             let Ok((name, transform)) = names.get(entity) else {
                 continue;
@@ -381,8 +370,6 @@ fn cruiser_scene_setup(
                 });
             }
         }
-
-        commands.entity(cruiser).insert(animation_root);
     }
 }
 

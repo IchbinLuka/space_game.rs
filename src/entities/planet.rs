@@ -51,7 +51,7 @@ fn planet_setup(
 
     for (color, size) in planets {
         let pos = Vec3::new(
-            rng.gen_range(50.0..250.0),
+            rng.gen_range(-100.0..200.0),
             0.0,
             rng.gen_range(-100.0..100.0),
         );
