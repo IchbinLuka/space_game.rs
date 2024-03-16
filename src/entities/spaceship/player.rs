@@ -4,6 +4,7 @@ use bevy::{prelude::*, render::render_resource::PrimitiveTopology};
 
 use bevy_rapier3d::{dynamics::Velocity, geometry::CollidingEntities};
 
+use crate::components::gravity::GravityAffected;
 use crate::materials::toon::{ApplyToonMaterial, ToonMaterial};
 use crate::states::ON_GAME_STARTED;
 use crate::{
@@ -19,6 +20,7 @@ use crate::{
     utils::{misc::CollidingEntitiesExtension, sets::Set},
 };
 
+use super::bot::EnemyTarget;
 use super::{
     Health, IsPlayer, LastBulletInfo, ParticleSpawnEvent, Spaceship, SpaceshipAssets,
     SpaceshipBundle,
@@ -27,7 +29,7 @@ use super::{
 #[derive(Component)]
 pub struct Player;
 
-#[derive(Component)]
+#[derive(Component, Default)]
 struct LastHit(Option<f32>);
 
 fn player_shoot(
@@ -65,7 +67,9 @@ fn player_setup(mut commands: Commands, assets: Res<SpaceshipAssets>) {
         SpaceshipBundle::new(assets.player_ship.clone(), Vec3::ZERO),
         Health::new(100.0),
         MaxSpeed { max_speed: 60.0 },
-        LastHit(None),
+        LastHit::default(),
+        EnemyTarget,
+        GravityAffected,
         BulletTarget {
             target_type: BulletType::Bot,
             bullet_damage: Some(10.0),

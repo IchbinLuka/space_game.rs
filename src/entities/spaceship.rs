@@ -8,10 +8,7 @@ use rand::{seq::SliceRandom, Rng};
 
 use crate::states::AppState;
 use crate::{
-    components::{
-        colliders::VelocityColliderBundle, despawn_after::DespawnTimer, gravity::GravityAffected,
-        health::Health,
-    },
+    components::{colliders::VelocityColliderBundle, despawn_after::DespawnTimer, health::Health},
     particles::fire_particles::FireParticleRes,
     states::game_running,
     utils::{collisions::BULLET_COLLISION_GROUP, misc::CollidingEntitiesExtension, sets::Set},
@@ -33,12 +30,14 @@ const BULLET_COOLDOWN: f32 = 0.2;
 #[derive(Component)]
 pub struct SpaceshipCollisions {
     pub collision_damage: f32,
+    pub bound_radius: f32,
 }
 
 impl Default for SpaceshipCollisions {
     fn default() -> Self {
         Self {
-            collision_damage: 10.0,
+            collision_damage: 10.,
+            bound_radius: 0.,
         }
     }
 }
@@ -105,7 +104,7 @@ impl Spaceship {
         &self,
         last_bullet: &mut LastBulletInfo,
         bullet_spawn_events: &mut EventWriter<BulletSpawnEvent>,
-        player_entity: Entity,
+        spaceship_entity: Entity,
         transform: &Transform,
         velocity: Velocity,
         bullet_type: BulletType,
@@ -120,7 +119,7 @@ impl Spaceship {
             position: bullet_transform,
             entity_velocity: velocity,
             direction: transform.forward(),
-            entity: player_entity,
+            entity: spaceship_entity,
             bullet_type,
         });
 
@@ -131,7 +130,6 @@ impl Spaceship {
 #[derive(Bundle)]
 pub struct SpaceshipBundle {
     pub velocity_collider_bundle: VelocityColliderBundle,
-    pub gravity_affected: GravityAffected,
     pub outline_bundle: OutlineBundle,
     pub scene_bundle: SceneBundle,
     pub spaceship: Spaceship,
@@ -152,7 +150,6 @@ impl SpaceshipBundle {
                 },
                 ..default()
             },
-            gravity_affected: GravityAffected,
             outline_bundle: OutlineBundle {
                 outline: OutlineVolume {
                     visible: true,

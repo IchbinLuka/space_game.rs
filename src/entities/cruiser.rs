@@ -27,9 +27,10 @@ use crate::{components::colliders::VelocityColliderBundle, utils::materials::def
 
 use super::bullet::{Bullet, BulletSpawnEvent, BulletTarget, BulletType};
 use super::explosion::ExplosionEvent;
+use super::spaceship::bot::EnemyTarget;
 use super::spaceship::player::Player;
+use super::spaceship::IsBot;
 use super::spaceship::SpaceshipCollisions;
-use super::spaceship::{IsBot, IsPlayer};
 
 #[derive(Component)]
 pub struct Cruiser {
@@ -96,32 +97,40 @@ impl Command for SpawnCruiser {
 struct CruiserTurret {
     shoot_timer: Timer,
     base_orientation: Vec3,
-    cruiser: Entity, 
 }
 
 // Turret contants
 const TURRET_TURN_SPEED: f32 = 1.0;
 const TURRET_ROTATION_BOUNDS: (f32, f32) = (-1., 1.);
+const TURRET_SHOOT_RANGE: f32 = 150.;
 
 fn cruiser_turret_shoot(
     mut cruiser_turrets: Query<
         (&GlobalTransform, &mut Transform, &mut CruiserTurret, Entity),
         Without<Player>,
     >,
-    player: Query<&Transform, (IsPlayer, Without<CruiserTurret>)>,
-    velocities: Query<&Velocity, With<Cruiser>>, 
+    target: Query<&Transform, (With<EnemyTarget>, Without<CruiserTurret>)>,
     time: Res<Time>,
     mut bullet_events: EventWriter<BulletSpawnEvent>,
 ) {
-    let Ok(player_transform) = player.get_single() else {
-        return;
-    };
-
     for (global_transform, mut transform, mut turret, entity) in &mut cruiser_turrets {
+        let global = global_transform.compute_transform();
+
+        let Some(nearest_transform) = target.iter().min_by_key(|t| {
+            let direction = t.translation - global.translation;
+            direction.length_squared() as i32
+        }) else {
+            continue;
+        };
+
         turret.shoot_timer.tick(time.delta());
 
         let global_transform = global_transform.compute_transform();
-        let direction = player_transform.translation - global_transform.translation;
+        let direction = nearest_transform.translation - global_transform.translation;
+
+        if direction.length_squared() > TURRET_SHOOT_RANGE.powi(2) {
+            continue;
+        }
 
         let (min, max) = TURRET_ROTATION_BOUNDS;
 
@@ -139,14 +148,9 @@ fn cruiser_turret_shoot(
             continue;
         }
 
-        let Ok(cruiser_velocity) = velocities.get(turret.cruiser) else {
-            warn!("Turret does not have a parent cruiser");
-            continue;
-        };
-
         bullet_events.send(BulletSpawnEvent {
             bullet_type: BulletType::Bot,
-            entity_velocity: cruiser_velocity.clone(),
+            entity_velocity: Velocity::zero(), //  cruiser_velocity.clone(),
             position: global_transform,
             direction,
             entity,
@@ -189,6 +193,7 @@ fn spawn_cruiser(In(pos): In<Vec3>, mut commands: Commands, assets: Res<CruiserA
         Health::new(100.0),
         SpaceshipCollisions {
             collision_damage: 5.0,
+            ..default()
         },
         COLLISION_GROUPS,
     ));
@@ -233,6 +238,7 @@ fn finish_cruiser(
             NotShadowCaster,
             SpaceshipCollisions {
                 collision_damage: 10.0,
+                ..default()
             },
             Collider::ball(10.),
             CollidingEntities::default(),
@@ -275,7 +281,6 @@ fn cruiser_animation_start(
             let Ok(mut player) = animation_players.get_mut(*entity) else {
                 continue;
             };
-            info!("Playing animation");
             player.play(cruiser_assets.cruiser_animation.clone());
             player.set_repeat(RepeatAnimation::Never);
         }
@@ -311,14 +316,14 @@ fn cruiser_trail_update(mut trails: Query<(&mut Transform, &DespawnTimer), With<
 }
 
 fn cruiser_scene_setup(
-    mut cruisers: Query<(&SceneInstance, Entity), (With<Cruiser>, Changed<SceneInstance>)>,
+    mut cruisers: Query<&SceneInstance, (With<Cruiser>, Changed<SceneInstance>)>,
     names: Query<(&Name, &Transform), Without<Cruiser>>,
     mut commands: Commands,
     scene_manager: Res<SceneSpawner>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut toon_materials: ResMut<Assets<ToonMaterial>>,
 ) {
-    for (scene, cruiser) in &mut cruisers {
+    for scene in &mut cruisers {
         if !scene_manager.instance_is_ready(**scene) {
             continue;
         }
@@ -326,7 +331,6 @@ fn cruiser_scene_setup(
         let mut rng = rand::thread_rng();
 
         for entity in scene_manager.iter_instance_entities(**scene) {
-
             let Ok((name, transform)) = names.get(entity) else {
                 continue;
             };
@@ -361,12 +365,11 @@ fn cruiser_scene_setup(
                 commands.entity(entity).add_child(trail);
             } else if name.starts_with("turret_bone") {
                 let mut shoot_timer = Timer::from_seconds(1.0, TimerMode::Repeating);
-                shoot_timer.tick(Duration::from_millis(rng.gen_range(0..500))); 
+                shoot_timer.tick(Duration::from_millis(rng.gen_range(0..500)));
 
                 commands.entity(entity).insert(CruiserTurret {
                     shoot_timer,
                     base_orientation: transform.forward(),
-                    cruiser, 
                 });
             }
         }

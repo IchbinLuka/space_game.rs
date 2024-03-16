@@ -113,6 +113,7 @@ fn planet_setup(
             },
             SpaceshipCollisions {
                 collision_damage: 10.0,
+                bound_radius: size,
             },
             BulletTarget {
                 target_type: BulletType::Both,

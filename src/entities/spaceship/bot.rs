@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use bevy::{ecs::system::Command, prelude::*};
 use bevy_rapier3d::{
     dynamics::Velocity,
@@ -13,7 +15,10 @@ use crate::{
     },
     states::game_running,
     ui::{enemy_indicator::SpawnEnemyIndicator, health_bar_3d::SpawnHealthBar, score::ScoreEvent},
-    utils::collisions::{BOT_COLLISION_GROUP, CRUISER_COLLISION_GROUP},
+    utils::{
+        collisions::{BOT_COLLISION_GROUP, CRUISER_COLLISION_GROUP},
+        math,
+    },
 };
 use crate::{
     materials::toon::{ApplyToonMaterial, ToonMaterial},
@@ -21,8 +26,8 @@ use crate::{
 };
 
 use super::{
-    Health, IsBot, IsPlayer, LastBulletInfo, ParticleSpawnEvent, Spaceship, SpaceshipAssets,
-    SpaceshipBundle,
+    Health, IsBot, LastBulletInfo, ParticleSpawnEvent, Spaceship, SpaceshipAssets, SpaceshipBundle,
+    SpaceshipCollisions,
 };
 
 const BOT_ACCELERATION: f32 = 20.0;
@@ -32,8 +37,12 @@ const COLLISION_GROUPS: CollisionGroups = CollisionGroups::new(
 );
 
 #[derive(Component)]
+pub struct EnemyTarget;
+
+#[derive(Component)]
 pub struct Bot {
     pub state: BotState,
+    // pub current_target: Option<Entity>
 }
 
 #[derive(Component)]
@@ -111,6 +120,7 @@ fn spawn_bot_from_world(world: &mut World, spawn_bot: SpawnBot) -> Result<Entity
     let mut entity_commands = world.spawn((
         Bot {
             state: spawn_bot.initial_state,
+            // current_target: None,
         },
         LastBulletInfo::with_cooldown(0.5),
         SpaceshipBundle {
@@ -191,18 +201,15 @@ fn bot_update(
             &Spaceship,
             Option<&SquadMember>,
         ),
-        IsBot,
+        (IsBot, Without<EnemyTarget>),
     >,
-    player_query: Query<&Transform, IsPlayer>,
+    target_query: Query<(&Transform, Entity), With<EnemyTarget>>,
+
     time: Res<Time>,
     mut exhaust_particles: EventWriter<ParticleSpawnEvent>,
     mut bullet_spawn_events: EventWriter<BulletSpawnEvent>,
 ) {
     let mut rng = rand::thread_rng();
-
-    let Ok(player_transform) = player_query.get_single() else {
-        return;
-    };
 
     for (
         mut velocity,
@@ -215,11 +222,25 @@ fn bot_update(
         squad_member,
     ) in &mut bots
     {
+        let current_pos = transform.translation;
+        let Some((target_transform, _)) = target_query.iter().min_by(|(t1, _), (t2, _)| {
+            let diff =
+                (t1.translation - current_pos).length() - (t2.translation - current_pos).length();
+            if diff < 0.0 {
+                Ordering::Less
+            } else if diff > 0.0 {
+                Ordering::Greater
+            } else {
+                Ordering::Equal
+            }
+        }) else {
+            continue;
+        };
         if !last_bullet.timer.finished() {
             last_bullet.timer.tick(time.delta());
         }
 
-        let delta = player_transform.translation - transform.translation;
+        let delta = target_transform.translation - transform.translation;
         let distance = delta.length();
         let angle = transform.forward().angle_between(delta);
 
@@ -282,6 +303,42 @@ fn bot_update(
                     bot.state = BotState::Chasing;
                 }
             }
+        }
+    }
+}
+
+fn bot_avoid_collisions(
+    spaceship_collisions: Query<(&Transform, &SpaceshipCollisions), Without<Bot>>,
+    mut bots: Query<(&mut Transform, &mut Velocity, Entity), IsBot>,
+    time: Res<Time>,
+    mut exhaust_particles: EventWriter<ParticleSpawnEvent>,
+) {
+    let colliders = spaceship_collisions.iter().collect::<Vec<_>>();
+    for (mut transform, mut velocity, entity) in &mut bots {
+        for (other_transform, other_collisions) in &colliders {
+            let delta = other_transform.translation - transform.translation;
+            let distance = delta.length();
+
+            if distance > other_collisions.bound_radius + 20.0 {
+                continue;
+            }
+
+            if math::sphere_intersection(
+                other_transform.translation,
+                other_collisions.bound_radius,
+                transform.translation,
+                velocity.linvel.normalize(),
+            )
+            .is_none()
+            {
+                velocity.linvel +=
+                    transform.forward().normalize() * time.delta_seconds() * BOT_ACCELERATION;
+                exhaust_particles.send(ParticleSpawnEvent::main_exhaust(entity));
+                continue;
+            }
+
+            let sign = angle_between_sign(transform.forward(), delta);
+            transform.rotate_y(-sign * 4.0 * time.delta_seconds());
         }
     }
 }
@@ -354,7 +411,14 @@ impl Plugin for BotPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (bot_update, bot_death, bot_repulsion, bot_squad_update).run_if(game_running()),
+            (
+                bot_update,
+                bot_death,
+                bot_repulsion,
+                bot_squad_update,
+                bot_avoid_collisions,
+            )
+                .run_if(game_running()),
         )
         .add_systems(ON_GAME_STARTED, bot_setup);
     }

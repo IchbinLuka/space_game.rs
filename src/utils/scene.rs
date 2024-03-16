@@ -34,11 +34,8 @@ pub struct AnimationRoot {
 }
 
 fn setup_animation_root(
-    mut commands: Commands, 
-    scene_query: Query<
-        (&SceneInstance, Entity),
-        Added<SceneInstance>,
-    >,
+    mut commands: Commands,
+    scene_query: Query<(&SceneInstance, Entity), Added<SceneInstance>>,
     animation_players: Query<Entity, With<AnimationPlayer>>,
     scene_manager: Res<SceneSpawner>,
 ) {
@@ -58,14 +55,10 @@ fn setup_animation_root(
     }
 }
 
-
 pub struct ScenePlugin;
 
 impl Plugin for ScenePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (
-            setup_scene_once_loaded, 
-            setup_animation_root, 
-        ));
+        app.add_systems(Update, (setup_scene_once_loaded, setup_animation_root));
     }
 }
