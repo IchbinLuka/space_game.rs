@@ -18,7 +18,7 @@ use crate::materials::toon::{ApplyToonMaterial, ToonMaterial};
 use crate::ui::enemy_indicator::SpawnEnemyIndicator;
 use crate::ui::health_bar_3d::SpawnHealthBar;
 use crate::utils::collisions::CRUISER_COLLISION_GROUP;
-use crate::utils::misc::CollidingEntitiesExtension;
+use crate::utils::misc::{AsCommand, CollidingEntitiesExtension};
 use crate::utils::scene::AnimationRoot;
 use crate::utils::sets::Set;
 
@@ -64,7 +64,7 @@ struct CruiserAssets {
     pub cruiser_animation: Handle<AnimationClip>,
 }
 
-#[derive(Component)]
+#[derive(Component, Deref, DerefMut)]
 struct ShieldRegenerate(pub Timer);
 
 struct DeactivateShield;
@@ -87,17 +87,6 @@ impl EntityCommand for ActivateShield {
             .insert(Visibility::Visible)
             .remove::<ColliderDisabled>()
             .remove::<ShieldDisabled>();
-    }
-}
-
-pub struct SpawnCruiser {
-    pub pos: Vec3,
-    pub destination: Vec3,
-}
-
-impl Command for SpawnCruiser {
-    fn apply(self, world: &mut World) {
-        world.run_system_once_with((self.pos, self.destination), spawn_cruiser)
     }
 }
 
@@ -162,20 +151,20 @@ fn cruiser_turret_shoot(
 }
 
 fn spawn_cruiser(
-    In((pos, destination)): In<(Vec3, Vec3)>,
+    In((start_pos, destination)): In<(Vec3, Vec3)>,
     mut commands: Commands,
     assets: Res<CruiserAssets>,
 ) {
     let Vec3 { x, y, z } = CRUISER_HITBOX_SIZE;
 
-    let delta = destination - pos;
+    let delta = destination - start_pos;
     let direction = delta.normalize();
 
     commands.spawn((
         SceneBundle {
             scene: assets.cruiser_model.clone(),
             transform: Transform {
-                translation: pos,
+                translation: start_pos,
                 rotation: Quat::from_rotation_y(-direction.angle_between(Vec3::Z) + PI),
                 ..default()
             },
@@ -279,10 +268,11 @@ fn finish_cruiser(
 }
 
 fn cruiser_setup(mut commands: Commands) {
-    commands.add(SpawnCruiser {
-        pos: Vec3::new(20., 0., -10.),
-        destination: Vec3::new(-20., 0., 50.),
-    })
+    // commands.add(SpawnCruiser {
+    //     start_pos: Vec3::new(20., 0., -10.),
+    //     destination: Vec3::new(-20., 0., 50.),
+    // });
+    commands.add(spawn_cruiser.as_command((Vec3::new(20., 0., -10.), Vec3::new(-20., 0., 50.))));
 }
 
 fn cruiser_animation_start(
@@ -407,12 +397,12 @@ fn cruiser_shield_regenerate(
     mut commands: Commands,
 ) {
     for (entity, mut health, mut timer) in &mut query {
-        timer.0.tick(time.delta());
+        timer.tick(time.delta());
 
-        if timer.0.just_finished() {
+        if timer.just_finished() {
             commands.entity(entity).add(ActivateShield);
         }
-        if timer.0.finished() {
+        if timer.finished() {
             health.heal(10.0 * time.delta_seconds());
         }
     }
@@ -456,7 +446,7 @@ fn cruiser_shield_collisions(
                 continue;
             }
             info!("Resetting timer");
-            regen.0.reset();
+            regen.reset();
         }
     }
 }

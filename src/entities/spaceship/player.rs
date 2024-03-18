@@ -7,6 +7,8 @@ use bevy_rapier3d::{dynamics::Velocity, geometry::CollidingEntities};
 use crate::components::gravity::GravityAffected;
 use crate::materials::toon::{ApplyToonMaterial, ToonMaterial};
 use crate::states::ON_GAME_STARTED;
+use crate::ui::fonts::FontsResource;
+use crate::ui::theme::default_font;
 use crate::{
     components::{
         gravity::{gravity_step, GravitySource},
@@ -115,12 +117,6 @@ fn player_input(
             };
 
             transform.rotate_y(sign * speed * timer.delta_seconds());
-
-            // if player.auxiliary_drive {
-            //     let vel = velocity.linvel;
-            //     velocity.linvel = 0.9 * velocity.linvel + 0.1 * transform.forward().normalize() * vel.length();
-            //     particle_spawn.send(ParticleSpawnEvent { entity });
-            // }
         }
 
         if keyboard_input.just_pressed(KeyCode::ShiftLeft) {
@@ -371,6 +367,107 @@ fn player_collision(
     }
 }
 
+#[derive(Component)]
+struct ReturnToMissionWarning {
+    timer: Timer,
+}
+
+#[derive(Component)]
+struct ReturnToMissionWarningText;
+
+const RETURN_TO_MISSION_TIME: u32 = 10;
+const MAX_DISTANCE: f32 = 200.0;
+
+fn return_to_mission_warning_despawn(
+    players: Query<&Transform, IsPlayer>,
+    mut warnings: Query<Entity, With<ReturnToMissionWarning>>,
+    mut commands: Commands,
+) {
+    for transform in &players {
+        if transform.translation.length() < MAX_DISTANCE {
+            for entity in &mut warnings {
+                commands.entity(entity).despawn_recursive();
+            }
+        }
+    }
+}
+
+fn return_to_mission_warning_spawn(
+    players: Query<&Transform, IsPlayer>,
+    warning: Query<Entity, With<ReturnToMissionWarning>>,
+    mut commands: Commands,
+    font_res: Res<FontsResource>,
+) {
+    if warning.iter().next().is_some() {
+        return;
+    }
+
+    for transform in &players {
+        if transform.translation.length() < MAX_DISTANCE {
+            continue;
+        }
+        info!("Player is out of mission area");
+        commands
+            .spawn((
+                NodeBundle {
+                    style: Style {
+                        width: Val::Percent(100.0),
+                        height: Val::Percent(100.0),
+                        display: Display::Flex,
+                        align_items: AlignItems::Center,
+                        justify_content: JustifyContent::Center,
+                        ..default()
+                    },
+                    background_color: Color::rgba(0., 0., 0., 0.3).into(),
+                    ..default()
+                },
+                ReturnToMissionWarning {
+                    timer: Timer::from_seconds(RETURN_TO_MISSION_TIME as f32, TimerMode::Once),
+                },
+            ))
+            .with_children(|c| {
+                c.spawn((
+                    TextBundle {
+                        text: Text::from_section(
+                            t!("return_to_mission_area", time = RETURN_TO_MISSION_TIME),
+                            TextStyle {
+                                font_size: 80.0,
+                                color: Color::WHITE,
+                                font: default_font(&font_res),
+                                ..default()
+                            },
+                        ),
+                        ..default()
+                    },
+                    ReturnToMissionWarningText,
+                ));
+            });
+    }
+}
+
+fn return_to_mission_warning_update(
+    mut warnings: Query<(Entity, &mut ReturnToMissionWarning), Without<ReturnToMissionWarningText>>,
+    mut warning_text: Query<&mut Text, With<ReturnToMissionWarningText>>,
+    time: Res<Time>,
+    mut commands: Commands,
+) {
+    for (entity, mut warning) in &mut warnings {
+        warning.timer.tick(time.delta());
+
+        for mut text in &mut warning_text {
+            text.sections[0].value = t!(
+                "return_to_mission_area",
+                time = warning.timer.remaining_secs().ceil() as u32
+            )
+            .to_string();
+        }
+
+        if warning.timer.finished() {
+            commands.entity(entity).despawn_recursive();
+        }
+    }
+}
+
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
@@ -388,6 +485,9 @@ impl Plugin for PlayerPlugin {
                 player_regeneration,
                 player_collision,
                 player_trail_update,
+                return_to_mission_warning_spawn,
+                return_to_mission_warning_update,
+                return_to_mission_warning_despawn,
             )
                 .run_if(game_running()),
         );
