@@ -60,7 +60,7 @@ fn camera_setup(
         });
     }
 
-    let mut camera_transform = Transform::from_xyz(0.0, 100.0, 0.0);
+    let mut camera_transform = Transform::from_xyz(0.0, 75.0, 0.0);
     camera_transform.rotate(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2));
 
     commands.spawn((

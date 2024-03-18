@@ -272,7 +272,7 @@ fn spawn_exhaust_particle(
 ) {
     let mut rng = rand::thread_rng();
     const RANDOM_VEL_RANGE: std::ops::Range<f32> = -4.0..4.0;
-    const LIFE_TIME_RANGE: std::ops::Range<u64> = 300..500;
+    const LIFE_TIME_RANGE: std::ops::Range<u64> = 200..300;
 
     for event in events.read() {
         let Ok((transform, velocity)) = space_ship_query.get(event.entity) else {

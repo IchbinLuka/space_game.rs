@@ -1,4 +1,4 @@
-use std::f32::consts::FRAC_PI_2;
+use std::f32::consts::{FRAC_PI_2, PI};
 use std::time::Duration;
 
 use bevy::animation::RepeatAnimation;
@@ -32,9 +32,19 @@ use super::spaceship::player::Player;
 use super::spaceship::IsBot;
 use super::spaceship::SpaceshipCollisions;
 
+const CRUISER_HITBOX_SIZE: Vec3 = Vec3::new(3.5, 3., 13.);
+const CRUISER_SPEED: f32 = 2.0;
+const COLLISION_GROUPS: CollisionGroups = CollisionGroups::new(CRUISER_COLLISION_GROUP, Group::ALL);
+
+// Turret contants
+const TURRET_TURN_SPEED: f32 = 1.0;
+const TURRET_ROTATION_BOUNDS: (f32, f32) = (-1., 1.);
+const TURRET_SHOOT_RANGE: f32 = 150.;
+
 #[derive(Component)]
 pub struct Cruiser {
     enemy_spawn_cooldown: Timer,
+    travel_timer: Timer,
 }
 
 #[derive(Component)]
@@ -53,9 +63,6 @@ struct CruiserAssets {
     #[asset(path = "cruiser.glb#Animation0")]
     pub cruiser_animation: Handle<AnimationClip>,
 }
-
-const CRUISER_HITBOX_SIZE: Vec3 = Vec3::new(3.5, 3., 13.);
-const COLLISION_GROUPS: CollisionGroups = CollisionGroups::new(CRUISER_COLLISION_GROUP, Group::ALL);
 
 #[derive(Component)]
 struct ShieldRegenerate(pub Timer);
@@ -85,11 +92,12 @@ impl EntityCommand for ActivateShield {
 
 pub struct SpawnCruiser {
     pub pos: Vec3,
+    pub destination: Vec3,
 }
 
 impl Command for SpawnCruiser {
     fn apply(self, world: &mut World) {
-        world.run_system_once_with(self.pos, spawn_cruiser)
+        world.run_system_once_with((self.pos, self.destination), spawn_cruiser)
     }
 }
 
@@ -98,11 +106,6 @@ struct CruiserTurret {
     shoot_timer: Timer,
     base_orientation: Vec3,
 }
-
-// Turret contants
-const TURRET_TURN_SPEED: f32 = 1.0;
-const TURRET_ROTATION_BOUNDS: (f32, f32) = (-1., 1.);
-const TURRET_SHOOT_RANGE: f32 = 150.;
 
 fn cruiser_turret_shoot(
     mut cruiser_turrets: Query<
@@ -125,8 +128,8 @@ fn cruiser_turret_shoot(
 
         turret.shoot_timer.tick(time.delta());
 
-        let global_transform = global_transform.compute_transform();
-        let direction = nearest_transform.translation - global_transform.translation;
+        let global_translation = global_transform.compute_transform();
+        let direction = nearest_transform.translation - global_translation.translation;
 
         if direction.length_squared() > TURRET_SHOOT_RANGE.powi(2) {
             continue;
@@ -140,7 +143,7 @@ fn cruiser_turret_shoot(
             continue;
         }
 
-        let turn_sign = global_transform.forward().cross(direction).y.signum();
+        let turn_sign = global_translation.forward().cross(direction).y.signum();
 
         transform.rotate_y(turn_sign * TURRET_TURN_SPEED * time.delta_seconds());
 
@@ -151,28 +154,37 @@ fn cruiser_turret_shoot(
         bullet_events.send(BulletSpawnEvent {
             bullet_type: BulletType::Bot,
             entity_velocity: Velocity::zero(), //  cruiser_velocity.clone(),
-            position: global_transform,
+            position: global_translation,
             direction,
             entity,
         });
     }
 }
 
-fn spawn_cruiser(In(pos): In<Vec3>, mut commands: Commands, assets: Res<CruiserAssets>) {
+fn spawn_cruiser(
+    In((pos, destination)): In<(Vec3, Vec3)>,
+    mut commands: Commands,
+    assets: Res<CruiserAssets>,
+) {
     let Vec3 { x, y, z } = CRUISER_HITBOX_SIZE;
+
+    let delta = destination - pos;
+    let direction = delta.normalize();
+
     commands.spawn((
         SceneBundle {
             scene: assets.cruiser_model.clone(),
-            transform: Transform::from_translation(pos),
+            transform: Transform {
+                translation: pos,
+                rotation: Quat::from_rotation_y(-direction.angle_between(Vec3::Z) + PI),
+                ..default()
+            },
             ..default()
         },
         ApplyToonMaterial::default(),
         VelocityColliderBundle {
             velocity: Velocity {
-                linvel: Vec3 {
-                    z: -2.0,
-                    ..Vec3::ZERO
-                },
+                linvel: direction * CRUISER_SPEED,
                 ..default()
             },
             collider: Collider::cuboid(x, y, z),
@@ -180,6 +192,7 @@ fn spawn_cruiser(In(pos): In<Vec3>, mut commands: Commands, assets: Res<CruiserA
         },
         Cruiser {
             enemy_spawn_cooldown: Timer::from_seconds(10.0, TimerMode::Repeating),
+            travel_timer: Timer::from_seconds(delta.length() / CRUISER_SPEED, TimerMode::Once),
         },
         BulletTarget {
             target_type: BulletType::Player,
@@ -268,6 +281,7 @@ fn finish_cruiser(
 fn cruiser_setup(mut commands: Commands) {
     commands.add(SpawnCruiser {
         pos: Vec3::new(20., 0., -10.),
+        destination: Vec3::new(-20., 0., 50.),
     })
 }
 
@@ -317,7 +331,7 @@ fn cruiser_trail_update(mut trails: Query<(&mut Transform, &DespawnTimer), With<
 
 fn cruiser_scene_setup(
     mut cruisers: Query<&SceneInstance, (With<Cruiser>, Changed<SceneInstance>)>,
-    names: Query<(&Name, &Transform), Without<Cruiser>>,
+    names: Query<(&Name, &GlobalTransform), Without<Cruiser>>,
     mut commands: Commands,
     scene_manager: Res<SceneSpawner>,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -331,7 +345,7 @@ fn cruiser_scene_setup(
         let mut rng = rand::thread_rng();
 
         for entity in scene_manager.iter_instance_entities(**scene) {
-            let Ok((name, transform)) = names.get(entity) else {
+            let Ok((name, global_transform)) = names.get(entity) else {
                 continue;
             };
             if name.starts_with("exhaust.") {
@@ -369,7 +383,7 @@ fn cruiser_scene_setup(
 
                 commands.entity(entity).insert(CruiserTurret {
                     shoot_timer,
-                    base_orientation: transform.forward(),
+                    base_orientation: global_transform.compute_transform().forward(),
                 });
             }
         }
@@ -471,6 +485,17 @@ fn cruiser_spawn_bots(
     }
 }
 
+fn cruiser_movement(mut cruisers: Query<(&mut Velocity, &mut Cruiser)>, time: Res<Time>) {
+    for (mut velocity, mut cruiser) in &mut cruisers {
+        cruiser.travel_timer.tick(time.delta());
+
+        // If the cruiser has reached the destination, stop moving
+        if cruiser.travel_timer.just_finished() {
+            velocity.linvel = Vec3::ZERO;
+        }
+    }
+}
+
 pub struct CruiserPLugin;
 
 impl Plugin for CruiserPLugin {
@@ -490,6 +515,7 @@ impl Plugin for CruiserPLugin {
                     cruiser_animations,
                     cruiser_trail_update,
                     cruiser_turret_shoot,
+                    cruiser_movement,
                 )
                     .run_if(game_running()),
             );
