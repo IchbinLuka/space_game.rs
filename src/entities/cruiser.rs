@@ -20,7 +20,7 @@ use crate::ui::enemy_indicator::SpawnEnemyIndicator;
 use crate::ui::health_bar_3d::SpawnHealthBar;
 use crate::utils::collisions::CRUISER_COLLISION_GROUP;
 use crate::utils::math::sphere_intersection;
-use crate::utils::misc::{AsCommand, CollidingEntitiesExtension};
+use crate::utils::misc::{AsCommand, CollidingEntitiesExtension, Comparef32};
 use crate::utils::scene::AnimationRoot;
 use crate::utils::sets::Set;
 
@@ -193,8 +193,9 @@ fn spawn_cruiser_events(
         let (station_transform, _) = space_stations.iter().nth(rng.gen_range(0..num_space_stations)).unwrap();
 
         for _ in 0..10 {
-            const START_OFFSET_RANGE: Range<f32> = -30.0..30.0;
-            const START_DISTANCE: f32 = 100.0;
+            info!("Trying to spawn cruiser");
+            const START_OFFSET_RANGE: Range<f32> = -40.0..40.0;
+            const START_DISTANCE: f32 = 200.0;
 
             let dest = station_transform.translation + Vec3::new(
                 rng.gen_range(START_OFFSET_RANGE),
@@ -208,10 +209,11 @@ fn spawn_cruiser_events(
 
             // Check if path intersects with one of the no-go zones
             if no_go_zones.iter().any(|z| {
-                let intersection = sphere_intersection(z.center, z.radius + 20.0, start, dest - start);
+                let intersection = sphere_intersection(z.center, z.radius + 10.0, start, dest - start);
                 let Some(intersection) = intersection else { return false; };
                 return intersection < 1.0;
             }) {
+                info!("Path intersects with no-go zone, retrying");
                 continue;
             }
 
@@ -527,6 +529,7 @@ fn cruiser_spawn_bots(
     time: Res<Time>,
     mut cruisers: Query<(&Transform, &mut Cruiser)>,
     bots: Query<Entity, IsBot>,
+    enemy_targets: Query<&Transform, With<EnemyTarget>>, 
 ) {
     const MAX_BOT_COUNT: usize = 5;
 
@@ -536,6 +539,16 @@ fn cruiser_spawn_bots(
 
     for (transform, mut spawn_cooldown) in &mut cruisers {
         spawn_cooldown.enemy_spawn_cooldown.tick(time.delta());
+
+        let Some(nearest_target) = enemy_targets.iter().min_by_key(
+            |t| Comparef32((t.translation - transform.translation).length())
+        ) else { 
+            continue;
+        };
+
+        if nearest_target.translation.distance(transform.translation) > 100. {
+            continue;
+        }
 
         if spawn_cooldown.enemy_spawn_cooldown.just_finished() {
             commands.add(SpawnSquad {

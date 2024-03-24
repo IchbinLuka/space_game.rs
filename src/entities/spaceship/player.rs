@@ -32,7 +32,7 @@ use super::{
 pub struct Player;
 
 #[derive(Component, Default)]
-struct LastHit(Option<f32>);
+pub struct LastHit(Option<f32>);
 
 fn player_shoot(
     keyboard_input: Res<Input<KeyCode>>,
