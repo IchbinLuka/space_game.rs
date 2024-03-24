@@ -16,6 +16,7 @@ pub mod score;
 pub mod settings;
 pub mod sprite_3d_renderer;
 pub mod theme;
+pub mod start_screen_ui;
 
 #[derive(Component, Default)]
 pub struct NodeHoverEffect {
@@ -78,6 +79,7 @@ impl Plugin for UIPlugin {
                 auxiliary_drive::AuxiliaryDriveUIPlugin,
                 settings::SettingsPlugin,
                 button::ButtonPlugin,
+                start_screen_ui::StartScreenPlugin,
             ));
     }
 }

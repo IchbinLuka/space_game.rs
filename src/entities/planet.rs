@@ -12,6 +12,7 @@ use crate::{
     utils::{collisions::PLANET_COLLISION_GROUP, materials::default_outline},
 };
 
+use super::space_station::{setup_space_station, SpaceStation};
 use super::{
     bullet::{BulletTarget, BulletType},
     spaceship::SpaceshipCollisions,
@@ -22,7 +23,7 @@ pub struct PlanetPlugin;
 impl Plugin for PlanetPlugin {
     fn build(&self, app: &mut App) {
         app.add_collection_to_loading_state::<_, PlanetAssets>(AppState::MainSceneLoading)
-            .add_systems(ON_GAME_STARTED, planet_setup);
+            .add_systems(ON_GAME_STARTED, planet_setup.after(setup_space_station));
     }
 }
 
@@ -32,34 +33,66 @@ pub struct Planet {
 }
 
 #[derive(AssetCollection, Resource)]
-struct PlanetAssets {
+pub struct PlanetAssets {
     #[asset(path = "textures/planet_1.png")]
     texture: Handle<Image>,
 }
 
-fn planet_setup(
+const PLANET_COUNT: usize = 15;
+
+struct PlanetSpawnConfig {
+    color: Color, 
+    size: f32, 
+    pos: Vec3, 
+}
+
+pub fn planet_setup(
     mut commands: Commands,
     mut materials: ResMut<Assets<PlanetMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
     planet_assets: Res<PlanetAssets>,
+    space_stations: Query<&Transform, With<SpaceStation>>, 
 ) {
     let collision_groups = CollisionGroups::new(PLANET_COLLISION_GROUP, Group::ALL);
 
     let mut rng = rand::thread_rng();
 
-    let planets = [("d0d0d0", 10.0), ("db4123", 15.0), ("365df7", 7.0)];
+    let mut planets: Vec<PlanetSpawnConfig> = Vec::with_capacity(PLANET_COUNT); 
 
-    for (color, size) in planets {
-        let pos = Vec3::new(
-            rng.gen_range(-100.0..200.0),
-            0.0,
-            rng.gen_range(-100.0..100.0),
+    for _ in 0..PLANET_COUNT {
+        let size = rng.gen_range(7.0..25.0);
+
+        let color = Color::rgb(
+            rng.gen_range(0.0..1.0), 
+            rng.gen_range(0.0..1.0), 
+            rng.gen_range(0.0..1.0), 
         );
 
+        // Try 10 times to find a suitalbe position for the planet, then abort
+        for _ in 0..10 {
+            let pos = Vec3::new(
+                rng.gen_range(-300.0..300.0),
+                0.0,
+                rng.gen_range(-300.0..300.0),
+            );
+            // Planet should not be too close to other planets
+            if planets.iter().any(|x| pos.distance(x.pos) < (size + x.size) * 1.5) {
+                continue;
+            }
+            // Planet should not be too close to space stations
+            if space_stations.iter().any(|station| station.translation.distance(pos) < size * 1.5) {
+                continue;
+            }
+
+            planets.push(PlanetSpawnConfig { color, size, pos });
+            break;
+        }
+    }
+
+    for PlanetSpawnConfig { color, size, pos } in planets {
         let material = materials.add(PlanetMaterial {
             center: pos,
-            color: Color::hex(color).unwrap(),
-            // filter_scale: 5.,
+            color,
             texture: planet_assets.texture.clone(),
         });
 

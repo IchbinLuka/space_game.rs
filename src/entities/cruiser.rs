@@ -1,4 +1,5 @@
 use std::f32::consts::{FRAC_PI_2, PI};
+use std::ops::Range;
 use std::time::Duration;
 
 use bevy::animation::RepeatAnimation;
@@ -18,6 +19,7 @@ use crate::materials::toon::{ApplyToonMaterial, ToonMaterial};
 use crate::ui::enemy_indicator::SpawnEnemyIndicator;
 use crate::ui::health_bar_3d::SpawnHealthBar;
 use crate::utils::collisions::CRUISER_COLLISION_GROUP;
+use crate::utils::math::sphere_intersection;
 use crate::utils::misc::{AsCommand, CollidingEntitiesExtension};
 use crate::utils::scene::AnimationRoot;
 use crate::utils::sets::Set;
@@ -27,6 +29,8 @@ use crate::{components::colliders::VelocityColliderBundle, utils::materials::def
 
 use super::bullet::{Bullet, BulletSpawnEvent, BulletTarget, BulletType};
 use super::explosion::ExplosionEvent;
+use super::planet::{planet_setup, Planet};
+use super::space_station::SpaceStation;
 use super::spaceship::bot::EnemyTarget;
 use super::spaceship::player::Player;
 use super::spaceship::IsBot;
@@ -150,6 +154,73 @@ fn cruiser_turret_shoot(
     }
 }
 
+#[derive(Event)]
+pub struct SpawnCruiserEvent;
+
+struct NoGoZone {
+    center: Vec3, 
+    radius: f32, 
+}
+
+fn spawn_cruiser_events(
+    mut spawn_events: EventReader<SpawnCruiserEvent>, 
+    mut commands: Commands, 
+    space_stations: Query<(&Transform, &SpaceshipCollisions), With<SpaceStation>>, 
+    planets: Query<(&Transform, &Planet)>, 
+) {
+    let mut rng = rand::thread_rng();
+    
+    if spawn_events.is_empty() { return; }
+
+    let num_space_stations = space_stations.iter().len();
+
+    if num_space_stations == 0 {
+        warn!("Could not spawn cruiser, no space stations found");
+        return;
+    }
+
+    let mut no_go_zones: Vec<NoGoZone> = Vec::new();
+
+    for (transform, space_ship_collisions) in &space_stations {
+        no_go_zones.push(NoGoZone { center: transform.translation, radius: space_ship_collisions.bound_radius });
+    }
+
+    for (transform, planet) in &planets {
+        no_go_zones.push(NoGoZone { center: transform.translation, radius: planet.radius });
+    }
+    
+    for _ in spawn_events.read() {
+        let (station_transform, _) = space_stations.iter().nth(rng.gen_range(0..num_space_stations)).unwrap();
+
+        for _ in 0..10 {
+            const START_OFFSET_RANGE: Range<f32> = -30.0..30.0;
+            const START_DISTANCE: f32 = 100.0;
+
+            let dest = station_transform.translation + Vec3::new(
+                rng.gen_range(START_OFFSET_RANGE),
+                0.0,
+                rng.gen_range(START_OFFSET_RANGE),
+            );
+
+            let delta_normalized = Vec3::new(rng.gen_range(-1.0..1.0), 0.0, rng.gen_range(-1.0..1.0)).normalize();
+
+            let start = dest + delta_normalized * START_DISTANCE;
+
+            // Check if path intersects with one of the no-go zones
+            if no_go_zones.iter().any(|z| {
+                let intersection = sphere_intersection(z.center, z.radius + 20.0, start, dest - start);
+                let Some(intersection) = intersection else { return false; };
+                return intersection < 1.0;
+            }) {
+                continue;
+            }
+
+            commands.add(spawn_cruiser.as_command((start, dest)));
+            break;
+        }
+    }
+}
+
 fn spawn_cruiser(
     In((start_pos, destination)): In<(Vec3, Vec3)>,
     mut commands: Commands,
@@ -165,7 +236,7 @@ fn spawn_cruiser(
             scene: assets.cruiser_model.clone(),
             transform: Transform {
                 translation: start_pos,
-                rotation: Quat::from_rotation_y(-direction.angle_between(Vec3::Z) + PI),
+                rotation: Quat::from_rotation_y(-direction.cross(Vec3::Z).y.signum() * direction.angle_between(Vec3::Z) + PI),
                 ..default()
             },
             ..default()
@@ -267,12 +338,12 @@ fn finish_cruiser(
     commands.add(SpawnEnemyIndicator { enemy: cruiser });
 }
 
-fn cruiser_setup(mut commands: Commands) {
-    // commands.add(SpawnCruiser {
-    //     start_pos: Vec3::new(20., 0., -10.),
-    //     destination: Vec3::new(-20., 0., 50.),
-    // });
-    commands.add(spawn_cruiser.as_command((Vec3::new(20., 0., -10.), Vec3::new(-20., 0., 50.))));
+fn cruiser_setup(
+    // mut commands: Commands
+    mut spawn_events: EventWriter<SpawnCruiserEvent>, 
+) {
+    // commands.add(spawn_cruiser.as_command((Vec3::new(-20., 0., 50.), Vec3::new(20., 0., -10.))));
+    spawn_events.send(SpawnCruiserEvent);
 }
 
 fn cruiser_animation_start(
@@ -491,7 +562,8 @@ pub struct CruiserPLugin;
 impl Plugin for CruiserPLugin {
     fn build(&self, app: &mut App) {
         app.add_collection_to_loading_state::<_, CruiserAssets>(AppState::MainSceneLoading)
-            .add_systems(ON_GAME_STARTED, cruiser_setup)
+            .add_event::<SpawnCruiserEvent>()
+            .add_systems(ON_GAME_STARTED, cruiser_setup.after(planet_setup))
             .add_systems(
                 Update,
                 (
@@ -506,6 +578,7 @@ impl Plugin for CruiserPLugin {
                     cruiser_trail_update,
                     cruiser_turret_shoot,
                     cruiser_movement,
+                    spawn_cruiser_events, 
                 )
                     .run_if(game_running()),
             );

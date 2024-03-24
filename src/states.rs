@@ -10,6 +10,9 @@ use bevy_asset_loader::loading_state::{LoadingState, LoadingStateAppExt};
 #[derive(Clone, Eq, PartialEq, Debug, Hash, Default, States, Copy)]
 pub enum AppState {
     #[default]
+    StartScreenLoading, 
+    StartScreen, 
+    
     MainSceneLoading,
     MainScene,
     MainPaused,
@@ -22,18 +25,31 @@ pub struct LoadingStateItem {
 }
 
 impl AppState {
-    pub const LOADING_STATES: &'static [LoadingStateItem] = &[LoadingStateItem {
-        loading_state: AppState::MainSceneLoading,
-        next_state: AppState::MainScene,
-    }];
+    pub const LOADING_STATES: &'static [LoadingStateItem] = &[
+        LoadingStateItem {
+            loading_state: AppState::MainSceneLoading,
+            next_state: AppState::MainScene,
+        },
+        LoadingStateItem {
+            loading_state: AppState::StartScreenLoading,
+            next_state: AppState::StartScreen,
+        }, 
+    ];
 }
 
+#[inline]
 pub fn game_running() -> impl FnMut(Res<State<AppState>>) -> bool + Clone {
     in_state(AppState::MainScene)
 }
 
+#[inline]
 pub fn game_paused() -> impl FnMut(Res<State<AppState>>) -> bool + Clone {
     in_state(AppState::MainPaused)
+}
+
+#[inline]
+pub fn in_start_menu() -> impl FnMut(Res<State<AppState>>) -> bool + Clone {
+    in_state(AppState::StartScreen)
 }
 
 pub const ON_GAME_STARTED: OnExit<AppState> = OnExit(AppState::MainSceneLoading);

@@ -9,7 +9,7 @@ i18n!();
 use std::f32::consts::FRAC_PI_4;
 
 use bevy::{log::LogPlugin, pbr::DirectionalLightShadowMap, prelude::*, window::PresentMode};
-use bevy_mod_outline::{AutoGenerateOutlineNormalsPlugin, OutlineBundle, OutlinePlugin};
+use bevy_mod_outline::{AutoGenerateOutlineNormalsPlugin, OutlinePlugin};
 use bevy_obj::ObjPlugin;
 use bevy_rapier3d::prelude::*;
 use bevy_round_ui::prelude::RoundUiPlugin;
@@ -23,7 +23,7 @@ use postprocessing::PostprocessingPlugin;
 use states::{game_running, StatesPlugin, ON_GAME_STARTED};
 
 use ui::UIPlugin;
-use utils::{materials::default_outline, scene::ScenePlugin};
+use utils::scene::ScenePlugin;
 
 mod components;
 mod entities;
@@ -90,8 +90,6 @@ fn setup_physics(mut rapier_config: ResMut<RapierConfiguration>) {
 
 fn scene_setup_3d(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ToonMaterial>>,
     settings: Res<Settings>,
 ) {
     commands.insert_resource(AmbientLight {
@@ -113,21 +111,6 @@ fn scene_setup_3d(
         transform,
         ..default()
     },));
-
-    commands.spawn((
-        MaterialMeshBundle {
-            mesh: meshes.add(shape::Cube::new(10.0).into()),
-            material: materials.add(ToonMaterial {
-                color: Color::hex("ea6d25").unwrap(),
-                ..default()
-            }),
-            ..default()
-        },
-        OutlineBundle {
-            outline: default_outline(),
-            ..default()
-        },
-    ));
 }
 
 fn main() {

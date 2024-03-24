@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
 use bevy_rapier3d::prelude::*;
+use rand::Rng;
 
 use crate::{
     components::health::Health,
@@ -18,12 +19,14 @@ use super::{
 #[derive(Component)]
 pub struct SpaceStation;
 
-fn setup_space_station(mut commands: Commands, res: Res<SpaceStationRes>) {
+pub fn setup_space_station(mut commands: Commands, res: Res<SpaceStationRes>) {
+    let mut rng = rand::thread_rng();
     let space_station = commands
         .spawn((
             SceneBundle {
                 scene: res.model.clone(),
-                transform: Transform::from_translation(Vec3::new(50., 0., 0.)),
+                transform: Transform::from_translation(
+                    Vec3::new(rng.gen_range(-50.0..50.0), 0., rng.gen_range(-50.0..50.0))),
                 ..default()
             },
             ApplyToonMaterial {
@@ -76,7 +79,7 @@ fn space_station_death(
 }
 
 #[derive(AssetCollection, Resource, Debug)]
-struct SpaceStationRes {
+pub struct SpaceStationRes {
     #[asset(path = "space_station.glb#Scene0")]
     model: Handle<Scene>,
 }
