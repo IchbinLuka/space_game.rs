@@ -12,10 +12,12 @@ use bevy_mod_outline::OutlineBundle;
 use bevy_rapier3d::prelude::*;
 use rand::Rng;
 
+use crate::{components::colliders::VelocityColliderBundle, utils::materials::default_outline};
 use crate::components::despawn_after::DespawnTimer;
 use crate::components::health::{DespawnOnDeath, Health, Shield};
 use crate::entities::spaceship::bot::SpawnSquad;
 use crate::materials::toon::{ApplyToonMaterial, ToonMaterial};
+use crate::states::{AppState, game_running};
 use crate::ui::enemy_indicator::SpawnEnemyIndicator;
 use crate::ui::health_bar_3d::SpawnHealthBar;
 use crate::utils::collisions::CRUISER_COLLISION_GROUP;
@@ -24,16 +26,13 @@ use crate::utils::misc::{AsCommand, CollidingEntitiesExtension, Comparef32};
 use crate::utils::scene::AnimationRoot;
 use crate::utils::sets::Set;
 
-use crate::states::{game_running, AppState, ON_GAME_STARTED};
-use crate::{components::colliders::VelocityColliderBundle, utils::materials::default_outline};
-
 use super::bullet::{Bullet, BulletSpawnEvent, BulletTarget, BulletType};
 use super::explosion::ExplosionEvent;
-use super::planet::{planet_setup, Planet};
+use super::planet::{Planet};
 use super::space_station::SpaceStation;
 use super::spaceship::bot::EnemyTarget;
-use super::spaceship::player::Player;
 use super::spaceship::IsBot;
+use super::spaceship::player::Player;
 use super::spaceship::SpaceshipCollisions;
 
 const CRUISER_HITBOX_SIZE: Vec3 = Vec3::new(3.5, 3., 13.);
@@ -72,6 +71,7 @@ struct CruiserAssets {
 struct ShieldRegenerate(pub Timer);
 
 struct DeactivateShield;
+
 impl EntityCommand for DeactivateShield {
     fn apply(self, id: Entity, world: &mut World) {
         world
@@ -84,6 +84,7 @@ impl EntityCommand for DeactivateShield {
 }
 
 struct ActivateShield;
+
 impl EntityCommand for ActivateShield {
     fn apply(self, id: Entity, world: &mut World) {
         world
@@ -154,22 +155,41 @@ fn cruiser_turret_shoot(
     }
 }
 
+
+const CRUISER_SPAWN_COOLDOWN: f32 = 30.0;
+
+#[derive(Resource)]
+struct LastCruiserSpawn(Option<f32>);
+
+fn spawn_cruisers(
+    mut spawn_cruiser_events: EventWriter<SpawnCruiserEvent>,
+    mut last_cruiser_spawn: ResMut<LastCruiserSpawn>,
+    time: Res<Time>,
+) {
+    if time.elapsed_seconds() - last_cruiser_spawn.0.unwrap_or(0.0) > CRUISER_SPAWN_COOLDOWN {
+        last_cruiser_spawn.0 = Some(time.elapsed_seconds());
+        spawn_cruiser_events.send(SpawnCruiserEvent);
+    }
+}
+
+
 #[derive(Event)]
 pub struct SpawnCruiserEvent;
 
 struct NoGoZone {
-    center: Vec3, 
-    radius: f32, 
+    center: Vec3,
+    radius: f32,
 }
 
 fn spawn_cruiser_events(
-    mut spawn_events: EventReader<SpawnCruiserEvent>, 
-    mut commands: Commands, 
-    space_stations: Query<(&Transform, &SpaceshipCollisions), With<SpaceStation>>, 
-    planets: Query<(&Transform, &Planet)>, 
+    mut spawn_events: EventReader<SpawnCruiserEvent>,
+    mut commands: Commands,
+    space_stations: Query<(&Transform, &SpaceshipCollisions), With<SpaceStation>>,
+    planets: Query<(&Transform, &Planet)>,
+    cruisers: Query<&Transform, With<Cruiser>>,
 ) {
     let mut rng = rand::thread_rng();
-    
+
     if spawn_events.is_empty() { return; }
 
     let num_space_stations = space_stations.iter().len();
@@ -188,7 +208,11 @@ fn spawn_cruiser_events(
     for (transform, planet) in &planets {
         no_go_zones.push(NoGoZone { center: transform.translation, radius: planet.radius });
     }
-    
+
+    for transform in &cruisers {
+        no_go_zones.push(NoGoZone { center: transform.translation, radius: CRUISER_HITBOX_SIZE.z });
+    }
+
     for _ in spawn_events.read() {
         let (station_transform, _) = space_stations.iter().nth(rng.gen_range(0..num_space_stations)).unwrap();
 
@@ -211,13 +235,13 @@ fn spawn_cruiser_events(
             if no_go_zones.iter().any(|z| {
                 let intersection = sphere_intersection(z.center, z.radius + 10.0, start, dest - start);
                 let Some(intersection) = intersection else { return false; };
-                return intersection < 1.0;
+                intersection < 1.0
             }) {
                 info!("Path intersects with no-go zone, retrying");
                 continue;
             }
 
-            commands.add(spawn_cruiser.as_command((start, dest)));
+            commands.add(spawn_cruiser.to_command((start, dest)));
             break;
         }
     }
@@ -299,7 +323,7 @@ fn finish_cruiser(
                         radius: 10.,
                         ..default()
                     }
-                    .into(),
+                        .into(),
                 ),
                 material: materials.add(StandardMaterial {
                     base_color: Color::hex("2ae0ed0f").unwrap(),
@@ -338,14 +362,6 @@ fn finish_cruiser(
         shield_entity: Some(shield),
     });
     commands.add(SpawnEnemyIndicator { enemy: cruiser });
-}
-
-fn cruiser_setup(
-    // mut commands: Commands
-    mut spawn_events: EventWriter<SpawnCruiserEvent>, 
-) {
-    // commands.add(spawn_cruiser.as_command((Vec3::new(-20., 0., 50.), Vec3::new(20., 0., -10.))));
-    spawn_events.send(SpawnCruiserEvent);
 }
 
 fn cruiser_animation_start(
@@ -425,7 +441,7 @@ fn cruiser_scene_setup(
                                     height: CRUISER_TRAIL_LENGTH,
                                     ..default()
                                 }
-                                .into(),
+                                    .into(),
                             ),
                             transform: Transform {
                                 rotation: Quat::from_rotation_x(FRAC_PI_2),
@@ -529,7 +545,7 @@ fn cruiser_spawn_bots(
     time: Res<Time>,
     mut cruisers: Query<(&Transform, &mut Cruiser)>,
     bots: Query<Entity, IsBot>,
-    enemy_targets: Query<&Transform, With<EnemyTarget>>, 
+    enemy_targets: Query<&Transform, With<EnemyTarget>>,
 ) {
     const MAX_BOT_COUNT: usize = 5;
 
@@ -542,7 +558,7 @@ fn cruiser_spawn_bots(
 
         let Some(nearest_target) = enemy_targets.iter().min_by_key(
             |t| Comparef32((t.translation - transform.translation).length())
-        ) else { 
+        ) else {
             continue;
         };
 
@@ -576,7 +592,7 @@ impl Plugin for CruiserPLugin {
     fn build(&self, app: &mut App) {
         app.add_collection_to_loading_state::<_, CruiserAssets>(AppState::MainSceneLoading)
             .add_event::<SpawnCruiserEvent>()
-            .add_systems(ON_GAME_STARTED, cruiser_setup.after(planet_setup))
+            .insert_resource(LastCruiserSpawn(None))
             .add_systems(
                 Update,
                 (
@@ -591,7 +607,8 @@ impl Plugin for CruiserPLugin {
                     cruiser_trail_update,
                     cruiser_turret_shoot,
                     cruiser_movement,
-                    spawn_cruiser_events, 
+                    spawn_cruiser_events,
+                    spawn_cruisers,
                 )
                     .run_if(game_running()),
             );

@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 
 use bevy::{prelude::*, render::render_resource::PrimitiveTopology};
 
-use bevy_rapier3d::{dynamics::Velocity, geometry::CollidingEntities};
+use bevy_rapier3d::{dynamics::Velocity};
 
 use crate::components::gravity::GravityAffected;
 use crate::materials::toon::{ApplyToonMaterial, ToonMaterial};
@@ -15,12 +15,15 @@ use crate::{
         movement::MaxSpeed,
     },
     entities::{
-        bullet::{Bullet, BulletSpawnEvent, BulletTarget, BulletType},
+        bullet::BulletSpawnEvent,
+        bullet::BulletTarget,
+        bullet::BulletType,
         planet::Planet,
     },
     states::game_running,
-    utils::{misc::CollidingEntitiesExtension, sets::Set},
+    utils::sets::Set,
 };
+use crate::components::health::Regeneration;
 
 use super::bot::EnemyTarget;
 use super::{
@@ -31,8 +34,8 @@ use super::{
 #[derive(Component)]
 pub struct Player;
 
-#[derive(Component, Default)]
-pub struct LastHit(Option<f32>);
+#[derive(Component, Default, Deref, DerefMut)]
+pub struct LastHit(pub(crate) Option<f32>);
 
 fn player_shoot(
     keyboard_input: Res<Input<KeyCode>>,
@@ -63,6 +66,9 @@ fn player_shoot(
     }
 }
 
+const HEAL_COOLDOWN: f32 = 4.0;
+const HEAL_SPEED: f32 = 2.0;
+
 fn player_setup(mut commands: Commands, assets: Res<SpaceshipAssets>) {
     commands.spawn((
         Player,
@@ -72,6 +78,10 @@ fn player_setup(mut commands: Commands, assets: Res<SpaceshipAssets>) {
         LastHit::default(),
         EnemyTarget,
         GravityAffected,
+        Regeneration {
+            heal_cooldown: HEAL_COOLDOWN,
+            regen_speed: HEAL_SPEED,
+        },
         BulletTarget {
             target_type: BulletType::Bot,
             bullet_damage: Some(10.0),
@@ -341,32 +351,6 @@ fn player_line_update(
     }
 }
 
-fn player_regeneration(mut players: Query<(&mut Health, &LastHit), IsPlayer>, time: Res<Time>) {
-    const HEAL_COOLDOWN: f32 = 4.0;
-
-    for (mut health, last_hit) in &mut players {
-        if let Some(last_hit) = last_hit.0 {
-            if time.elapsed_seconds() - last_hit < HEAL_COOLDOWN {
-                continue;
-            }
-        }
-
-        health.heal(2.0 * time.delta_seconds());
-    }
-}
-
-fn player_collision(
-    mut players: Query<(&CollidingEntities, &mut LastHit), IsPlayer>,
-    bullet_query: Query<(), (With<Bullet>, Without<Player>)>,
-    time: Res<Time>,
-) {
-    for (colliding, mut last_hit) in &mut players {
-        if colliding.fulfills_query(&bullet_query) {
-            last_hit.0 = Some(time.elapsed_seconds());
-        }
-    }
-}
-
 #[derive(Component)]
 struct ReturnToMissionWarning {
     timer: Timer,
@@ -434,7 +418,6 @@ fn return_to_mission_warning_spawn(
                                 font_size: 80.0,
                                 color: Color::WHITE,
                                 font: default_font(&font_res),
-                                ..default()
                             },
                         ),
                         ..default()
@@ -482,8 +465,6 @@ impl Plugin for PlayerPlugin {
                 player_shoot.in_set(Set::BulletEvents),
                 player_input,
                 player_line_update,
-                player_regeneration,
-                player_collision,
                 player_trail_update,
                 return_to_mission_warning_spawn,
                 return_to_mission_warning_update,

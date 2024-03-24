@@ -1,5 +1,7 @@
 use bevy::prelude::*;
 
+use crate::entities::spaceship::player::LastHit;
+
 #[derive(Component)]
 pub struct Health {
     pub health: f32,
@@ -45,10 +47,40 @@ fn despawn_on_death(
     }
 }
 
+#[derive(Component)]
+pub struct Regeneration {
+    pub heal_cooldown: f32,
+    pub regen_speed: f32,
+}
+
+fn regeneration(
+    mut query: Query<(&mut Health, &Regeneration, Option<&LastHit>)>,
+    time: Res<Time>,
+) {
+    for (mut health, regen, last_hit) in &mut query {
+        if health.is_dead() {
+            continue;
+        }
+
+        if let Some(last_hit) = last_hit &&
+            let Some(last_hit) = last_hit.0 &&
+            time.elapsed_seconds() - last_hit < regen.heal_cooldown
+        {
+            continue;
+        }
+
+        health.heal(2.0 * time.delta_seconds());
+    }
+}
+
 pub struct HealthPlugin;
 
 impl Plugin for HealthPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, despawn_on_death);
+        app
+            .add_systems(Update, (
+                despawn_on_death,
+                regeneration,
+            ));
     }
 }

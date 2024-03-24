@@ -11,6 +11,7 @@ use crate::{
     components::{gravity::GravityAffected, health::Health},
     utils::{collisions::BULLET_COLLISION_GROUP, sets::Set},
 };
+use crate::entities::spaceship::player::LastHit;
 
 use super::{explosion::ExplosionEvent, spaceship::player::Player};
 
@@ -156,9 +157,10 @@ fn bullet_despawn(time: Res<Time>, mut commands: Commands, query: Query<(Entity,
 
 fn bullet_collision(
     query: Query<(Entity, &Bullet, &CollidingEntities, &Transform)>,
-    mut bullet_target_query: Query<(&BulletTarget, Option<&mut Health>)>,
+    mut bullet_target_query: Query<(&BulletTarget, Option<&mut Health>, Option<&mut LastHit>)>,
     mut commands: Commands,
     mut explosions: EventWriter<ExplosionEvent>,
+    time: Res<Time>,
 ) {
     for (entity, bullet, colliding_entities, transform) in &query {
         if colliding_entities.is_empty() {
@@ -168,7 +170,7 @@ fn bullet_collision(
         let mut despawn: bool = false;
 
         for entity in colliding_entities.iter() {
-            let Ok((bullet_target, health)) = bullet_target_query.get_mut(entity) else {
+            let Ok((bullet_target, health, last_hit)) = bullet_target_query.get_mut(entity) else {
                 continue;
             };
 
@@ -183,6 +185,11 @@ fn bullet_collision(
             {
                 health.take_damage(damage);
             }
+
+            if let Some(mut last_hit) = last_hit {
+                last_hit.0 = Some(time.elapsed_seconds());
+            }
+
             despawn = true;
         }
 

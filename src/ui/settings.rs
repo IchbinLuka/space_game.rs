@@ -198,8 +198,8 @@ fn update_lang(
             .nth(1)
             .expect("Error while cycling through available languages: No languages available.")
             .clone();
-        lang_settings.lang = next_lang.clone();
-        text.sections[0].value = next_lang.clone();
+        lang_settings.lang.clone_from(&next_lang);
+        text.sections[0].value.clone_from(&next_lang);
         settings.lang = next_lang;
     }
 }

@@ -10,7 +10,7 @@ use bevy::{
 use bevy_rapier3d::geometry::CollidingEntities;
 
 pub trait CollidingEntitiesExtension {
-    fn fulfills_query<Q: WorldQuery, F: ReadOnlyWorldQuery>(&self, query: &Query<Q, F>) -> bool;
+    fn _fulfills_query<Q: WorldQuery, F: ReadOnlyWorldQuery>(&self, query: &Query<Q, F>) -> bool;
 
     fn filter_fulfills_query<'a, Q, F>(
         &self,
@@ -23,7 +23,7 @@ pub trait CollidingEntitiesExtension {
 
 impl CollidingEntitiesExtension for CollidingEntities {
     #[inline]
-    fn fulfills_query<Q: WorldQuery, F: ReadOnlyWorldQuery>(&self, query: &Query<Q, F>) -> bool {
+    fn _fulfills_query<Q: WorldQuery, F: ReadOnlyWorldQuery>(&self, query: &Query<Q, F>) -> bool {
         for entity in self.iter() {
             if query.get(entity).is_ok() {
                 return true;
@@ -46,12 +46,12 @@ impl CollidingEntitiesExtension for CollidingEntities {
 }
 
 pub trait AsCommand<In, Out, Marker> {
-    fn as_command(self, input: In) -> impl FnOnce(&mut World) -> Out;
+    fn to_command(self, input: In) -> impl FnOnce(&mut World) -> Out;
 }
 
 impl<In, Out, Marker, T: IntoSystem<In, Out, Marker>> AsCommand<In, Out, Marker> for T {
-    fn as_command(self, input: In) -> impl FnOnce(&mut World) -> Out {
-        return |world: &mut World| world.run_system_once_with(input, self);
+    fn to_command(self, input: In) -> impl FnOnce(&mut World) -> Out {
+        |world: &mut World| world.run_system_once_with(input, self)
     }
 }
 
@@ -59,10 +59,14 @@ impl<In, Out, Marker, T: IntoSystem<In, Out, Marker>> AsCommand<In, Out, Marker>
 /// A wrapper type for `f32` that implements `PartialOrd` and `Ord` traits.
 /// 
 /// Note: since we are dealing with floating point numbers, this may not always work as expected.
-#[derive(Deref, DerefMut, PartialEq, PartialOrd)]
+#[derive(Deref, DerefMut, PartialEq)]
 pub struct Comparef32(pub f32);
 
 impl Eq for Comparef32 {}
+
+impl PartialOrd for Comparef32 {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> { Some(self.cmp(other)) }
+}
 
 impl Ord for Comparef32 {
     fn cmp(&self, other: &Self) -> Ordering {

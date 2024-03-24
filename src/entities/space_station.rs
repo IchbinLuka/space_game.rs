@@ -6,9 +6,11 @@ use rand::Rng;
 use crate::{
     components::health::Health,
     materials::toon::{ApplyToonMaterial, ToonMaterial},
-    states::{game_running, AppState, ON_GAME_STARTED},
+    states::{AppState, game_running, ON_GAME_STARTED},
     ui::health_bar_3d::SpawnHealthBar,
 };
+use crate::components::health::Regeneration;
+use crate::entities::spaceship::player::LastHit;
 
 use super::{
     bullet::{BulletTarget, BulletType},
@@ -48,6 +50,11 @@ pub fn setup_space_station(mut commands: Commands, res: Res<SpaceStationRes>) {
                 bound_radius: 5.,
             },
             EnemyTarget,
+            Regeneration {
+                heal_cooldown: 5.0,
+                regen_speed: 10.0,
+            },
+            LastHit::default(),
             ActiveCollisionTypes::DYNAMIC_STATIC | ActiveCollisionTypes::KINEMATIC_STATIC,
             Health::new(200.),
         ))
@@ -89,7 +96,7 @@ pub struct SpaceStationPlugin;
 impl Plugin for SpaceStationPlugin {
     fn build(&self, app: &mut App) {
         app.add_collection_to_loading_state::<_, SpaceStationRes>(AppState::MainSceneLoading)
-            .add_systems(ON_GAME_STARTED, (setup_space_station,))
-            .add_systems(Update, (space_station_death,).run_if(game_running()));
+            .add_systems(ON_GAME_STARTED, (setup_space_station, ))
+            .add_systems(Update, (space_station_death, ).run_if(game_running()));
     }
 }
