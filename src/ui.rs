@@ -17,6 +17,7 @@ pub mod settings;
 pub mod sprite_3d_renderer;
 pub mod theme;
 pub mod start_screen_ui;
+pub mod minimap;
 
 #[derive(Component, Default)]
 pub struct NodeHoverEffect {
@@ -80,6 +81,7 @@ impl Plugin for UIPlugin {
                 settings::SettingsPlugin,
                 button::ButtonPlugin,
                 start_screen_ui::StartScreenPlugin,
+                minimap::MinimapPlugin,
             ));
     }
 }

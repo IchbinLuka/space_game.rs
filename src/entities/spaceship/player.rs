@@ -24,6 +24,7 @@ use crate::{
     utils::sets::Set,
 };
 use crate::components::health::Regeneration;
+use crate::ui::minimap::{MinimapObjectType, ShowOnMinimap};
 
 use super::bot::EnemyTarget;
 use super::{
@@ -81,6 +82,9 @@ fn player_setup(mut commands: Commands, assets: Res<SpaceshipAssets>) {
         Regeneration {
             heal_cooldown: HEAL_COOLDOWN,
             regen_speed: HEAL_SPEED,
+        },
+        ShowOnMinimap {
+            object_type: MinimapObjectType::Player,
         },
         BulletTarget {
             target_type: BulletType::Bot,

@@ -24,6 +24,7 @@ use crate::{
     materials::toon::{ApplyToonMaterial, ToonMaterial},
     states::ON_GAME_STARTED,
 };
+use crate::ui::minimap::{MinimapObjectType, ShowOnMinimap};
 
 use super::{
     Health, IsBot, LastBulletInfo, ParticleSpawnEvent, Spaceship, SpaceshipAssets, SpaceshipBundle,
@@ -138,6 +139,9 @@ fn spawn_bot_from_world(world: &mut World, spawn_bot: SpawnBot) -> Result<Entity
                 filter_scale: 0.0,
                 ..default()
             },
+        },
+        ShowOnMinimap {
+            object_type: MinimapObjectType::Bot,
         },
     ));
 

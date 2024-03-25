@@ -50,7 +50,11 @@ impl Command for SpawnHealthBar {
                         custom_size: Some(Vec2::new(HEALTH_BAR_WIDTH, HEALTH_BAR_HEIGHT)),
                         ..default()
                     },
-                    transform: Transform::from_scale(Vec3::splat(self.scale)),
+                    transform: Transform {
+                        scale: Vec3::splat(self.scale), 
+                        translation: Vec3::new(50000., 50000., 0.),
+                        ..default()
+                    },
                     ..default()
                 },
                 RenderLayers::layer(RENDER_LAYER_2D),

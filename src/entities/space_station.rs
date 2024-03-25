@@ -11,6 +11,7 @@ use crate::{
 };
 use crate::components::health::Regeneration;
 use crate::entities::spaceship::player::LastHit;
+use crate::ui::minimap::{MinimapObjectType, ShowOnMinimap};
 
 use super::{
     bullet::{BulletTarget, BulletType},
@@ -48,6 +49,9 @@ pub fn setup_space_station(mut commands: Commands, res: Res<SpaceStationRes>) {
             SpaceshipCollisions {
                 collision_damage: 5.,
                 bound_radius: 5.,
+            },
+            ShowOnMinimap {
+                object_type: MinimapObjectType::SpaceStation,
             },
             EnemyTarget,
             Regeneration {
