@@ -33,11 +33,6 @@ impl Asteroid {
 #[derive(Component)]
 pub struct AsteroidField;
 
-#[derive(Event)]
-pub struct AsteroidDestructionEvent {
-    pub entity: Entity,
-}
-
 fn spawn_asteroid_field(
     mut commands: Commands,
     player_query: Query<(&Transform, &Velocity), With<Player>>,
@@ -267,7 +262,6 @@ impl Plugin for AsteroidPlugin {
                     despawn_asteroid_field,
                 )
                     .run_if(game_running()),
-            )
-            .add_event::<AsteroidDestructionEvent>();
+            );
     }
 }

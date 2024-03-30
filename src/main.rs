@@ -13,7 +13,7 @@ use bevy_mod_outline::{AutoGenerateOutlineNormalsPlugin, OutlinePlugin};
 use bevy_obj::ObjPlugin;
 use bevy_rapier3d::prelude::*;
 use bevy_round_ui::prelude::RoundUiPlugin;
-use bevy_screen_diagnostics::{ScreenDiagnosticsPlugin, ScreenFrameDiagnosticsPlugin};
+use bevy_screen_diagnostics::{ScreenDiagnosticsPlugin, ScreenEntityDiagnosticsPlugin, ScreenFrameDiagnosticsPlugin};
 use components::ComponentsPlugin;
 use entities::EntitiesPlugin;
 use materials::{toon::ToonMaterial, MaterialsPlugin};
@@ -144,6 +144,7 @@ fn main() {
             ..default()
         },
         ScreenFrameDiagnosticsPlugin,
+        ScreenEntityDiagnosticsPlugin, 
         RoundUiPlugin,
     ))
     .add_systems(Startup, setup_physics)

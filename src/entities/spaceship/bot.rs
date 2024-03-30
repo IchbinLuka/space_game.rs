@@ -183,14 +183,15 @@ fn bot_death(
     mut commands: Commands,
     mut explosions: EventWriter<ExplosionEvent>,
     mut scores: EventWriter<ScoreEvent>,
-    bots: Query<(Entity, &Transform, &Health), IsBot>,
+    bots: Query<(Entity, &GlobalTransform, &Health), (IsBot, Changed<Health>)>,
 ) {
-    for (entity, transform, health) in &bots {
+    for (entity, global_transform, health) in &bots {
         if health.is_dead() {
+            let transform = global_transform.compute_transform();
             explosions.send(ExplosionEvent {
-                parent: Some(entity),
+                parent: None,
                 position: transform.translation,
-                radius: 10.0,
+                radius: 5.0,
             });
             scores.send(ScoreEvent {
                 score: 300,

@@ -69,7 +69,7 @@ fn regeneration(
             continue;
         }
 
-        health.heal(2.0 * time.delta_seconds());
+        health.heal(regen.regen_speed * time.delta_seconds());
     }
 }
 

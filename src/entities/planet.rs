@@ -39,7 +39,7 @@ pub struct PlanetAssets {
     texture: Handle<Image>,
 }
 
-const PLANET_COUNT: usize = 1;
+const PLANET_COUNT: usize = 15;
 
 struct PlanetSpawnConfig {
     color: Color, 
@@ -52,7 +52,7 @@ pub fn planet_setup(
     mut materials: ResMut<Assets<PlanetMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
     planet_assets: Res<PlanetAssets>,
-    space_stations: Query<&Transform, With<SpaceStation>>, 
+    space_stations: Query<&Transform, With<SpaceStation>>,
     minimap_assets: Res<MinimapAssets>,
 ) {
     let collision_groups = CollisionGroups::new(PLANET_COLLISION_GROUP, Group::ALL);
@@ -110,7 +110,7 @@ pub fn planet_setup(
             y: rng.gen_range(-0.1..0.1),
             ..Vec3::ZERO
         };
-        
+
         commands.spawn((
             MaterialMeshBundle {
                 mesh,

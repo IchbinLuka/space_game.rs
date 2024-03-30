@@ -1,13 +1,12 @@
 use std::f32::consts::PI;
 use bevy::prelude::*;
 use bevy::render::view::RenderLayers;
-use bevy::sprite::{Anchor, Mesh2dHandle};
+use bevy::sprite::Anchor;
 use bevy::window::WindowResized;
 use bevy_asset_loader::loading_state::LoadingStateAppExt;
 use bevy_asset_loader::prelude::AssetCollection;
 
 use crate::entities::camera::RENDER_LAYER_2D;
-use crate::entities::planet::Planet;
 use crate::states::{AppState, game_running, ON_GAME_STARTED};
 
 pub const MINIMAP_RANGE: f32 = 400.;
@@ -22,22 +21,13 @@ struct MinimapObject {
     entity: Entity,
 }
 
-#[derive(Resource)]
-struct MinimapRes {
-    player_material: Handle<ColorMaterial>,
-    player_mesh: Handle<Mesh>,
-    bot_material: Handle<ColorMaterial>,
-    bot_mesh: Handle<Mesh>,
-    space_station_material: Handle<ColorMaterial>,
-    space_station_mesh: Handle<Mesh>,
-}
-
 #[derive(Component)]
 pub struct ShowOnMinimap {
     pub sprite: Handle<Image>,
     pub size: Option<Vec2>,
 }
 
+#[inline]
 fn get_minimap_pos(window_width: f32, window_height: f32) -> Vec3 {
     Vec3::new(
         window_width / 2. - MINIMAP_SIZE / 2. - MINIMAP_PADDING,
@@ -48,8 +38,6 @@ fn get_minimap_pos(window_width: f32, window_height: f32) -> Vec3 {
 
 fn setup_minimap(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
     window_query: Query<&Window>,
 ) {
     let Ok(window) = window_query.get_single() else {
@@ -69,16 +57,6 @@ fn setup_minimap(
             ..default()
         }
     ));
-
-    commands.insert_resource(MinimapRes {
-        // TODO: Update colors and meshes
-        player_material: materials.add(Color::GREEN.into()),
-        player_mesh: meshes.add(Mesh::from(shape::Circle { radius: 5., ..shape::Circle::default() })),
-        bot_material: materials.add(Color::RED.into()),
-        bot_mesh: meshes.add(Mesh::from(shape::Circle { radius: 5., ..shape::Circle::default() })),
-        space_station_material: materials.add(Color::YELLOW.into()),
-        space_station_mesh: meshes.add(Mesh::from(shape::Circle { radius: 5., ..shape::Circle::default() })),
-    });
 }
 
 fn spawn_minimap_objects(
@@ -110,22 +88,22 @@ fn spawn_minimap_objects(
 }
 
 fn window_resize(
-    mut resize_reader: EventReader<WindowResized>, 
+    mut resize_reader: EventReader<WindowResized>,
     mut minimap_query: Query<&mut Transform, With<Minimap>>,
 ) {
     for event in resize_reader.read() {
         for mut transform in &mut minimap_query {
             transform.translation = get_minimap_pos(event.width, event.height);
-        }   
+        }
     }
 }
 
 fn update_minimap(
     show_on_minimap_query: Query<&Transform, With<ShowOnMinimap>>,
-    mut minimap_objects: Query<(&MinimapObject, &mut Transform, Entity), Without<ShowOnMinimap>>,
+    mut minimap_objects: Query<(&MinimapObject, &mut Transform, &mut Visibility, Entity), Without<ShowOnMinimap>>,
     mut commands: Commands,
 ) {
-    for (minimap_obj, mut transform, entity) in &mut minimap_objects {
+    for (minimap_obj, mut transform, mut visibility, entity) in &mut minimap_objects {
         let Ok(object_transform) = show_on_minimap_query.get(minimap_obj.entity) else {
             commands.entity(entity).despawn_recursive();
             continue;
@@ -134,7 +112,10 @@ fn update_minimap(
         let minimap_pos = object_transform.translation / MINIMAP_RANGE * MINIMAP_SIZE;
 
         if minimap_pos.length() > MINIMAP_SIZE / 2. {
+            *visibility = Visibility::Hidden;
             continue;
+        } else if *visibility == Visibility::Hidden {
+            *visibility = Visibility::Visible;
         }
 
         transform.translation = Vec3::new(minimap_pos.x, -minimap_pos.z, 0.);
@@ -167,7 +148,7 @@ impl Plugin for MinimapPlugin {
             .add_systems(Update, (
                 update_minimap,
                 spawn_minimap_objects,
-                window_resize, 
+                window_resize,
             ).run_if(game_running()));
     }
 }

@@ -43,7 +43,14 @@ pub fn load_settings() -> Settings {
         match persist_settings(&settings) {
             Ok(_) => {}
             Err(e) => {
-                error!("Failed to persist settings: {:?}", e);
+                match e {
+                    PersistSettingsError::Io(e) => {
+                        error!("Failed to persist settings: {:?}", e);
+                    }
+                    PersistSettingsError::Serde(e) => {
+                        error!("Failed to encode settings: {:?}", e);
+                    }
+                }
             }
         }
         settings
