@@ -24,7 +24,7 @@ use crate::{
     utils::sets::Set,
 };
 use crate::components::health::Regeneration;
-use crate::ui::minimap::{MinimapObjectType, ShowOnMinimap};
+use crate::ui::minimap::{MinimapAssets, ShowOnMinimap};
 
 use super::bot::EnemyTarget;
 use super::{
@@ -70,7 +70,11 @@ fn player_shoot(
 const HEAL_COOLDOWN: f32 = 4.0;
 const HEAL_SPEED: f32 = 2.0;
 
-fn player_setup(mut commands: Commands, assets: Res<SpaceshipAssets>) {
+fn player_setup(
+    mut commands: Commands, 
+    assets: Res<SpaceshipAssets>, 
+    minimap_assets: Res<MinimapAssets>, 
+) {
     commands.spawn((
         Player,
         SpaceshipBundle::new(assets.player_ship.clone(), Vec3::ZERO),
@@ -84,7 +88,8 @@ fn player_setup(mut commands: Commands, assets: Res<SpaceshipAssets>) {
             regen_speed: HEAL_SPEED,
         },
         ShowOnMinimap {
-            object_type: MinimapObjectType::Player,
+            sprite: minimap_assets.player_indicator.clone(),
+            size: Some(Vec2::splat(15.)), 
         },
         BulletTarget {
             target_type: BulletType::Bot,

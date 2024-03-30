@@ -11,7 +11,7 @@ use crate::{
 };
 use crate::components::health::Regeneration;
 use crate::entities::spaceship::player::LastHit;
-use crate::ui::minimap::{MinimapObjectType, ShowOnMinimap};
+use crate::ui::minimap::{MinimapAssets, ShowOnMinimap};
 
 use super::{
     bullet::{BulletTarget, BulletType},
@@ -22,7 +22,11 @@ use super::{
 #[derive(Component)]
 pub struct SpaceStation;
 
-pub fn setup_space_station(mut commands: Commands, res: Res<SpaceStationRes>) {
+pub fn setup_space_station(
+    mut commands: Commands, 
+    res: Res<SpaceStationRes>, 
+    minimap_res: Res<MinimapAssets>
+) {
     let mut rng = rand::thread_rng();
     let space_station = commands
         .spawn((
@@ -51,7 +55,8 @@ pub fn setup_space_station(mut commands: Commands, res: Res<SpaceStationRes>) {
                 bound_radius: 5.,
             },
             ShowOnMinimap {
-                object_type: MinimapObjectType::SpaceStation,
+                sprite: minimap_res.space_station_indicator.clone(),
+                size: Some(Vec2::splat(40.)),
             },
             EnemyTarget,
             Regeneration {

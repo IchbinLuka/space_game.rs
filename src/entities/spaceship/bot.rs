@@ -24,7 +24,7 @@ use crate::{
     materials::toon::{ApplyToonMaterial, ToonMaterial},
     states::ON_GAME_STARTED,
 };
-use crate::ui::minimap::{MinimapObjectType, ShowOnMinimap};
+use crate::ui::minimap::{MinimapAssets, ShowOnMinimap};
 
 use super::{
     Health, IsBot, LastBulletInfo, ParticleSpawnEvent, Spaceship, SpaceshipAssets, SpaceshipBundle,
@@ -113,8 +113,15 @@ impl Default for SpawnBot {
     }
 }
 
-fn spawn_bot_from_world(world: &mut World, spawn_bot: SpawnBot) -> Result<Entity, ()> {
+fn spawn_bot_from_world(
+    world: &mut World, 
+    spawn_bot: SpawnBot,  
+) -> Result<Entity, ()> {
     let Some(assets) = world.get_resource::<SpaceshipAssets>() else {
+        return Err(());
+    };
+    
+    let Some(minimap_assets) = world.get_resource::<MinimapAssets>() else {
         return Err(());
     };
 
@@ -141,7 +148,8 @@ fn spawn_bot_from_world(world: &mut World, spawn_bot: SpawnBot) -> Result<Entity
             },
         },
         ShowOnMinimap {
-            object_type: MinimapObjectType::Bot,
+            sprite: minimap_assets.enemy_indicator.clone(),
+            size: Some(Vec2::splat(10.)),
         },
     ));
 

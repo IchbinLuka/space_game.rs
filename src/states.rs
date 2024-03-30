@@ -9,10 +9,9 @@ use bevy_asset_loader::loading_state::{LoadingState, LoadingStateAppExt};
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash, Default, States, Copy)]
 pub enum AppState {
-    #[default]
     StartScreenLoading, 
-    StartScreen, 
-    
+    StartScreen,
+    #[default]
     MainSceneLoading,
     MainScene,
     MainPaused,

@@ -1,12 +1,17 @@
+use std::f32::consts::PI;
 use bevy::prelude::*;
 use bevy::render::view::RenderLayers;
-use bevy::sprite::{MaterialMesh2dBundle, Mesh2dHandle};
+use bevy::sprite::{Anchor, Mesh2dHandle};
+use bevy::window::WindowResized;
+use bevy_asset_loader::loading_state::LoadingStateAppExt;
+use bevy_asset_loader::prelude::AssetCollection;
+
 use crate::entities::camera::RENDER_LAYER_2D;
+use crate::entities::planet::Planet;
+use crate::states::{AppState, game_running, ON_GAME_STARTED};
 
-use crate::states::{game_running, ON_GAME_STARTED};
-
-const MINIMAP_RANGE: f32 = 400.;
-const MINIMAP_SIZE: f32 = 300.;
+pub const MINIMAP_RANGE: f32 = 400.;
+pub const MINIMAP_SIZE: f32 = 300.;
 const MINIMAP_PADDING: f32 = 10.;
 
 #[derive(Component)]
@@ -27,16 +32,18 @@ struct MinimapRes {
     space_station_mesh: Handle<Mesh>,
 }
 
-pub enum MinimapObjectType {
-    Player,
-    Bot,
-    SpaceStation,
-}
-
 #[derive(Component)]
 pub struct ShowOnMinimap {
-    pub(crate) object_type: MinimapObjectType,
-    sprite: Handle<Image>,
+    pub sprite: Handle<Image>,
+    pub size: Option<Vec2>,
+}
+
+fn get_minimap_pos(window_width: f32, window_height: f32) -> Vec3 {
+    Vec3::new(
+        window_width / 2. - MINIMAP_SIZE / 2. - MINIMAP_PADDING,
+        window_height / 2. - MINIMAP_SIZE / 2. - MINIMAP_PADDING,
+        0.,
+    )
 }
 
 fn setup_minimap(
@@ -49,7 +56,7 @@ fn setup_minimap(
         warn!("Could not find a window");
         return;
     };
-    
+
     commands.spawn((
         Minimap,
         SpriteBundle {
@@ -58,11 +65,7 @@ fn setup_minimap(
                 custom_size: Some(Vec2::splat(MINIMAP_SIZE)),
                 ..default()
             },
-            transform: Transform::from_translation(Vec3::new(
-                window.width() / 2. - MINIMAP_SIZE / 2. - MINIMAP_PADDING,
-                window.height() / 2. - MINIMAP_SIZE / 2. - MINIMAP_PADDING,
-                0.,
-            )),
+            transform: Transform::from_translation(get_minimap_pos(window.width(), window.height())),
             ..default()
         }
     ));
@@ -82,25 +85,21 @@ fn spawn_minimap_objects(
     new_objects: Query<(Entity, &ShowOnMinimap), Added<ShowOnMinimap>>,
     mut commands: Commands,
     minimaps: Query<Entity, With<Minimap>>,
-    minimap_res: Res<MinimapRes>,
 ) {
     let Ok(minimap) = minimaps.get_single() else {
         return;
     };
 
     for (entity, show_on_minimap) in &new_objects {
-        let (material, mesh) = match show_on_minimap.object_type {
-            MinimapObjectType::Player => (&minimap_res.player_material, &minimap_res.player_mesh),
-            MinimapObjectType::Bot => (&minimap_res.bot_material, &minimap_res.bot_mesh),
-            MinimapObjectType::SpaceStation => (&minimap_res.space_station_material, &minimap_res.space_station_mesh),
-        };
-
-
         let marker = commands.spawn((
             MinimapObject { entity },
-            MaterialMesh2dBundle {
-                material: material.clone(),
-                mesh: Mesh2dHandle(mesh.clone()),
+            SpriteBundle {
+                sprite: Sprite {
+                    anchor: Anchor::Center,
+                    custom_size: show_on_minimap.size,
+                    ..default()
+                },
+                texture: show_on_minimap.sprite.clone(),
                 ..default()
             },
             RenderLayers::layer(RENDER_LAYER_2D),
@@ -110,6 +109,16 @@ fn spawn_minimap_objects(
     }
 }
 
+fn window_resize(
+    mut resize_reader: EventReader<WindowResized>, 
+    mut minimap_query: Query<&mut Transform, With<Minimap>>,
+) {
+    for event in resize_reader.read() {
+        for mut transform in &mut minimap_query {
+            transform.translation = get_minimap_pos(event.width, event.height);
+        }   
+    }
+}
 
 fn update_minimap(
     show_on_minimap_query: Query<&Transform, With<ShowOnMinimap>>,
@@ -129,8 +138,23 @@ fn update_minimap(
         }
 
         transform.translation = Vec3::new(minimap_pos.x, -minimap_pos.z, 0.);
-        transform.rotation = Quat::from_rotation_z(-object_transform.rotation.to_euler(EulerRot::XYZ).1);
+        let forward = object_transform.forward();
+        transform.rotation = Quat::from_rotation_z(
+            -forward.angle_between(Vec3::Z) * forward.cross(Vec3::Z).y.signum() + PI,
+        );
     }
+}
+
+#[derive(Resource, AssetCollection)]
+pub struct MinimapAssets {
+    #[asset(path = "textures/minimap/player_indicator.png")]
+    pub player_indicator: Handle<Image>,
+    #[asset(path = "textures/minimap/enemy.png")]
+    pub enemy_indicator: Handle<Image>,
+    #[asset(path = "textures/minimap/space_station.png")]
+    pub space_station_indicator: Handle<Image>,
+    #[asset(path = "textures/minimap/planet.png")]
+    pub planet_indicator: Handle<Image>,
 }
 
 pub struct MinimapPlugin;
@@ -138,10 +162,12 @@ pub struct MinimapPlugin;
 impl Plugin for MinimapPlugin {
     fn build(&self, app: &mut App) {
         app
+            .add_collection_to_loading_state::<_, MinimapAssets>(AppState::MainSceneLoading)
             .add_systems(ON_GAME_STARTED, setup_minimap)
             .add_systems(Update, (
                 update_minimap,
                 spawn_minimap_objects,
+                window_resize, 
             ).run_if(game_running()));
     }
 }

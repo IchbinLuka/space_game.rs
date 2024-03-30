@@ -11,6 +11,7 @@ use crate::{
     states::ON_GAME_STARTED,
     utils::{collisions::PLANET_COLLISION_GROUP, materials::default_outline},
 };
+use crate::ui::minimap::{MINIMAP_RANGE, MINIMAP_SIZE, MinimapAssets, ShowOnMinimap};
 
 use super::space_station::{setup_space_station, SpaceStation};
 use super::{
@@ -27,7 +28,7 @@ impl Plugin for PlanetPlugin {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Debug)]
 pub struct Planet {
     pub radius: f32,
 }
@@ -38,7 +39,7 @@ pub struct PlanetAssets {
     texture: Handle<Image>,
 }
 
-const PLANET_COUNT: usize = 15;
+const PLANET_COUNT: usize = 1;
 
 struct PlanetSpawnConfig {
     color: Color, 
@@ -52,6 +53,7 @@ pub fn planet_setup(
     mut meshes: ResMut<Assets<Mesh>>,
     planet_assets: Res<PlanetAssets>,
     space_stations: Query<&Transform, With<SpaceStation>>, 
+    minimap_assets: Res<MinimapAssets>,
 ) {
     let collision_groups = CollisionGroups::new(PLANET_COLLISION_GROUP, Group::ALL);
 
@@ -68,7 +70,7 @@ pub fn planet_setup(
             rng.gen_range(0.0..1.0), 
         );
 
-        // Try 10 times to find a suitalbe position for the planet, then abort
+        // Try 10 times to find a suitable position for the planet, then abort
         for _ in 0..10 {
             let pos = Vec3::new(
                 rng.gen_range(-300.0..300.0),
@@ -101,15 +103,14 @@ pub fn planet_setup(
                 sectors: 20,
                 radius: size,
                 ..default()
-            }
-            .into(),
+            }.into(),
         );
 
         let angvel = Vec3 {
             y: rng.gen_range(-0.1..0.1),
             ..Vec3::ZERO
         };
-
+        
         commands.spawn((
             MaterialMeshBundle {
                 mesh,
@@ -152,6 +153,10 @@ pub fn planet_setup(
                 target_type: BulletType::Both,
                 bullet_damage: None,
             },
+            ShowOnMinimap {
+                sprite: minimap_assets.planet_indicator.clone(),
+                size: Some(Vec2::splat(size / MINIMAP_RANGE * MINIMAP_SIZE)),
+            }
         ));
     }
 }
