@@ -37,7 +37,10 @@ mod tests {
         let origin = Vec3::new(0.0, 0.0, 2.0);
         let direction = Vec3::new(0.0, 0.0, -1.0);
 
-        assert_eq!(sphere_intersection(center, radius, origin, direction), Some(1.0));
+        assert_eq!(
+            sphere_intersection(center, radius, origin, direction),
+            Some(1.0)
+        );
 
         let origin = Vec3::new(0.0, 0.0, 2.0);
         let direction = Vec3::new(0.0, 0.0, 1.0);

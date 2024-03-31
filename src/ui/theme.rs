@@ -23,3 +23,25 @@ pub fn text_button_style(res: &FontsResource) -> TextStyle {
         font: default_font(res),
     }
 }
+
+#[inline]
+pub fn text_title_style(res: &FontsResource) -> TextStyle {
+    TextStyle {
+        font_size: 100.,
+        color: Color::WHITE,
+        font: default_font(res),
+    }
+}
+
+#[inline]
+pub fn fullscreen_center_style() -> Style {
+    Style {
+        width: Val::Percent(100.),
+        height: Val::Percent(100.),
+        display: Display::Flex,
+        flex_direction: FlexDirection::Column,
+        justify_content: JustifyContent::Center,
+        align_items: AlignItems::Center,
+        ..default()
+    }
+}

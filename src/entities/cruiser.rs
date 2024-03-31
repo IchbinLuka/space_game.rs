@@ -12,15 +12,19 @@ use bevy_mod_outline::OutlineBundle;
 use bevy_rapier3d::prelude::*;
 use rand::Rng;
 
-use crate::{components::colliders::VelocityColliderBundle, utils::materials::default_outline};
-use crate::components::despawn_after::DespawnTimer;
-use crate::components::health::{DespawnOnDeath, Health, Shield};
+use crate::components::{
+    colliders::VelocityColliderBundle,
+    despawn_after::DespawnTimer,
+    health::{DespawnOnDeath, Health, Shield},
+};
+
 use crate::entities::spaceship::bot::SpawnSquad;
 use crate::materials::toon::{ApplyToonMaterial, ToonMaterial};
-use crate::states::{AppState, game_running};
+use crate::states::{game_running, AppState, DespawnOnCleanup};
 use crate::ui::enemy_indicator::SpawnEnemyIndicator;
 use crate::ui::health_bar_3d::SpawnHealthBar;
 use crate::utils::collisions::CRUISER_COLLISION_GROUP;
+use crate::utils::materials::default_outline;
 use crate::utils::math::sphere_intersection;
 use crate::utils::misc::{AsCommand, CollidingEntitiesExtension, Comparef32};
 use crate::utils::scene::AnimationRoot;
@@ -28,11 +32,11 @@ use crate::utils::sets::Set;
 
 use super::bullet::{Bullet, BulletSpawnEvent, BulletTarget, BulletType};
 use super::explosion::ExplosionEvent;
-use super::planet::{Planet};
+use super::planet::Planet;
 use super::space_station::SpaceStation;
 use super::spaceship::bot::EnemyTarget;
-use super::spaceship::IsBot;
 use super::spaceship::player::Player;
+use super::spaceship::IsBot;
 use super::spaceship::SpaceshipCollisions;
 
 const CRUISER_HITBOX_SIZE: Vec3 = Vec3::new(3.5, 3., 13.);
@@ -103,14 +107,14 @@ struct CruiserTurret {
 
 fn cruiser_turret_shoot(
     mut cruiser_turrets: Query<
-        (&GlobalTransform, &mut Transform, &mut CruiserTurret, Entity),
+        (&GlobalTransform, &mut Transform, &mut CruiserTurret),
         Without<Player>,
     >,
     target: Query<&Transform, (With<EnemyTarget>, Without<CruiserTurret>)>,
     time: Res<Time>,
     mut bullet_events: EventWriter<BulletSpawnEvent>,
 ) {
-    for (global_transform, mut transform, mut turret, entity) in &mut cruiser_turrets {
+    for (global_transform, mut transform, mut turret) in &mut cruiser_turrets {
         let global = global_transform.compute_transform();
 
         let Some(nearest_transform) = target.iter().min_by_key(|t| {
@@ -150,11 +154,9 @@ fn cruiser_turret_shoot(
             entity_velocity: Velocity::zero(), //  cruiser_velocity.clone(),
             position: global_translation,
             direction,
-            entity,
         });
     }
 }
-
 
 const CRUISER_SPAWN_COOLDOWN: f32 = 30.0;
 
@@ -171,7 +173,6 @@ fn spawn_cruisers(
         spawn_cruiser_events.send(SpawnCruiserEvent);
     }
 }
-
 
 #[derive(Event)]
 pub struct SpawnCruiserEvent;
@@ -190,7 +191,9 @@ fn spawn_cruiser_events(
 ) {
     let mut rng = rand::thread_rng();
 
-    if spawn_events.is_empty() { return; }
+    if spawn_events.is_empty() {
+        return;
+    }
 
     let num_space_stations = space_stations.iter().len();
 
@@ -202,39 +205,56 @@ fn spawn_cruiser_events(
     let mut no_go_zones: Vec<NoGoZone> = Vec::new();
 
     for (transform, space_ship_collisions) in &space_stations {
-        no_go_zones.push(NoGoZone { center: transform.translation, radius: space_ship_collisions.bound_radius });
+        no_go_zones.push(NoGoZone {
+            center: transform.translation,
+            radius: space_ship_collisions.bound_radius,
+        });
     }
 
     for (transform, planet) in &planets {
-        no_go_zones.push(NoGoZone { center: transform.translation, radius: planet.radius });
+        no_go_zones.push(NoGoZone {
+            center: transform.translation,
+            radius: planet.radius,
+        });
     }
 
     for transform in &cruisers {
-        no_go_zones.push(NoGoZone { center: transform.translation, radius: CRUISER_HITBOX_SIZE.z });
+        no_go_zones.push(NoGoZone {
+            center: transform.translation,
+            radius: CRUISER_HITBOX_SIZE.z,
+        });
     }
 
     for _ in spawn_events.read() {
-        let (station_transform, _) = space_stations.iter().nth(rng.gen_range(0..num_space_stations)).unwrap();
+        let (station_transform, _) = space_stations
+            .iter()
+            .nth(rng.gen_range(0..num_space_stations))
+            .unwrap();
 
         for _ in 0..10 {
             info!("Trying to spawn cruiser");
             const START_OFFSET_RANGE: Range<f32> = -40.0..40.0;
             const START_DISTANCE: f32 = 200.0;
 
-            let dest = station_transform.translation + Vec3::new(
-                rng.gen_range(START_OFFSET_RANGE),
-                0.0,
-                rng.gen_range(START_OFFSET_RANGE),
-            );
+            let dest = station_transform.translation
+                + Vec3::new(
+                    rng.gen_range(START_OFFSET_RANGE),
+                    0.0,
+                    rng.gen_range(START_OFFSET_RANGE),
+                );
 
-            let delta_normalized = Vec3::new(rng.gen_range(-1.0..1.0), 0.0, rng.gen_range(-1.0..1.0)).normalize();
+            let delta_normalized =
+                Vec3::new(rng.gen_range(-1.0..1.0), 0.0, rng.gen_range(-1.0..1.0)).normalize();
 
             let start = dest + delta_normalized * START_DISTANCE;
 
             // Check if path intersects with one of the no-go zones
             if no_go_zones.iter().any(|z| {
-                let intersection = sphere_intersection(z.center, z.radius + 10.0, start, dest - start);
-                let Some(intersection) = intersection else { return false; };
+                let intersection =
+                    sphere_intersection(z.center, z.radius + 10.0, start, dest - start);
+                let Some(intersection) = intersection else {
+                    return false;
+                };
                 intersection < 1.0
             }) {
                 info!("Path intersects with no-go zone, retrying");
@@ -262,7 +282,9 @@ fn spawn_cruiser(
             scene: assets.cruiser_model.clone(),
             transform: Transform {
                 translation: start_pos,
-                rotation: Quat::from_rotation_y(-direction.cross(Vec3::Z).y.signum() * direction.angle_between(Vec3::Z) + PI),
+                rotation: Quat::from_rotation_y(
+                    -direction.cross(Vec3::Z).y.signum() * direction.angle_between(Vec3::Z) + PI,
+                ),
                 ..default()
             },
             ..default()
@@ -294,6 +316,7 @@ fn spawn_cruiser(
             collision_damage: 5.0,
             ..default()
         },
+        DespawnOnCleanup, 
         COLLISION_GROUPS,
     ));
 }
@@ -323,7 +346,7 @@ fn finish_cruiser(
                         radius: 10.,
                         ..default()
                     }
-                        .into(),
+                    .into(),
                 ),
                 material: materials.add(StandardMaterial {
                     base_color: Color::hex("2ae0ed0f").unwrap(),
@@ -430,6 +453,7 @@ fn cruiser_scene_setup(
             if name.starts_with("exhaust.") {
                 let trail = commands
                     .spawn((
+                        DespawnOnCleanup, 
                         MaterialMeshBundle {
                             material: toon_materials.add(ToonMaterial {
                                 color: Color::hex("2ae0ed").unwrap(),
@@ -441,7 +465,7 @@ fn cruiser_scene_setup(
                                     height: CRUISER_TRAIL_LENGTH,
                                     ..default()
                                 }
-                                    .into(),
+                                .into(),
                             ),
                             transform: Transform {
                                 rotation: Quat::from_rotation_x(FRAC_PI_2),
@@ -556,9 +580,10 @@ fn cruiser_spawn_bots(
     for (transform, mut spawn_cooldown) in &mut cruisers {
         spawn_cooldown.enemy_spawn_cooldown.tick(time.delta());
 
-        let Some(nearest_target) = enemy_targets.iter().min_by_key(
-            |t| Comparef32((t.translation - transform.translation).length())
-        ) else {
+        let Some(nearest_target) = enemy_targets
+            .iter()
+            .min_by_key(|t| Comparef32((t.translation - transform.translation).length()))
+        else {
             continue;
         };
 

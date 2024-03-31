@@ -1,6 +1,7 @@
 use bevy::{ecs::system::Command, prelude::*, ui::FocusPolicy};
 
 use crate::model::settings::Settings;
+use crate::ui::theme::fullscreen_center_style;
 
 use super::{
     button::{CheckBox, CheckBoxBundle, TextButtonBundle},
@@ -43,15 +44,7 @@ impl Command for OpenSettings {
                 SettingsScreen,
                 NodeBundle {
                     focus_policy: FocusPolicy::Block,
-                    style: Style {
-                        width: Val::Percent(100.),
-                        height: Val::Percent(100.),
-                        display: Display::Flex,
-                        flex_direction: FlexDirection::Column,
-                        justify_content: JustifyContent::Center,
-                        align_items: AlignItems::Center,
-                        ..default()
-                    },
+                    style: fullscreen_center_style(),
                     background_color: Color::rgba(0., 0., 0., 0.5).into(),
                     ..default()
                 },

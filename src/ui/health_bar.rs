@@ -7,7 +7,7 @@ use bevy_round_ui::{
 use crate::{
     components::health::Health,
     entities::spaceship::IsPlayer,
-    states::{game_running, ON_GAME_STARTED},
+    states::{game_running, DespawnOnCleanup, ON_GAME_STARTED},
 };
 
 #[derive(Component)]
@@ -19,24 +19,27 @@ fn health_bar_setup(mut commands: Commands, mut materials: ResMut<Assets<RoundUi
     const PADDING: f32 = 5.;
 
     commands
-        .spawn(MaterialNodeBundle {
-            style: Style {
-                left: Val::Px(10.),
-                bottom: Val::Px(10.),
-                position_type: PositionType::Absolute,
-                width: Val::Px(PANEL_WIDTH),
-                height: Val::Px(PANEL_HEIGHT),
-                padding: UiRect::all(Val::Px(PADDING)),
+        .spawn((
+            MaterialNodeBundle {
+                style: Style {
+                    left: Val::Px(10.),
+                    bottom: Val::Px(10.),
+                    position_type: PositionType::Absolute,
+                    width: Val::Px(PANEL_WIDTH),
+                    height: Val::Px(PANEL_HEIGHT),
+                    padding: UiRect::all(Val::Px(PADDING)),
+                    ..default()
+                },
+                material: materials.add(RoundUiMaterial {
+                    background_color: Color::BLACK,
+                    border_radius: RoundUiBorder::all(PANEL_HEIGHT / 2.).into(),
+                    size: Vec2::new(PANEL_WIDTH, PANEL_HEIGHT),
+                    ..default()
+                }),
                 ..default()
-            },
-            material: materials.add(RoundUiMaterial {
-                background_color: Color::BLACK,
-                border_radius: RoundUiBorder::all(PANEL_HEIGHT / 2.).into(),
-                size: Vec2::new(PANEL_WIDTH, PANEL_HEIGHT),
-                ..default()
-            }),
-            ..default()
-        })
+            }, 
+            DespawnOnCleanup, 
+        ))
         .with_children(|p| {
             p.spawn((
                 MaterialNodeBundle {

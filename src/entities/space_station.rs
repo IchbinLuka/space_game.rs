@@ -3,15 +3,17 @@ use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::Loadin
 use bevy_rapier3d::prelude::*;
 use rand::Rng;
 
+use crate::components::health::Regeneration;
+use crate::entities::spaceship::player::LastHit;
+use crate::states::DespawnOnCleanup;
+use crate::ui::game_over::GameOverEvent;
+use crate::ui::minimap::{MinimapAssets, ShowOnMinimap};
 use crate::{
     components::health::Health,
     materials::toon::{ApplyToonMaterial, ToonMaterial},
-    states::{AppState, game_running, ON_GAME_STARTED},
+    states::{game_running, AppState, ON_GAME_STARTED},
     ui::health_bar_3d::SpawnHealthBar,
 };
-use crate::components::health::Regeneration;
-use crate::entities::spaceship::player::LastHit;
-use crate::ui::minimap::{MinimapAssets, ShowOnMinimap};
 
 use super::{
     bullet::{BulletTarget, BulletType},
@@ -23,17 +25,20 @@ use super::{
 pub struct SpaceStation;
 
 pub fn setup_space_station(
-    mut commands: Commands, 
-    res: Res<SpaceStationRes>, 
-    minimap_res: Res<MinimapAssets>
+    mut commands: Commands,
+    res: Res<SpaceStationRes>,
+    minimap_res: Res<MinimapAssets>,
 ) {
     let mut rng = rand::thread_rng();
     let space_station = commands
         .spawn((
             SceneBundle {
                 scene: res.model.clone(),
-                transform: Transform::from_translation(
-                    Vec3::new(rng.gen_range(-50.0..50.0), 0., rng.gen_range(-50.0..50.0))),
+                transform: Transform::from_translation(Vec3::new(
+                    rng.gen_range(-50.0..50.0),
+                    0.,
+                    rng.gen_range(-50.0..50.0),
+                )),
                 ..default()
             },
             ApplyToonMaterial {
@@ -66,6 +71,7 @@ pub fn setup_space_station(
             LastHit::default(),
             ActiveCollisionTypes::DYNAMIC_STATIC | ActiveCollisionTypes::KINEMATIC_STATIC,
             Health::new(200.),
+            DespawnOnCleanup, 
         ))
         .id();
 
@@ -81,7 +87,10 @@ fn space_station_death(
     space_stations: Query<(&Health, &Transform, Entity), (With<SpaceStation>, Changed<Health>)>,
     mut commands: Commands,
     mut explosion_events: EventWriter<ExplosionEvent>,
+    mut game_over_events: EventWriter<GameOverEvent>,
 ) {
+    let mut count = space_stations.iter().count();
+    
     for (health, transform, entity) in &space_stations {
         if health.is_dead() {
             explosion_events.send(ExplosionEvent {
@@ -90,6 +99,10 @@ fn space_station_death(
                 radius: 10.,
             });
             commands.entity(entity).despawn_recursive();
+            count -= 1;
+            if count == 0 {
+                game_over_events.send(GameOverEvent);
+            }
         }
     }
 }
@@ -105,7 +118,7 @@ pub struct SpaceStationPlugin;
 impl Plugin for SpaceStationPlugin {
     fn build(&self, app: &mut App) {
         app.add_collection_to_loading_state::<_, SpaceStationRes>(AppState::MainSceneLoading)
-            .add_systems(ON_GAME_STARTED, (setup_space_station, ))
-            .add_systems(Update, (space_station_death, ).run_if(game_running()));
+            .add_systems(ON_GAME_STARTED, (setup_space_station,))
+            .add_systems(Update, (space_station_death,).run_if(game_running()));
     }
 }

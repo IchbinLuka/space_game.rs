@@ -53,18 +53,15 @@ pub struct Regeneration {
     pub regen_speed: f32,
 }
 
-fn regeneration(
-    mut query: Query<(&mut Health, &Regeneration, Option<&LastHit>)>,
-    time: Res<Time>,
-) {
+fn regeneration(mut query: Query<(&mut Health, &Regeneration, Option<&LastHit>)>, time: Res<Time>) {
     for (mut health, regen, last_hit) in &mut query {
         if health.is_dead() {
             continue;
         }
 
-        if let Some(last_hit) = last_hit &&
-            let Some(last_hit) = last_hit.0 &&
-            time.elapsed_seconds() - last_hit < regen.heal_cooldown
+        if let Some(last_hit) = last_hit
+            && let Some(last_hit) = last_hit.0
+            && time.elapsed_seconds() - last_hit < regen.heal_cooldown
         {
             continue;
         }
@@ -77,10 +74,6 @@ pub struct HealthPlugin;
 
 impl Plugin for HealthPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_systems(Update, (
-                despawn_on_death,
-                regeneration,
-            ));
+        app.add_systems(Update, (despawn_on_death, regeneration));
     }
 }

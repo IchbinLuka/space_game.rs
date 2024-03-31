@@ -10,7 +10,8 @@ use crate::{
 use bevy::prelude::*;
 use bevy_rapier3d::plugin::RapierConfiguration;
 
-use super::game_paused;
+use super::{game_paused, pause_physics, PausedState};
+
 
 #[derive(Component)]
 pub struct PauseScreen;
@@ -26,8 +27,7 @@ fn on_pause(
     mut commands: Commands,
     font_res: Res<FontsResource>,
 ) {
-    rapier_config.physics_pipeline_active = false;
-    rapier_config.query_pipeline_active = false;
+    pause_physics(&mut rapier_config);
 
     commands
         .spawn((
@@ -106,8 +106,7 @@ fn on_resume(
     mut commands: Commands,
     loading_screen: Query<Entity, With<PauseScreen>>,
 ) {
-    rapier_config.physics_pipeline_active = true;
-    rapier_config.query_pipeline_active = true;
+    pause_physics(&mut rapier_config);
 
     for entity in &loading_screen {
         commands.entity(entity).despawn_recursive();
@@ -116,8 +115,8 @@ fn on_resume(
 
 fn pause_game(
     keyboard_input: Res<Input<KeyCode>>,
-    mut next_state: ResMut<NextState<AppState>>,
-    current_state: Res<State<AppState>>,
+    mut next_state: ResMut<NextState<PausedState>>,
+    current_state: Res<State<PausedState>>,
     settings_screen: Query<(), With<SettingsScreen>>,
 ) {
     if settings_screen.get_single().is_ok() {
@@ -125,10 +124,10 @@ fn pause_game(
     }
 
     if keyboard_input.just_pressed(KeyCode::Escape) {
-        next_state.set(if current_state.get() == &AppState::MainPaused {
-            AppState::MainScene
+        next_state.set(if current_state.get() == &PausedState::Paused {
+            PausedState::Running
         } else {
-            AppState::MainPaused
+            PausedState::Paused
         });
     }
 }
@@ -145,7 +144,7 @@ impl Plugin for PausePlugin {
                 settings_button.run_if(game_paused()),
             ),
         )
-        .add_systems(OnExit(AppState::MainPaused), on_resume)
-        .add_systems(OnEnter(AppState::MainPaused), on_pause);
+        .add_systems(OnExit(PausedState::Paused), on_resume)
+        .add_systems(OnEnter(PausedState::Paused), on_pause);
     }
 }

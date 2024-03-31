@@ -5,13 +5,13 @@ use bevy_rapier3d::prelude::*;
 use rand::Rng;
 
 use crate::materials::toon::PlanetMaterial;
-use crate::states::AppState;
+use crate::states::{AppState, DespawnOnCleanup};
+use crate::ui::minimap::{MinimapAssets, ShowOnMinimap, MINIMAP_RANGE, MINIMAP_SIZE};
 use crate::{
     components::gravity::GravitySource,
     states::ON_GAME_STARTED,
     utils::{collisions::PLANET_COLLISION_GROUP, materials::default_outline},
 };
-use crate::ui::minimap::{MINIMAP_RANGE, MINIMAP_SIZE, MinimapAssets, ShowOnMinimap};
 
 use super::space_station::{setup_space_station, SpaceStation};
 use super::{
@@ -42,9 +42,9 @@ pub struct PlanetAssets {
 const PLANET_COUNT: usize = 15;
 
 struct PlanetSpawnConfig {
-    color: Color, 
-    size: f32, 
-    pos: Vec3, 
+    color: Color,
+    size: f32,
+    pos: Vec3,
 }
 
 pub fn planet_setup(
@@ -59,15 +59,15 @@ pub fn planet_setup(
 
     let mut rng = rand::thread_rng();
 
-    let mut planets: Vec<PlanetSpawnConfig> = Vec::with_capacity(PLANET_COUNT); 
+    let mut planets: Vec<PlanetSpawnConfig> = Vec::with_capacity(PLANET_COUNT);
 
     for _ in 0..PLANET_COUNT {
         let size = rng.gen_range(7.0..25.0);
 
         let color = Color::rgb(
-            rng.gen_range(0.0..1.0), 
-            rng.gen_range(0.0..1.0), 
-            rng.gen_range(0.0..1.0), 
+            rng.gen_range(0.0..1.0),
+            rng.gen_range(0.0..1.0),
+            rng.gen_range(0.0..1.0),
         );
 
         // Try 10 times to find a suitable position for the planet, then abort
@@ -78,11 +78,17 @@ pub fn planet_setup(
                 rng.gen_range(-300.0..300.0),
             );
             // Planet should not be too close to other planets
-            if planets.iter().any(|x| pos.distance(x.pos) < (size + x.size) * 1.5) {
+            if planets
+                .iter()
+                .any(|x| pos.distance(x.pos) < (size + x.size) * 1.5)
+            {
                 continue;
             }
             // Planet should not be too close to space stations
-            if space_stations.iter().any(|station| station.translation.distance(pos) < size * 1.5) {
+            if space_stations
+                .iter()
+                .any(|station| station.translation.distance(pos) < size * 1.5)
+            {
                 continue;
             }
 
@@ -103,7 +109,8 @@ pub fn planet_setup(
                 sectors: 20,
                 radius: size,
                 ..default()
-            }.into(),
+            }
+            .into(),
         );
 
         let angvel = Vec3 {
@@ -112,6 +119,7 @@ pub fn planet_setup(
         };
 
         commands.spawn((
+            DespawnOnCleanup, 
             MaterialMeshBundle {
                 mesh,
                 material,
@@ -156,7 +164,7 @@ pub fn planet_setup(
             ShowOnMinimap {
                 sprite: minimap_assets.planet_indicator.clone(),
                 size: Some(Vec2::splat(size / MINIMAP_RANGE * MINIMAP_SIZE)),
-            }
+            },
         ));
     }
 }

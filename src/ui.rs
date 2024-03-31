@@ -10,14 +10,14 @@ pub mod auxiliary_drive;
 pub mod button;
 pub mod enemy_indicator;
 pub mod fonts;
+pub mod game_over;
 pub mod health_bar;
 pub mod health_bar_3d;
+pub mod minimap;
 pub mod score;
 pub mod settings;
 pub mod sprite_3d_renderer;
 pub mod theme;
-pub mod start_screen_ui;
-pub mod minimap;
 
 #[derive(Component, Default)]
 pub struct NodeHoverEffect {
@@ -80,8 +80,8 @@ impl Plugin for UIPlugin {
                 auxiliary_drive::AuxiliaryDriveUIPlugin,
                 settings::SettingsPlugin,
                 button::ButtonPlugin,
-                start_screen_ui::StartScreenPlugin,
                 minimap::MinimapPlugin,
+                game_over::GameOverPlugin,
             ));
     }
 }

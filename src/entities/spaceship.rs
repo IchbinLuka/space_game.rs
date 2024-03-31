@@ -6,7 +6,7 @@ use bevy_mod_outline::{OutlineBundle, OutlineVolume};
 use bevy_rapier3d::prelude::*;
 use rand::{seq::SliceRandom, Rng};
 
-use crate::states::AppState;
+use crate::states::{AppState, DespawnOnCleanup};
 use crate::{
     components::{colliders::VelocityColliderBundle, despawn_after::DespawnTimer, health::Health},
     particles::fire_particles::FireParticleRes,
@@ -104,7 +104,6 @@ impl Spaceship {
         &self,
         last_bullet: &mut LastBulletInfo,
         bullet_spawn_events: &mut EventWriter<BulletSpawnEvent>,
-        spaceship_entity: Entity,
         transform: &Transform,
         velocity: Velocity,
         bullet_type: BulletType,
@@ -119,7 +118,6 @@ impl Spaceship {
             position: bullet_transform,
             entity_velocity: velocity,
             direction: transform.forward(),
-            entity: spaceship_entity,
             bullet_type,
         });
 
@@ -299,6 +297,7 @@ fn spawn_exhaust_particle(
                 ..default()
             },
             SpaceshipExhaustParticle,
+            DespawnOnCleanup, 
             Velocity {
                 linvel,
                 ..default()

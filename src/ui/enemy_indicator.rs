@@ -28,7 +28,7 @@ impl Command for SpawnEnemyIndicator {
             error!("Enemy indicator resources not loaded");
             return;
         };
-        
+
         world.spawn((
             EnemyIndicator { enemy: self.enemy },
             MaterialMesh2dBundle {

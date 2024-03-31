@@ -6,7 +6,7 @@ use bevy_mod_outline::OutlineBundle;
 use bevy_rapier3d::prelude::*;
 use rand::Rng;
 
-use crate::states::{AppState, ON_GAME_STARTED};
+use crate::states::{AppState, DespawnOnCleanup, ON_GAME_STARTED};
 use crate::{
     components::{colliders::VelocityColliderBundle, despawn_after::DespawnTimer},
     entities::bullet::BulletType,
@@ -57,6 +57,7 @@ fn spawn_asteroid_field(
             commands
                 .spawn((
                     AsteroidField,
+                    DespawnOnCleanup, 
                     Transform::from_translation(position),
                     GlobalTransform::default(),
                     InheritedVisibility::VISIBLE,
@@ -190,6 +191,7 @@ fn asteroid_collisions(
                         * rng.gen_range(1.0..4.0),
                 ),
                 RigidBody::KinematicVelocityBased,
+                DespawnOnCleanup, 
                 DespawnTimer::new(Duration::from_millis(rng.gen_range(500..1500))),
             ));
         }

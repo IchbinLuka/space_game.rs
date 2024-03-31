@@ -2,12 +2,14 @@ use std::collections::VecDeque;
 
 use bevy::{prelude::*, render::render_resource::PrimitiveTopology};
 
-use bevy_rapier3d::{dynamics::Velocity};
+use bevy_rapier3d::dynamics::Velocity;
 
 use crate::components::gravity::GravityAffected;
+use crate::components::health::Regeneration;
 use crate::materials::toon::{ApplyToonMaterial, ToonMaterial};
-use crate::states::ON_GAME_STARTED;
+use crate::states::{DespawnOnCleanup, ON_GAME_STARTED};
 use crate::ui::fonts::FontsResource;
+use crate::ui::minimap::{MinimapAssets, ShowOnMinimap};
 use crate::ui::theme::default_font;
 use crate::{
     components::{
@@ -15,16 +17,11 @@ use crate::{
         movement::MaxSpeed,
     },
     entities::{
-        bullet::BulletSpawnEvent,
-        bullet::BulletTarget,
-        bullet::BulletType,
-        planet::Planet,
+        bullet::BulletSpawnEvent, bullet::BulletTarget, bullet::BulletType, planet::Planet,
     },
     states::game_running,
     utils::sets::Set,
 };
-use crate::components::health::Regeneration;
-use crate::ui::minimap::{MinimapAssets, ShowOnMinimap};
 
 use super::bot::EnemyTarget;
 use super::{
@@ -41,7 +38,7 @@ pub struct LastHit(pub(crate) Option<f32>);
 fn player_shoot(
     keyboard_input: Res<Input<KeyCode>>,
     time: Res<Time>,
-    query: Query<(&Transform, &Velocity, Entity, &Spaceship), With<Player>>,
+    query: Query<(&Transform, &Velocity, &Spaceship), With<Player>>,
     mut bullet_spawn_events: EventWriter<BulletSpawnEvent>,
     mut last_bullet_info: Local<LastBulletInfo>,
 ) {
@@ -50,7 +47,7 @@ fn player_shoot(
         return;
     }
 
-    for (transform, velocity, entity, spaceship) in &query {
+    for (transform, velocity, spaceship) in &query {
         if keyboard_input.pressed(KeyCode::Space) {
             // If finished, the timer should wait for the player to shoot before ticking again
             last_bullet_info.timer.tick(time.delta());
@@ -58,7 +55,6 @@ fn player_shoot(
             spaceship.shoot(
                 &mut last_bullet_info,
                 &mut bullet_spawn_events,
-                entity,
                 transform,
                 *velocity,
                 BulletType::Player,
@@ -71,9 +67,9 @@ const HEAL_COOLDOWN: f32 = 4.0;
 const HEAL_SPEED: f32 = 2.0;
 
 fn player_setup(
-    mut commands: Commands, 
-    assets: Res<SpaceshipAssets>, 
-    minimap_assets: Res<MinimapAssets>, 
+    mut commands: Commands,
+    assets: Res<SpaceshipAssets>,
+    minimap_assets: Res<MinimapAssets>,
 ) {
     commands.spawn((
         Player,
@@ -89,7 +85,7 @@ fn player_setup(
         },
         ShowOnMinimap {
             sprite: minimap_assets.player_indicator.clone(),
-            size: Some(Vec2::splat(15.)), 
+            size: Some(Vec2::splat(15.)),
         },
         BulletTarget {
             target_type: BulletType::Bot,
@@ -101,6 +97,7 @@ fn player_setup(
                 ..default()
             },
         },
+        DespawnOnCleanup, 
     ));
 }
 

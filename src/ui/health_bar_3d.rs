@@ -51,7 +51,7 @@ impl Command for SpawnHealthBar {
                         ..default()
                     },
                     transform: Transform {
-                        scale: Vec3::splat(self.scale), 
+                        scale: Vec3::splat(self.scale),
                         translation: Vec3::new(50000., 50000., 0.),
                         ..default()
                     },

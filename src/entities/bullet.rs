@@ -6,12 +6,12 @@ use bevy_audio::VolumeLevel;
 use bevy_mod_outline::{OutlineBundle, OutlineVolume};
 use bevy_rapier3d::prelude::*;
 
-use crate::states::{game_running, AppState, ON_GAME_STARTED};
+use crate::entities::spaceship::player::LastHit;
+use crate::states::{game_running, AppState, DespawnOnCleanup, ON_GAME_STARTED};
 use crate::{
     components::{gravity::GravityAffected, health::Health},
     utils::{collisions::BULLET_COLLISION_GROUP, sets::Set},
 };
-use crate::entities::spaceship::player::LastHit;
 
 use super::{explosion::ExplosionEvent, spaceship::player::Player};
 
@@ -19,7 +19,6 @@ use super::{explosion::ExplosionEvent, spaceship::player::Player};
 pub struct Bullet {
     pub spawn_time: Duration,
     pub relative_speed: Vec3,
-    pub origin: Entity,
     pub bullet_type: BulletType,
 }
 
@@ -41,7 +40,6 @@ pub struct BulletSpawnEvent {
     pub position: Transform,
     pub entity_velocity: Velocity,
     pub direction: Vec3,
-    pub entity: Entity,
     pub bullet_type: BulletType,
 }
 
@@ -106,7 +104,6 @@ fn bullet_spawn(
             Bullet {
                 spawn_time: time.elapsed(),
                 relative_speed: event.entity_velocity.linvel,
-                origin: event.entity,
                 bullet_type: event.bullet_type,
             },
             OutlineBundle {
@@ -128,6 +125,7 @@ fn bullet_spawn(
                 linvel: event.direction.normalize() * BULLET_SPEED + event.entity_velocity.linvel,
                 ..default()
             },
+            DespawnOnCleanup, 
             CollidingEntities::default(),
         ));
         commands.spawn(AudioBundle {

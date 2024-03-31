@@ -32,18 +32,6 @@ impl TextButtonBundle {
 }
 
 #[derive(Component)]
-pub struct Switch {
-    pub state: bool,
-}
-
-#[derive(Bundle)]
-pub struct SwitchBundle {
-    pub switch: Switch,
-    pub interaction: Interaction,
-    pub node_bundle: NodeBundle,
-}
-
-#[derive(Component)]
 pub struct CheckBox {
     pub state: bool,
 }

@@ -1,7 +1,7 @@
 use ::bevy::prelude::*;
 use bevy::{render::view::RenderLayers, sprite::Anchor};
 
-use crate::states::{game_running, ON_GAME_STARTED};
+use crate::states::{game_running, DespawnOnCleanup, ON_GAME_STARTED};
 use crate::{entities::camera::RENDER_LAYER_2D, utils::sets::Set};
 
 use super::fonts::FontsResource;
@@ -51,6 +51,7 @@ fn score_events(
         );
 
         commands.spawn((
+            DespawnOnCleanup, 
             Text2dBundle {
                 text: Text {
                     sections: vec![TextSection {
@@ -111,17 +112,20 @@ fn score_setup(mut commands: Commands, font_resource: Res<FontsResource>) {
     commands.insert_resource(Score(0));
 
     commands
-        .spawn(NodeBundle {
-            style: Style {
-                align_content: AlignContent::Center,
-                display: Display::Flex,
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                width: Val::Percent(100.0),
+        .spawn((
+            NodeBundle {
+                style: Style {
+                    align_content: AlignContent::Center,
+                    display: Display::Flex,
+                    align_items: AlignItems::Center,
+                    justify_content: JustifyContent::Center,
+                    width: Val::Percent(100.0),
+                    ..default()
+                },
                 ..default()
-            },
-            ..default()
-        })
+            }, 
+            DespawnOnCleanup, 
+        ))
         .with_children(|c| {
             c.spawn((
                 TextBundle {

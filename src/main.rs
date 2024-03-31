@@ -13,7 +13,9 @@ use bevy_mod_outline::{AutoGenerateOutlineNormalsPlugin, OutlinePlugin};
 use bevy_obj::ObjPlugin;
 use bevy_rapier3d::prelude::*;
 use bevy_round_ui::prelude::RoundUiPlugin;
-use bevy_screen_diagnostics::{ScreenDiagnosticsPlugin, ScreenEntityDiagnosticsPlugin, ScreenFrameDiagnosticsPlugin};
+use bevy_screen_diagnostics::{
+    ScreenDiagnosticsPlugin, ScreenEntityDiagnosticsPlugin, ScreenFrameDiagnosticsPlugin,
+};
 use components::ComponentsPlugin;
 use entities::EntitiesPlugin;
 use materials::{toon::ToonMaterial, MaterialsPlugin};
@@ -88,10 +90,7 @@ fn setup_physics(mut rapier_config: ResMut<RapierConfiguration>) {
     rapier_config.gravity = Vec3::ZERO;
 }
 
-fn scene_setup_3d(
-    mut commands: Commands,
-    settings: Res<Settings>,
-) {
+fn scene_setup_3d(mut commands: Commands, settings: Res<Settings>) {
     commands.insert_resource(AmbientLight {
         color: Color::WHITE,
         brightness: 0.5,
@@ -144,7 +143,7 @@ fn main() {
             ..default()
         },
         ScreenFrameDiagnosticsPlugin,
-        ScreenEntityDiagnosticsPlugin, 
+        ScreenEntityDiagnosticsPlugin,
         RoundUiPlugin,
     ))
     .add_systems(Startup, setup_physics)

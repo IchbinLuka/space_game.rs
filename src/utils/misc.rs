@@ -55,9 +55,8 @@ impl<In, Out, Marker, T: IntoSystem<In, Out, Marker>> AsCommand<In, Out, Marker>
     }
 }
 
-
 /// A wrapper type for `f32` that implements `PartialOrd` and `Ord` traits.
-/// 
+///
 /// Note: since we are dealing with floating point numbers, this may not always work as expected.
 #[derive(Deref, DerefMut, PartialEq)]
 pub struct Comparef32(pub f32);
@@ -65,7 +64,9 @@ pub struct Comparef32(pub f32);
 impl Eq for Comparef32 {}
 
 impl PartialOrd for Comparef32 {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> { Some(self.cmp(other)) }
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 impl Ord for Comparef32 {

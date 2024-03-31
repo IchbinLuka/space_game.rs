@@ -1,13 +1,13 @@
-use std::f32::consts::PI;
 use bevy::prelude::*;
 use bevy::render::view::RenderLayers;
 use bevy::sprite::Anchor;
 use bevy::window::WindowResized;
 use bevy_asset_loader::loading_state::LoadingStateAppExt;
 use bevy_asset_loader::prelude::AssetCollection;
+use std::f32::consts::PI;
 
 use crate::entities::camera::RENDER_LAYER_2D;
-use crate::states::{AppState, game_running, ON_GAME_STARTED};
+use crate::states::{game_running, AppState, DespawnOnCleanup, ON_GAME_STARTED};
 
 pub const MINIMAP_RANGE: f32 = 400.;
 pub const MINIMAP_SIZE: f32 = 300.;
@@ -36,10 +36,7 @@ fn get_minimap_pos(window_width: f32, window_height: f32) -> Vec3 {
     )
 }
 
-fn setup_minimap(
-    mut commands: Commands,
-    window_query: Query<&Window>,
-) {
+fn setup_minimap(mut commands: Commands, window_query: Query<&Window>) {
     let Ok(window) = window_query.get_single() else {
         warn!("Could not find a window");
         return;
@@ -47,15 +44,19 @@ fn setup_minimap(
 
     commands.spawn((
         Minimap,
+        DespawnOnCleanup, 
         SpriteBundle {
             sprite: Sprite {
                 color: Color::BLACK,
                 custom_size: Some(Vec2::splat(MINIMAP_SIZE)),
                 ..default()
             },
-            transform: Transform::from_translation(get_minimap_pos(window.width(), window.height())),
+            transform: Transform::from_translation(get_minimap_pos(
+                window.width(),
+                window.height(),
+            )),
             ..default()
-        }
+        },
     ));
 }
 
@@ -69,19 +70,21 @@ fn spawn_minimap_objects(
     };
 
     for (entity, show_on_minimap) in &new_objects {
-        let marker = commands.spawn((
-            MinimapObject { entity },
-            SpriteBundle {
-                sprite: Sprite {
-                    anchor: Anchor::Center,
-                    custom_size: show_on_minimap.size,
+        let marker = commands
+            .spawn((
+                MinimapObject { entity },
+                SpriteBundle {
+                    sprite: Sprite {
+                        anchor: Anchor::Center,
+                        custom_size: show_on_minimap.size,
+                        ..default()
+                    },
+                    texture: show_on_minimap.sprite.clone(),
                     ..default()
                 },
-                texture: show_on_minimap.sprite.clone(),
-                ..default()
-            },
-            RenderLayers::layer(RENDER_LAYER_2D),
-        )).id();
+                RenderLayers::layer(RENDER_LAYER_2D),
+            ))
+            .id();
 
         commands.entity(minimap).add_child(marker);
     }
@@ -100,7 +103,10 @@ fn window_resize(
 
 fn update_minimap(
     show_on_minimap_query: Query<&Transform, With<ShowOnMinimap>>,
-    mut minimap_objects: Query<(&MinimapObject, &mut Transform, &mut Visibility, Entity), Without<ShowOnMinimap>>,
+    mut minimap_objects: Query<
+        (&MinimapObject, &mut Transform, &mut Visibility, Entity),
+        Without<ShowOnMinimap>,
+    >,
     mut commands: Commands,
 ) {
     for (minimap_obj, mut transform, mut visibility, entity) in &mut minimap_objects {
@@ -142,13 +148,11 @@ pub struct MinimapPlugin;
 
 impl Plugin for MinimapPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_collection_to_loading_state::<_, MinimapAssets>(AppState::MainSceneLoading)
+        app.add_collection_to_loading_state::<_, MinimapAssets>(AppState::MainSceneLoading)
             .add_systems(ON_GAME_STARTED, setup_minimap)
-            .add_systems(Update, (
-                update_minimap,
-                spawn_minimap_objects,
-                window_resize,
-            ).run_if(game_running()));
+            .add_systems(
+                Update,
+                (update_minimap, spawn_minimap_objects, window_resize).run_if(game_running()),
+            );
     }
 }

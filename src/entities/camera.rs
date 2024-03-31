@@ -12,7 +12,7 @@ use bevy::{
 };
 use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
 
-use crate::states::AppState;
+use crate::states::{AppState, DespawnOnCleanup};
 use crate::{
     states::{game_running, ON_GAME_STARTED},
     utils::sets::Set,
@@ -81,9 +81,11 @@ fn camera_setup(
         DepthPrepass,
         NormalPrepass,
         Movement::default(),
+        DespawnOnCleanup, 
     ));
 
     commands.spawn((
+        DespawnOnCleanup, 
         Camera2dBundle {
             camera_2d: Camera2d {
                 clear_color: ClearColorConfig::None,
