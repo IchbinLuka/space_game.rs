@@ -10,7 +10,7 @@ use crate::{
         camera::RENDER_LAYER_2D,
         spaceship::{bot::Bot, player::Player, IsPlayer},
     },
-    states::game_running,
+    states::{game_running, DespawnOnCleanup},
 };
 
 #[derive(Component)]
@@ -30,6 +30,7 @@ impl Command for SpawnEnemyIndicator {
         };
 
         world.spawn((
+            DespawnOnCleanup,
             EnemyIndicator { enemy: self.enemy },
             MaterialMesh2dBundle {
                 mesh: res.mesh.clone().into(),

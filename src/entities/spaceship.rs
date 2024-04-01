@@ -297,7 +297,7 @@ fn spawn_exhaust_particle(
                 ..default()
             },
             SpaceshipExhaustParticle,
-            DespawnOnCleanup, 
+            DespawnOnCleanup,
             Velocity {
                 linvel,
                 ..default()

@@ -2,7 +2,9 @@ use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 use rand::{seq::SliceRandom, Rng};
 
-use crate::{particles::fire_particles::FireParticleRes, states::DespawnOnCleanup, utils::sets::Set};
+use crate::{
+    particles::fire_particles::FireParticleRes, states::DespawnOnCleanup, utils::sets::Set,
+};
 
 #[derive(Component)]
 pub struct ExplosionParticle {
@@ -50,7 +52,7 @@ fn spawn_explosion(
             let scale = rng.gen_range(0.3..1.0);
 
             commands.spawn((
-                DespawnOnCleanup, 
+                DespawnOnCleanup,
                 ExplosionParticle {
                     spawn_time: time.elapsed_seconds(),
                     size: scale * event.radius,

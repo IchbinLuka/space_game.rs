@@ -7,7 +7,6 @@ use bevy_rapier3d::{
 };
 use rand::Rng;
 
-use crate::{states::DespawnOnCleanup, ui::minimap::{MinimapAssets, ShowOnMinimap}};
 use crate::{
     components::movement::MaxSpeed,
     entities::{
@@ -24,6 +23,10 @@ use crate::{
 use crate::{
     materials::toon::{ApplyToonMaterial, ToonMaterial},
     states::ON_GAME_STARTED,
+};
+use crate::{
+    states::DespawnOnCleanup,
+    ui::minimap::{MinimapAssets, ShowOnMinimap},
 };
 
 use super::{
@@ -148,7 +151,7 @@ fn spawn_bot_from_world(world: &mut World, spawn_bot: SpawnBot) -> Result<Entity
             sprite: minimap_assets.enemy_indicator.clone(),
             size: Some(Vec2::splat(10.)),
         },
-        DespawnOnCleanup, 
+        DespawnOnCleanup,
     ));
 
     if let Some(leader) = spawn_bot.squad_leader {

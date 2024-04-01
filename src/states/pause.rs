@@ -3,15 +3,14 @@ use crate::{
     ui::{
         button::TextButtonBundle,
         fonts::FontsResource,
-        settings::{OpenSettings, SettingsScreen},
+        settings::{SettingsButton, SettingsScreen},
         theme::text_button_style,
     },
 };
 use bevy::prelude::*;
 use bevy_rapier3d::plugin::RapierConfiguration;
 
-use super::{game_paused, pause_physics, PausedState};
-
+use super::{game_paused, pause_physics, resume_physics, PausedState};
 
 #[derive(Component)]
 pub struct PauseScreen;
@@ -20,7 +19,7 @@ pub struct PauseScreen;
 struct ResumeButton;
 
 #[derive(Component)]
-struct SettingsButton;
+struct QuitButton;
 
 fn on_pause(
     mut rapier_config: ResMut<RapierConfiguration>,
@@ -72,6 +71,11 @@ fn on_pause(
             ));
 
             c.spawn((
+                TextButtonBundle::from_section(t!("quit"), text_style.clone()),
+                QuitButton,
+            ));
+
+            c.spawn((
                 TextButtonBundle::from_section(t!("resume"), text_style.clone()),
                 ResumeButton,
             ));
@@ -79,24 +83,25 @@ fn on_pause(
 }
 
 fn resume_button(
-    mut next_state: ResMut<NextState<AppState>>,
+    mut next_state: ResMut<NextState<PausedState>>,
     query: Query<&Interaction, (Changed<Interaction>, With<ResumeButton>)>,
 ) {
     for interaction in &query {
         if *interaction == Interaction::Pressed {
-            next_state.set(AppState::MainScene);
+            next_state.set(PausedState::Running);
         }
     }
 }
 
-fn settings_button(
-    mut commands: Commands,
-    query: Query<&Interaction, (Changed<Interaction>, With<SettingsButton>)>,
+fn quit_button(
+    mut app_state: ResMut<NextState<AppState>>,
+    mut pause_state: ResMut<NextState<PausedState>>,
+    query: Query<&Interaction, (Changed<Interaction>, With<QuitButton>)>,
 ) {
     for interaction in &query {
         if *interaction == Interaction::Pressed {
-            commands.add(OpenSettings);
-            break;
+            pause_state.set(PausedState::Running);
+            app_state.set(AppState::StartScreenLoading);
         }
     }
 }
@@ -106,7 +111,7 @@ fn on_resume(
     mut commands: Commands,
     loading_screen: Query<Entity, With<PauseScreen>>,
 ) {
-    pause_physics(&mut rapier_config);
+    resume_physics(&mut rapier_config);
 
     for entity in &loading_screen {
         commands.entity(entity).despawn_recursive();
@@ -140,8 +145,7 @@ impl Plugin for PausePlugin {
             Update,
             (
                 pause_game.run_if(game_running().or_else(game_paused())),
-                resume_button.run_if(game_paused()),
-                settings_button.run_if(game_paused()),
+                (resume_button, quit_button).run_if(game_paused()),
             ),
         )
         .add_systems(OnExit(PausedState::Paused), on_resume)

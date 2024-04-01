@@ -3,13 +3,13 @@ use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::Loadin
 
 use crate::states::AppState;
 
-trait _AppExtension {
+pub trait AppExtension {
     fn add_collection_to_loading_states<T>(&mut self, states: &[AppState]) -> &mut Self
     where
         T: AssetCollection + Resource;
 }
 
-impl _AppExtension for App {
+impl AppExtension for App {
     fn add_collection_to_loading_states<T>(&mut self, states: &[AppState]) -> &mut Self
     where
         T: AssetCollection + Resource,

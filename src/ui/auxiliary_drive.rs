@@ -3,7 +3,7 @@ use bevy_round_ui::autosize::RoundUiAutosizeMaterial;
 
 use crate::entities::spaceship::player::Player;
 use crate::entities::spaceship::{IsPlayer, Spaceship};
-use crate::states::ON_GAME_STARTED;
+use crate::states::{DespawnOnCleanup, ON_GAME_STARTED};
 
 use super::fonts::FontsResource;
 
@@ -32,6 +32,7 @@ fn auxiliary_drive_setup(mut commands: Commands, font_resource: Res<FontsResourc
             },
             ..default()
         },
+        DespawnOnCleanup,
         RoundUiAutosizeMaterial,
         AuxiliaryDriveUI,
     ));

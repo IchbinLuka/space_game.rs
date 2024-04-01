@@ -1,5 +1,6 @@
+use bevy::animation::RepeatAnimation;
 use bevy::prelude::*;
-use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
+use bevy_asset_loader::asset_collection::AssetCollection;
 use bevy_rapier3d::prelude::*;
 use rand::Rng;
 
@@ -8,6 +9,8 @@ use crate::entities::spaceship::player::LastHit;
 use crate::states::DespawnOnCleanup;
 use crate::ui::game_over::GameOverEvent;
 use crate::ui::minimap::{MinimapAssets, ShowOnMinimap};
+use crate::utils::asset_loading::AppExtension;
+use crate::utils::scene::AnimationRoot;
 use crate::{
     components::health::Health,
     materials::toon::{ApplyToonMaterial, ToonMaterial},
@@ -30,15 +33,28 @@ pub fn setup_space_station(
     minimap_res: Res<MinimapAssets>,
 ) {
     let mut rng = rand::thread_rng();
+
+    spawn_space_station(
+        &mut commands,
+        &res,
+        &minimap_res,
+        Vec3::new(rng.gen_range(-50.0..50.0), 0., rng.gen_range(-50.0..50.0)),
+        true,
+    );
+}
+
+pub fn spawn_space_station(
+    commands: &mut Commands,
+    res: &SpaceStationRes,
+    minimap_res: &MinimapAssets,
+    position: Vec3,
+    with_health_bar: bool,
+) {
     let space_station = commands
         .spawn((
             SceneBundle {
                 scene: res.model.clone(),
-                transform: Transform::from_translation(Vec3::new(
-                    rng.gen_range(-50.0..50.0),
-                    0.,
-                    rng.gen_range(-50.0..50.0),
-                )),
+                transform: Transform::from_translation(position),
                 ..default()
             },
             ApplyToonMaterial {
@@ -71,16 +87,34 @@ pub fn setup_space_station(
             LastHit::default(),
             ActiveCollisionTypes::DYNAMIC_STATIC | ActiveCollisionTypes::KINEMATIC_STATIC,
             Health::new(200.),
-            DespawnOnCleanup, 
+            DespawnOnCleanup,
         ))
         .id();
 
-    commands.add(SpawnHealthBar {
-        entity: space_station,
-        shield_entity: None,
-        scale: 0.5,
-        offset: Vec2::new(0., 20.),
-    });
+    if with_health_bar {
+        commands.add(SpawnHealthBar {
+            entity: space_station,
+            shield_entity: None,
+            scale: 0.5,
+            offset: Vec2::new(0., 20.),
+        });
+    }
+}
+
+fn space_station_animation(
+    space_station: Query<&AnimationRoot, (With<SpaceStation>, Added<AnimationRoot>)>,
+    mut animation_players: Query<&mut AnimationPlayer>,
+    space_station_res: Res<SpaceStationRes>,
+) {
+    for animation_root in &space_station {
+        for entity in &animation_root.player_entites {
+            let Ok(mut player) = animation_players.get_mut(*entity) else {
+                continue;
+            };
+            player.play(space_station_res.animation.clone());
+            player.set_repeat(RepeatAnimation::Forever);
+        }
+    }
 }
 
 fn space_station_death(
@@ -90,7 +124,7 @@ fn space_station_death(
     mut game_over_events: EventWriter<GameOverEvent>,
 ) {
     let mut count = space_stations.iter().count();
-    
+
     for (health, transform, entity) in &space_stations {
         if health.is_dead() {
             explosion_events.send(ExplosionEvent {
@@ -111,14 +145,26 @@ fn space_station_death(
 pub struct SpaceStationRes {
     #[asset(path = "space_station.glb#Scene0")]
     model: Handle<Scene>,
+    #[asset(path = "space_station.glb#Animation0")]
+    animation: Handle<AnimationClip>,
 }
 
 pub struct SpaceStationPlugin;
 
 impl Plugin for SpaceStationPlugin {
     fn build(&self, app: &mut App) {
-        app.add_collection_to_loading_state::<_, SpaceStationRes>(AppState::MainSceneLoading)
-            .add_systems(ON_GAME_STARTED, (setup_space_station,))
-            .add_systems(Update, (space_station_death,).run_if(game_running()));
+        app.add_collection_to_loading_states::<SpaceStationRes>(&[
+            AppState::MainSceneLoading,
+            AppState::StartScreenLoading,
+        ])
+        .add_systems(ON_GAME_STARTED, (setup_space_station,))
+        .add_systems(
+            Update,
+            (
+                space_station_death.run_if(game_running()),
+                space_station_animation
+                    .run_if(game_running().or_else(in_state(AppState::StartScreen))),
+            ),
+        );
     }
 }

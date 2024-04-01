@@ -37,8 +37,8 @@ fn health_bar_setup(mut commands: Commands, mut materials: ResMut<Assets<RoundUi
                     ..default()
                 }),
                 ..default()
-            }, 
-            DespawnOnCleanup, 
+            },
+            DespawnOnCleanup,
         ))
         .with_children(|p| {
             p.spawn((

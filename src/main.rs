@@ -22,7 +22,7 @@ use materials::{toon::ToonMaterial, MaterialsPlugin};
 use model::{settings::Settings, ModelPlugin};
 use particles::ParticlesPlugin;
 use postprocessing::PostprocessingPlugin;
-use states::{game_running, StatesPlugin, ON_GAME_STARTED};
+use states::{game_running, DespawnOnCleanup, StatesPlugin, ON_GAME_STARTED};
 
 use ui::UIPlugin;
 use utils::scene::ScenePlugin;
@@ -100,16 +100,19 @@ fn scene_setup_3d(mut commands: Commands, settings: Res<Settings>) {
     transform.rotate_x(-FRAC_PI_4);
     transform.rotate_y(FRAC_PI_4 * 0.7);
 
-    commands.spawn((DirectionalLightBundle {
-        directional_light: DirectionalLight {
-            illuminance: 10000.0,
-            color: Color::hex("ffffff").unwrap(),
-            shadows_enabled: settings.shadows_enabled,
+    commands.spawn((
+        DespawnOnCleanup,
+        DirectionalLightBundle {
+            directional_light: DirectionalLight {
+                illuminance: 10000.0,
+                color: Color::hex("ffffff").unwrap(),
+                shadows_enabled: settings.shadows_enabled,
+                ..default()
+            },
+            transform,
             ..default()
         },
-        transform,
-        ..default()
-    },));
+    ));
 }
 
 fn main() {

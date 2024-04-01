@@ -1,6 +1,10 @@
 use bevy::{ecs::system::Command, prelude::*, render::view::RenderLayers, sprite::Anchor};
 
-use crate::{components::health::Health, entities::camera::RENDER_LAYER_2D, states::game_running};
+use crate::{
+    components::health::Health,
+    entities::camera::RENDER_LAYER_2D,
+    states::{game_running, DespawnOnCleanup},
+};
 
 use super::sprite_3d_renderer::Sprite3DObject;
 
@@ -39,6 +43,7 @@ impl Command for SpawnHealthBar {
     fn apply(self, world: &mut World) {
         world
             .spawn((
+                DespawnOnCleanup,
                 HealthBar3dBackground,
                 Sprite3DObject {
                     parent: self.entity,

@@ -316,7 +316,7 @@ fn spawn_cruiser(
             collision_damage: 5.0,
             ..default()
         },
-        DespawnOnCleanup, 
+        DespawnOnCleanup,
         COLLISION_GROUPS,
     ));
 }
@@ -453,7 +453,7 @@ fn cruiser_scene_setup(
             if name.starts_with("exhaust.") {
                 let trail = commands
                     .spawn((
-                        DespawnOnCleanup, 
+                        DespawnOnCleanup,
                         MaterialMeshBundle {
                             material: toon_materials.add(ToonMaterial {
                                 color: Color::hex("2ae0ed").unwrap(),

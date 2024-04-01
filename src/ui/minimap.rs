@@ -2,12 +2,12 @@ use bevy::prelude::*;
 use bevy::render::view::RenderLayers;
 use bevy::sprite::Anchor;
 use bevy::window::WindowResized;
-use bevy_asset_loader::loading_state::LoadingStateAppExt;
 use bevy_asset_loader::prelude::AssetCollection;
 use std::f32::consts::PI;
 
 use crate::entities::camera::RENDER_LAYER_2D;
 use crate::states::{game_running, AppState, DespawnOnCleanup, ON_GAME_STARTED};
+use crate::utils::asset_loading::AppExtension;
 
 pub const MINIMAP_RANGE: f32 = 400.;
 pub const MINIMAP_SIZE: f32 = 300.;
@@ -44,7 +44,7 @@ fn setup_minimap(mut commands: Commands, window_query: Query<&Window>) {
 
     commands.spawn((
         Minimap,
-        DespawnOnCleanup, 
+        DespawnOnCleanup,
         SpriteBundle {
             sprite: Sprite {
                 color: Color::BLACK,
@@ -148,11 +148,14 @@ pub struct MinimapPlugin;
 
 impl Plugin for MinimapPlugin {
     fn build(&self, app: &mut App) {
-        app.add_collection_to_loading_state::<_, MinimapAssets>(AppState::MainSceneLoading)
-            .add_systems(ON_GAME_STARTED, setup_minimap)
-            .add_systems(
-                Update,
-                (update_minimap, spawn_minimap_objects, window_resize).run_if(game_running()),
-            );
+        app.add_collection_to_loading_states::<MinimapAssets>(&[
+            AppState::MainSceneLoading,
+            AppState::StartScreenLoading,
+        ])
+        .add_systems(ON_GAME_STARTED, setup_minimap)
+        .add_systems(
+            Update,
+            (update_minimap, spawn_minimap_objects, window_resize).run_if(game_running()),
+        );
     }
 }

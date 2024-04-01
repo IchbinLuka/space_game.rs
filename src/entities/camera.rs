@@ -10,13 +10,16 @@ use bevy::{
         view::RenderLayers,
     },
 };
-use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
+use bevy_asset_loader::asset_collection::AssetCollection;
 
-use crate::states::{AppState, DespawnOnCleanup};
 use crate::{
     states::{game_running, ON_GAME_STARTED},
     utils::sets::Set,
     Movement,
+};
+use crate::{
+    states::{AppState, DespawnOnCleanup},
+    utils::asset_loading::AppExtension,
 };
 
 use super::spaceship::player::Player;
@@ -44,11 +47,7 @@ fn camera_follow_system(
     }
 }
 
-fn camera_setup(
-    mut commands: Commands,
-    camera_assets: Res<CameraAssets>,
-    mut images: ResMut<Assets<Image>>,
-) {
+fn setup_skybox_texture(mut images: ResMut<Assets<Image>>, camera_assets: Res<CameraAssets>) {
     let image = images.get_mut(&camera_assets.skybox).unwrap();
     // NOTE: PNGs do not have any metadata that could indicate they contain a cubemap texture,
     // so they appear as one texture. The following code reconfigures the texture as necessary.
@@ -59,13 +58,34 @@ fn camera_setup(
             ..default()
         });
     }
+}
 
+fn camera_setup(mut commands: Commands, camera_assets: Res<CameraAssets>) {
     let mut camera_transform = Transform::from_xyz(0.0, 75.0, 0.0);
     camera_transform.rotate(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2));
 
+    spawn_camera(&mut commands, camera_transform, &camera_assets);
+}
+
+pub fn spawn_camera(commands: &mut Commands, transform: Transform, camera_assets: &CameraAssets) {
+    commands.spawn((
+        DespawnOnCleanup,
+        Camera2dBundle {
+            camera_2d: Camera2d {
+                clear_color: ClearColorConfig::None,
+            },
+            camera: Camera {
+                order: 1,
+                ..default()
+            },
+            ..default()
+        },
+        RenderLayers::layer(RENDER_LAYER_2D),
+    ));
+
     commands.spawn((
         Camera3dBundle {
-            transform: camera_transform,
+            transform,
             projection: Projection::Perspective(PerspectiveProjection {
                 far: 10000.0,
                 ..default()
@@ -81,27 +101,35 @@ fn camera_setup(
         DepthPrepass,
         NormalPrepass,
         Movement::default(),
-        DespawnOnCleanup, 
-    ));
-
-    commands.spawn((
-        DespawnOnCleanup, 
-        Camera2dBundle {
-            camera_2d: Camera2d {
-                clear_color: ClearColorConfig::None,
-            },
-            camera: Camera {
-                order: 1,
-                ..default()
-            },
-            ..default()
-        },
-        RenderLayers::layer(RENDER_LAYER_2D),
+        DespawnOnCleanup,
     ));
 }
 
+fn control_camera(
+    input: Res<Input<KeyCode>>,
+    mut camera: Query<&mut Transform, With<CameraComponent>>,
+    time: Res<Time>,
+) {
+    let Ok(mut camera_transform) = camera.get_single_mut() else {
+        return;
+    };
+
+    if input.pressed(KeyCode::Up) {
+        camera_transform.rotate_local_x(time.delta_seconds() * 2.0);
+    }
+    if input.pressed(KeyCode::Down) {
+        camera_transform.rotate_local_x(-time.delta_seconds() * 2.0);
+    }
+    if input.pressed(KeyCode::Left) {
+        camera_transform.rotate_local_y(time.delta_seconds() * 2.0);
+    }
+    if input.pressed(KeyCode::Right) {
+        camera_transform.rotate_local_y(-time.delta_seconds() * 2.0);
+    }
+}
+
 #[derive(AssetCollection, Resource)]
-struct CameraAssets {
+pub struct CameraAssets {
     #[asset(path = "skybox.png")]
     skybox: Handle<Image>,
 }
@@ -110,13 +138,27 @@ pub struct CameraComponentPlugin;
 
 impl Plugin for CameraComponentPlugin {
     fn build(&self, app: &mut App) {
-        app.add_collection_to_loading_state::<_, CameraAssets>(AppState::MainSceneLoading)
-            .add_systems(ON_GAME_STARTED, camera_setup)
-            .add_systems(
-                Update,
+        app.add_collection_to_loading_states::<CameraAssets>(&[
+            AppState::MainSceneLoading,
+            AppState::StartScreenLoading,
+        ])
+        .add_systems(
+            OnEnter(AppState::StartScreen),
+            setup_skybox_texture.in_set(Set::CameraSkyboxInit),
+        )
+        .add_systems(
+            OnEnter(AppState::MainScene),
+            setup_skybox_texture.in_set(Set::CameraSkyboxInit),
+        )
+        .add_systems(ON_GAME_STARTED, camera_setup)
+        .add_systems(
+            Update,
+            (
                 camera_follow_system
                     .in_set(Set::CameraMovement)
                     .run_if(game_running()),
-            );
+                control_camera,
+            ),
+        );
     }
 }

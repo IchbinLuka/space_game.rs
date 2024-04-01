@@ -57,7 +57,7 @@ fn spawn_asteroid_field(
             commands
                 .spawn((
                     AsteroidField,
-                    DespawnOnCleanup, 
+                    DespawnOnCleanup,
                     Transform::from_translation(position),
                     GlobalTransform::default(),
                     InheritedVisibility::VISIBLE,
@@ -191,7 +191,7 @@ fn asteroid_collisions(
                         * rng.gen_range(1.0..4.0),
                 ),
                 RigidBody::KinematicVelocityBased,
-                DespawnOnCleanup, 
+                DespawnOnCleanup,
                 DespawnTimer::new(Duration::from_millis(rng.gen_range(500..1500))),
             ));
         }

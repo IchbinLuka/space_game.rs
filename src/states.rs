@@ -16,12 +16,12 @@ use bevy_rapier3d::plugin::RapierConfiguration;
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash, Default, States, Copy)]
 pub enum AppState {
+    #[default]
     StartScreenLoading,
     StartScreen,
-    #[default]
     MainSceneLoading,
     MainScene,
-    GameOver, 
+    GameOver,
     ParticleTestScene,
 }
 
@@ -85,19 +85,17 @@ pub fn resume_physics(rapier_config: &mut RapierConfiguration) {
 pub const ON_GAME_STARTED: OnEnter<AppState> = OnEnter(AppState::MainScene);
 pub const GAME_CLEANUP: OnExit<AppState> = OnExit(AppState::GameOver);
 
-
 #[derive(Component)]
 pub struct DespawnOnCleanup;
 
 fn cleanup_entities(
-    cleanup_entities: Query<Entity, With<DespawnOnCleanup>>, 
+    cleanup_entities: Query<Entity, With<DespawnOnCleanup>>,
     mut commands: Commands,
 ) {
     for entity in &cleanup_entities {
         commands.entity(entity).despawn_recursive();
     }
 }
-
 
 pub struct StatesPlugin;
 
@@ -112,10 +110,15 @@ impl Plugin for StatesPlugin {
             app.add_loading_state(LoadingState::new(*loading_state).continue_to_state(*next_state));
         }
 
-        app
-            .add_state::<AppState>()
+        app.add_state::<AppState>()
             .add_state::<PausedState>()
             .add_systems(GAME_CLEANUP, cleanup_entities)
-            .add_plugins((pause::PausePlugin, loading_screen::LoadingScreenPlugin));
+            .add_systems(OnEnter(AppState::MainSceneLoading), cleanup_entities)
+            .add_systems(OnEnter(AppState::StartScreenLoading), cleanup_entities)
+            .add_plugins((
+                pause::PausePlugin,
+                loading_screen::LoadingScreenPlugin,
+                start_screen::StartScreenPlugin,
+            ));
     }
 }

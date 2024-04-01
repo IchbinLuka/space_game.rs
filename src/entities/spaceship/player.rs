@@ -97,7 +97,7 @@ fn player_setup(
                 ..default()
             },
         },
-        DespawnOnCleanup, 
+        DespawnOnCleanup,
     ));
 }
 
@@ -192,6 +192,7 @@ fn player_trail_setup(
                 ..default()
             },
             trail,
+            DespawnOnCleanup,
         ));
     }
 }
@@ -286,6 +287,7 @@ fn player_line_setup(
             ..default()
         },
         PlayerLine,
+        DespawnOnCleanup,
     ));
 }
 
@@ -399,6 +401,7 @@ fn return_to_mission_warning_spawn(
         info!("Player is out of mission area");
         commands
             .spawn((
+                DespawnOnCleanup,
                 NodeBundle {
                     style: Style {
                         width: Val::Percent(100.0),

@@ -125,22 +125,25 @@ fn bullet_spawn(
                 linvel: event.direction.normalize() * BULLET_SPEED + event.entity_velocity.linvel,
                 ..default()
             },
-            DespawnOnCleanup, 
+            DespawnOnCleanup,
             CollidingEntities::default(),
         ));
-        commands.spawn(AudioBundle {
-            source: assets.test_sound.clone(),
-            settings: PlaybackSettings {
-                volume: bevy_audio::Volume::Relative(VolumeLevel::new(f32::min(
-                    0.5,
-                    40.0 / event
-                        .position
-                        .translation
-                        .distance_squared(player.translation),
-                ))),
-                ..default()
+        commands.spawn((
+            AudioBundle {
+                source: assets.test_sound.clone(),
+                settings: PlaybackSettings {
+                    volume: bevy_audio::Volume::Relative(VolumeLevel::new(f32::min(
+                        0.5,
+                        40.0 / event
+                            .position
+                            .translation
+                            .distance_squared(player.translation),
+                    ))),
+                    ..default()
+                },
             },
-        });
+            DespawnOnCleanup,
+        ));
     }
 }
 

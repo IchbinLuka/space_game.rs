@@ -1,13 +1,19 @@
 use bevy::{ecs::system::Command, prelude::*, ui::FocusPolicy};
+use bevy_round_ui::{
+    autosize::{RoundUiAutosizeMaterial, RoundUiAutosizeNodePadding},
+    prelude::RoundUiMaterial,
+};
 
 use crate::model::settings::Settings;
-use crate::ui::theme::fullscreen_center_style;
 
 use super::{
     button::{CheckBox, CheckBoxBundle, TextButtonBundle},
     fonts::FontsResource,
-    theme::text_button_style,
+    theme::{text_button_style, SURFACE_COLOR},
 };
+
+#[derive(Component)]
+pub struct SettingsButton;
 
 #[derive(Component)]
 pub struct SettingsScreen;
@@ -24,18 +30,42 @@ struct LanguageSetting {
     available_langs: Vec<String>,
 }
 
+#[derive(Resource)]
+struct SettingsRes {
+    background_material: Handle<RoundUiMaterial>,
+}
+
+fn settings_setup(mut commands: Commands, mut materials: ResMut<Assets<RoundUiMaterial>>) {
+    commands.insert_resource(SettingsRes {
+        background_material: materials.add(RoundUiMaterial {
+            background_color: SURFACE_COLOR,
+            border_radius: Vec4::splat(30.),
+            ..default()
+        }),
+    })
+}
+
 pub struct OpenSettings;
 
 impl Command for OpenSettings {
     fn apply(self, world: &mut World) {
         let Some(font_res) = world.get_resource::<FontsResource>() else {
+            error!("Fonts resource not found.");
             return;
         };
         let Some(settings) = world.get_resource::<Settings>() else {
+            error!("Settings resource not found.");
+            return;
+        };
+
+        let Some(settings_res) = world.get_resource::<SettingsRes>() else {
+            error!("SettingsRes not found.");
             return;
         };
 
         let settings = settings.clone();
+
+        let background_material = settings_res.background_material.clone();
 
         let style = text_button_style(font_res);
 
@@ -44,51 +74,74 @@ impl Command for OpenSettings {
                 SettingsScreen,
                 NodeBundle {
                     focus_policy: FocusPolicy::Block,
-                    style: fullscreen_center_style(),
-                    background_color: Color::rgba(0., 0., 0., 0.5).into(),
+                    style: Style {
+                        width: Val::Percent(100.),
+                        height: Val::Percent(100.),
+                        display: Display::Flex,
+                        align_content: AlignContent::Center,
+                        align_items: AlignItems::Center,
+                        justify_content: JustifyContent::Center,
+                        ..default()
+                    },
                     ..default()
                 },
             ))
             .with_children(|c| {
-                c.settings_item(false, |c| {
-                    c.spawn(TextBundle::from_section(t!("shadows"), style.clone()));
-
-                    c.spawn((CheckBoxBundle::new(settings.shadows_enabled), ShadowSetting));
-                });
-
-                c.settings_item(true, |c| {
-                    c.spawn(TextBundle::from_section(t!("language"), style.clone()));
-
-                    c.spawn((
-                        TextButtonBundle::from_section(settings.lang.clone(), style.clone()),
-                        LanguageSetting {
-                            lang: settings.lang.clone(),
-                            available_langs: rust_i18n::available_locales!()
-                                .iter()
-                                .map(|s| s.to_string())
-                                .collect(),
+                c.spawn((
+                    MaterialNodeBundle {
+                        material: background_material,
+                        style: Style {
+                            padding: UiRect::all(Val::Px(10.)),
+                            flex_direction: FlexDirection::Column,
+                            align_items: AlignItems::Center,
+                            ..default()
                         },
-                    ));
-                });
-
-                c.spawn(TextBundle {
-                    style: Style {
-                        margin: UiRect::top(Val::Percent(10.)),
                         ..default()
                     },
-                    ..TextBundle::from_section(
-                        format!("* {}", t!("restart_required")),
-                        TextStyle {
-                            font: style.font.clone(),
-                            ..restart_required_text_style()
-                        },
-                    )
-                });
+                    RoundUiAutosizeNodePadding,
+                    RoundUiAutosizeMaterial,
+                ))
+                .with_children(|c| {
+                    c.settings_item(false, |c| {
+                        c.spawn(TextBundle::from_section(t!("shadows"), style.clone()));
 
-                c.spawn((
-                    TextButtonBundle::from_section(t!("close"), style),
-                    CloseButton,
-                ));
+                        c.spawn((CheckBoxBundle::new(settings.shadows_enabled), ShadowSetting));
+                    });
+
+                    c.settings_item(true, |c| {
+                        c.spawn(TextBundle::from_section(t!("language"), style.clone()));
+
+                        c.spawn((
+                            TextButtonBundle::from_section(settings.lang.clone(), style.clone()),
+                            LanguageSetting {
+                                lang: settings.lang.clone(),
+                                available_langs: rust_i18n::available_locales!()
+                                    .iter()
+                                    .map(|s| s.to_string())
+                                    .collect(),
+                            },
+                        ));
+                    });
+
+                    c.spawn(TextBundle {
+                        style: Style {
+                            margin: UiRect::top(Val::Percent(10.)),
+                            ..default()
+                        },
+                        ..TextBundle::from_section(
+                            format!("* {}", t!("restart_required")),
+                            TextStyle {
+                                font: style.font.clone(),
+                                ..restart_required_text_style()
+                            },
+                        )
+                    });
+
+                    c.spawn((
+                        TextButtonBundle::from_section(t!("close"), style),
+                        CloseButton,
+                    ));
+                });
             });
     }
 }
@@ -98,6 +151,18 @@ fn restart_required_text_style() -> TextStyle {
         font_size: 30.,
         color: Color::rgb(0.7, 0.7, 0.7),
         ..default()
+    }
+}
+
+fn settings_button(
+    mut commands: Commands,
+    query: Query<&Interaction, (With<SettingsButton>, Changed<Interaction>)>,
+) {
+    for interaction in &query {
+        if *interaction == Interaction::Pressed {
+            commands.add(OpenSettings);
+            break;
+        }
     }
 }
 
@@ -201,6 +266,9 @@ pub struct SettingsPlugin;
 
 impl Plugin for SettingsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (close_settings, update_shadows, update_lang));
+        app.add_systems(Startup, settings_setup).add_systems(
+            Update,
+            (close_settings, update_shadows, update_lang, settings_button),
+        );
     }
 }

@@ -2,6 +2,9 @@ use bevy::prelude::*;
 
 use super::{fonts::FontsResource, TextHoverEffect};
 
+pub const SURFACE_COLOR: Color = Color::rgb(0., 0., 0.);
+pub const SURFACE_COLOR_FOCUSED: Color = Color::rgb(0.1, 0.1, 0.1);
+
 #[inline]
 pub fn default_hover_effect() -> TextHoverEffect {
     TextHoverEffect {

@@ -51,7 +51,7 @@ fn score_events(
         );
 
         commands.spawn((
-            DespawnOnCleanup, 
+            DespawnOnCleanup,
             Text2dBundle {
                 text: Text {
                     sections: vec![TextSection {
@@ -123,8 +123,8 @@ fn score_setup(mut commands: Commands, font_resource: Res<FontsResource>) {
                     ..default()
                 },
                 ..default()
-            }, 
-            DespawnOnCleanup, 
+            },
+            DespawnOnCleanup,
         ))
         .with_children(|c| {
             c.spawn((
