@@ -1,5 +1,11 @@
 use bevy::{app::App, ecs::system::Resource};
-use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
+use bevy_asset_loader::{
+    asset_collection::AssetCollection,
+    loading_state::{
+        config::{ConfigureLoadingState, LoadingStateConfig},
+        LoadingStateAppExt,
+    },
+};
 
 use crate::states::AppState;
 
@@ -15,7 +21,7 @@ impl AppExtension for App {
         T: AssetCollection + Resource,
     {
         for state in states {
-            self.add_collection_to_loading_state::<_, T>(*state);
+            self.configure_loading_state(LoadingStateConfig::new(*state).load_collection::<T>());
         }
         self
     }

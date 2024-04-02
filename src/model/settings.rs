@@ -40,9 +40,6 @@ pub fn persist_settings(settings: &Settings) -> Result<(), PersistSettingsError>
     }
 }
 
-
-
-
 pub fn load_settings() -> Settings {
     cfg_if! {
         if #[cfg(target_family = "wasm")] {
@@ -69,7 +66,6 @@ pub fn load_settings() -> Settings {
             }
         }
     }
-    
 }
 
 fn persist_settings_system(settings: Res<Settings>) {

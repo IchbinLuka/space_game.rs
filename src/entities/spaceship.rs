@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use bevy::prelude::*;
+use bevy_asset_loader::loading_state::config::{ConfigureLoadingState, LoadingStateConfig};
 use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
 use bevy_mod_outline::{OutlineBundle, OutlineVolume};
 use bevy_rapier3d::prelude::*;
@@ -321,18 +322,21 @@ pub struct SpaceshipPlugin;
 
 impl Plugin for SpaceshipPlugin {
     fn build(&self, app: &mut App) {
-        app.add_collection_to_loading_state::<_, SpaceshipAssets>(AppState::MainSceneLoading)
-            .add_plugins((bot::BotPlugin, player::PlayerPlugin))
-            .add_event::<ParticleSpawnEvent>()
-            .add_systems(
-                Update,
-                (
-                    spawn_exhaust_particle,
-                    exhaust_particle_update,
-                    spaceship_collisions.in_set(Set::ExplosionEvents),
-                    auxiliary_drive,
-                )
-                    .run_if(game_running()),
-            );
+        app.configure_loading_state(
+            LoadingStateConfig::new(AppState::MainSceneLoading)
+                .load_collection::<SpaceshipAssets>(),
+        )
+        .add_plugins((bot::BotPlugin, player::PlayerPlugin))
+        .add_event::<ParticleSpawnEvent>()
+        .add_systems(
+            Update,
+            (
+                spawn_exhaust_particle,
+                exhaust_particle_update,
+                spaceship_collisions.in_set(Set::ExplosionEvents),
+                auxiliary_drive,
+            )
+                .run_if(game_running()),
+        );
     }
 }

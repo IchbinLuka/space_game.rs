@@ -17,7 +17,7 @@ pub trait CollidingEntitiesExtension {
         query: &'a Query<D, F>,
     ) -> impl Iterator<Item = ROQueryItem<'a, D>>
     where
-        D: QueryData, 
+        D: QueryData,
         F: QueryFilter;
 }
 

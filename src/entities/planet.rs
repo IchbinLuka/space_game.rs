@@ -123,13 +123,11 @@ pub fn spawn_planet(
         texture: planet_assets.texture.clone(),
     });
 
-    let mesh = meshes.add(
-        Sphere {
-            // sectors: 20,
-            radius: size,
-            ..default()
-        }
-    );
+    let mesh = meshes.add(Sphere {
+        // sectors: 20,
+        radius: size,
+        ..default()
+    });
 
     let angvel = Vec3 {
         y: rng.gen_range(-0.1..0.1),

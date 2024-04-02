@@ -1,7 +1,13 @@
 use std::time::Duration;
 
 use bevy::prelude::*;
-use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
+use bevy_asset_loader::{
+    asset_collection::AssetCollection,
+    loading_state::{
+        config::{ConfigureLoadingState, LoadingStateConfig},
+        LoadingStateAppExt,
+    },
+};
 use bevy_mod_outline::{OutlineBundle, OutlineVolume};
 use bevy_rapier3d::prelude::*;
 
@@ -233,18 +239,20 @@ pub struct BulletPlugin;
 
 impl Plugin for BulletPlugin {
     fn build(&self, app: &mut App) {
-        app.add_collection_to_loading_state::<_, BulletAssets>(AppState::MainSceneLoading)
-            .add_systems(ON_GAME_STARTED, bullet_setup)
-            .add_systems(
-                Update,
-                (
-                    bullet_despawn,
-                    bullet_collision,
-                    bullet_rotation_correction,
-                    bullet_spawn.after(Set::BulletEvents),
-                )
-                    .run_if(game_running()),
+        app.configure_loading_state(
+            LoadingStateConfig::new(AppState::MainSceneLoading).load_collection::<BulletAssets>(),
+        )
+        .add_systems(ON_GAME_STARTED, bullet_setup)
+        .add_systems(
+            Update,
+            (
+                bullet_despawn,
+                bullet_collision,
+                bullet_rotation_correction,
+                bullet_spawn.after(Set::BulletEvents),
             )
-            .add_event::<BulletSpawnEvent>();
+                .run_if(game_running()),
+        )
+        .add_event::<BulletSpawnEvent>();
     }
 }

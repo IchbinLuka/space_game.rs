@@ -2,8 +2,7 @@ use std::f32::consts::FRAC_PI_2;
 
 use bevy::{
     prelude::*,
-    render::render_resource::{AsBindGroup, ShaderRef}
-    ,
+    render::render_resource::{AsBindGroup, ShaderRef},
 };
 
 use crate::states::AppState;

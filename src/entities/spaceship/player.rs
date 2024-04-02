@@ -1,6 +1,9 @@
 use std::collections::VecDeque;
 
-use bevy::{prelude::*, render::{render_asset::RenderAssetUsages, render_resource::PrimitiveTopology}};
+use bevy::{
+    prelude::*,
+    render::{render_asset::RenderAssetUsages, render_resource::PrimitiveTopology},
+};
 
 use bevy_rapier3d::dynamics::Velocity;
 
@@ -117,7 +120,12 @@ fn player_input(
             });
         }
 
-        if keyboard_input.any_pressed([KeyCode::ArrowLeft, KeyCode::KeyA, KeyCode::ArrowRight, KeyCode::KeyD]) {
+        if keyboard_input.any_pressed([
+            KeyCode::ArrowLeft,
+            KeyCode::KeyA,
+            KeyCode::ArrowRight,
+            KeyCode::KeyD,
+        ]) {
             let sign = if keyboard_input.any_pressed([KeyCode::ArrowLeft, KeyCode::KeyA]) {
                 1.0
             } else {

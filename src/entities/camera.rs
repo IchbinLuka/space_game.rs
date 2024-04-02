@@ -87,8 +87,8 @@ pub fn spawn_camera(commands: &mut Commands, transform: Transform, camera_assets
             ..default()
         },
         Skybox {
-            image: camera_assets.skybox.clone(), 
-            brightness: 1000., 
+            image: camera_assets.skybox.clone(),
+            brightness: 1000.,
         },
         CameraComponent,
         Movement::default(),

@@ -1,7 +1,9 @@
 use bevy::{
     ecs::system::Command,
     prelude::*,
-    render::{render_asset::RenderAssetUsages, render_resource::PrimitiveTopology, view::RenderLayers},
+    render::{
+        render_asset::RenderAssetUsages, render_resource::PrimitiveTopology, view::RenderLayers,
+    },
     sprite::MaterialMesh2dBundle,
 };
 

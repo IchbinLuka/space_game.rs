@@ -7,6 +7,7 @@ use bevy::ecs::system::{Command, EntityCommand, RunSystemOnce};
 use bevy::pbr::{NotShadowCaster, NotShadowReceiver};
 use bevy::prelude::*;
 use bevy::scene::SceneInstance;
+use bevy_asset_loader::loading_state::config::{ConfigureLoadingState, LoadingStateConfig};
 use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
 use bevy_mod_outline::OutlineBundle;
 use bevy_rapier3d::prelude::*;
@@ -339,12 +340,10 @@ fn finish_cruiser(
         .spawn((
             CruiserShield,
             PbrBundle {
-                mesh: meshes.add(
-                    Sphere {
-                        radius: 10.,
-                        ..default()
-                    }
-                ),
+                mesh: meshes.add(Sphere {
+                    radius: 10.,
+                    ..default()
+                }),
                 material: materials.add(StandardMaterial {
                     base_color: Color::hex("2ae0ed0f").unwrap(),
                     unlit: true,
@@ -456,13 +455,11 @@ fn cruiser_scene_setup(
                                 color: Color::hex("2ae0ed").unwrap(),
                                 ..default()
                             }),
-                            mesh: meshes.add(
-                                Cylinder {
-                                    radius: 1.,
-                                    half_height: CRUISER_TRAIL_LENGTH / 2.,
-                                    ..default()
-                                }
-                            ),
+                            mesh: meshes.add(Cylinder {
+                                radius: 1.,
+                                half_height: CRUISER_TRAIL_LENGTH / 2.,
+                                ..default()
+                            }),
                             transform: Transform {
                                 rotation: Quat::from_rotation_x(FRAC_PI_2),
                                 translation: Vec3::new(0., 0., CRUISER_TRAIL_LENGTH / 2.),
@@ -611,27 +608,29 @@ pub struct CruiserPLugin;
 
 impl Plugin for CruiserPLugin {
     fn build(&self, app: &mut App) {
-        app.add_collection_to_loading_state::<_, CruiserAssets>(AppState::MainSceneLoading)
-            .add_event::<SpawnCruiserEvent>()
-            .insert_resource(LastCruiserSpawn(None))
-            .add_systems(
-                Update,
-                (
-                    cruiser_shield_death,
-                    cruiser_shield_regenerate,
-                    cruiser_death.in_set(Set::ExplosionEvents),
-                    cruiser_spawn_bots,
-                    cruiser_shield_collisions,
-                    cruiser_scene_setup,
-                    cruiser_animation_start,
-                    cruiser_animations,
-                    cruiser_trail_update,
-                    cruiser_turret_shoot,
-                    cruiser_movement,
-                    spawn_cruiser_events,
-                    spawn_cruisers,
-                )
-                    .run_if(game_running()),
-            );
+        app.configure_loading_state(
+            LoadingStateConfig::new(AppState::MainSceneLoading).load_collection::<CruiserAssets>(),
+        )
+        .add_event::<SpawnCruiserEvent>()
+        .insert_resource(LastCruiserSpawn(None))
+        .add_systems(
+            Update,
+            (
+                cruiser_shield_death,
+                cruiser_shield_regenerate,
+                cruiser_death.in_set(Set::ExplosionEvents),
+                cruiser_spawn_bots,
+                cruiser_shield_collisions,
+                cruiser_scene_setup,
+                cruiser_animation_start,
+                cruiser_animations,
+                cruiser_trail_update,
+                cruiser_turret_shoot,
+                cruiser_movement,
+                spawn_cruiser_events,
+                spawn_cruisers,
+            )
+                .run_if(game_running()),
+        );
     }
 }

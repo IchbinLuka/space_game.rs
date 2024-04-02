@@ -1,7 +1,13 @@
 use std::{f32::consts::FRAC_PI_2, time::Duration};
 
 use bevy::prelude::*;
-use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
+use bevy_asset_loader::{
+    asset_collection::AssetCollection,
+    loading_state::{
+        config::{ConfigureLoadingState, LoadingStateConfig},
+        LoadingStateAppExt,
+    },
+};
 use bevy_mod_outline::OutlineBundle;
 use bevy_rapier3d::prelude::*;
 use rand::Rng;
@@ -252,18 +258,20 @@ pub struct AsteroidPlugin;
 
 impl Plugin for AsteroidPlugin {
     fn build(&self, app: &mut App) {
-        app.add_collection_to_loading_state::<_, AsteroidAssets>(AppState::MainSceneLoading)
-            .add_systems(ON_GAME_STARTED, asteroid_setup)
-            .add_systems(
-                Update,
-                (
-                    asteroid_collisions
-                        .in_set(Set::ExplosionEvents)
-                        .in_set(Set::ScoreEvents),
-                    spawn_asteroid_field,
-                    despawn_asteroid_field,
-                )
-                    .run_if(game_running()),
-            );
+        app.configure_loading_state(
+            LoadingStateConfig::new(AppState::MainSceneLoading).load_collection::<AsteroidAssets>(),
+        )
+        .add_systems(ON_GAME_STARTED, asteroid_setup)
+        .add_systems(
+            Update,
+            (
+                asteroid_collisions
+                    .in_set(Set::ExplosionEvents)
+                    .in_set(Set::ScoreEvents),
+                spawn_asteroid_field,
+                despawn_asteroid_field,
+            )
+                .run_if(game_running()),
+        );
     }
 }
