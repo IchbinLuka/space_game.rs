@@ -61,12 +61,12 @@ pub fn game_paused() -> impl ReadOnlySystem<In = (), Out = bool> {
 }
 
 #[inline]
-pub fn in_start_menu() -> impl FnMut(Res<State<AppState>>) -> bool + Clone {
+pub fn in_start_menu() -> impl FnMut(Option<Res<State<AppState>>>) -> bool + Clone {
     in_state(AppState::StartScreen)
 }
 
 #[inline]
-pub fn game_over() -> impl FnMut(Res<State<AppState>>) -> bool + Clone {
+pub fn game_over() -> impl FnMut(Option<Res<State<AppState>>>) -> bool + Clone {
     in_state(AppState::GameOver)
 }
 
@@ -110,8 +110,8 @@ impl Plugin for StatesPlugin {
             app.add_loading_state(LoadingState::new(*loading_state).continue_to_state(*next_state));
         }
 
-        app.add_state::<AppState>()
-            .add_state::<PausedState>()
+        app.init_state::<AppState>()
+            .init_state::<PausedState>()
             .add_systems(GAME_CLEANUP, cleanup_entities)
             .add_systems(OnEnter(AppState::MainSceneLoading), cleanup_entities)
             .add_systems(OnEnter(AppState::StartScreenLoading), cleanup_entities)

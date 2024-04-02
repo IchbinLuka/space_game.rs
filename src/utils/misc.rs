@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 
 use bevy::{
     ecs::{
-        query::{ROQueryItem, ReadOnlyWorldQuery, WorldQuery},
+        query::{QueryData, QueryFilter, ROQueryItem},
         system::RunSystemOnce,
     },
     prelude::*,
@@ -10,20 +10,20 @@ use bevy::{
 use bevy_rapier3d::geometry::CollidingEntities;
 
 pub trait CollidingEntitiesExtension {
-    fn _fulfills_query<Q: WorldQuery, F: ReadOnlyWorldQuery>(&self, query: &Query<Q, F>) -> bool;
+    fn _fulfills_query<D: QueryData, F: QueryFilter>(&self, query: &Query<D, F>) -> bool;
 
-    fn filter_fulfills_query<'a, Q, F>(
+    fn filter_fulfills_query<'a, D, F>(
         &self,
-        query: &'a Query<Q, F>,
-    ) -> impl Iterator<Item = ROQueryItem<'a, Q>>
+        query: &'a Query<D, F>,
+    ) -> impl Iterator<Item = ROQueryItem<'a, D>>
     where
-        Q: WorldQuery,
-        F: ReadOnlyWorldQuery;
+        D: QueryData, 
+        F: QueryFilter;
 }
 
 impl CollidingEntitiesExtension for CollidingEntities {
     #[inline]
-    fn _fulfills_query<Q: WorldQuery, F: ReadOnlyWorldQuery>(&self, query: &Query<Q, F>) -> bool {
+    fn _fulfills_query<D: QueryData, F: QueryFilter>(&self, query: &Query<D, F>) -> bool {
         for entity in self.iter() {
             if query.get(entity).is_ok() {
                 return true;
@@ -33,13 +33,13 @@ impl CollidingEntitiesExtension for CollidingEntities {
     }
 
     #[inline]
-    fn filter_fulfills_query<'a, Q, F>(
+    fn filter_fulfills_query<'a, D, F>(
         &self,
-        query: &'a Query<Q, F>,
-    ) -> impl Iterator<Item = ROQueryItem<'a, Q>>
+        query: &'a Query<D, F>,
+    ) -> impl Iterator<Item = ROQueryItem<'a, D>>
     where
-        Q: WorldQuery,
-        F: ReadOnlyWorldQuery,
+        D: QueryData,
+        F: QueryFilter,
     {
         self.iter().filter_map(|e| query.get(e).ok())
     }

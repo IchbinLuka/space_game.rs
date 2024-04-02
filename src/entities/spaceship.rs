@@ -117,7 +117,7 @@ impl Spaceship {
         bullet_spawn_events.send(BulletSpawnEvent {
             position: bullet_transform,
             entity_velocity: velocity,
-            direction: transform.forward(),
+            direction: *transform.forward(),
             bullet_type,
         });
 
@@ -279,7 +279,7 @@ fn spawn_exhaust_particle(
         let scale = Vec3::splat(rng.gen_range(0.7..1.4));
         let lifetime = rng.gen_range(LIFE_TIME_RANGE);
 
-        let direction = event.direction.unwrap_or(-transform.forward());
+        let direction = event.direction.unwrap_or(-*transform.forward());
 
         let linvel = velocity.linvel +
             direction * 10.0 + // Speed relative to spaceship

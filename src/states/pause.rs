@@ -119,7 +119,7 @@ fn on_resume(
 }
 
 fn pause_game(
-    keyboard_input: Res<Input<KeyCode>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
     mut next_state: ResMut<NextState<PausedState>>,
     current_state: Res<State<PausedState>>,
     settings_screen: Query<(), With<SettingsScreen>>,

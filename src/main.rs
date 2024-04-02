@@ -16,6 +16,7 @@ use bevy_round_ui::prelude::RoundUiPlugin;
 use bevy_screen_diagnostics::{
     ScreenDiagnosticsPlugin, ScreenEntityDiagnosticsPlugin, ScreenFrameDiagnosticsPlugin,
 };
+use cfg_if::cfg_if;
 use components::ComponentsPlugin;
 use entities::EntitiesPlugin;
 use materials::{toon::ToonMaterial, MaterialsPlugin};
@@ -162,7 +163,14 @@ fn main() {
         MaterialsPlugin,
         ModelPlugin,
     ))
-    .insert_resource(DirectionalLightShadowMap { size: 4096 });
+    .insert_resource(DirectionalLightShadowMap { size: 4096 })
+    .insert_resource(Msaa::Off);
+
+    cfg_if! {
+        if #[cfg(target_family = "wasm")] {
+            app.insert_resource(Msaa::Off);
+        }
+    }
 
     app.run();
 }

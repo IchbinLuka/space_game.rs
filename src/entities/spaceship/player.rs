@@ -1,25 +1,26 @@
 use std::collections::VecDeque;
 
-use bevy::{prelude::*, render::render_resource::PrimitiveTopology};
+use bevy::{prelude::*, render::{render_asset::RenderAssetUsages, render_resource::PrimitiveTopology}};
 
 use bevy_rapier3d::dynamics::Velocity;
 
-use crate::components::gravity::GravityAffected;
-use crate::components::health::Regeneration;
-use crate::materials::toon::{ApplyToonMaterial, ToonMaterial};
-use crate::states::{DespawnOnCleanup, ON_GAME_STARTED};
-use crate::ui::fonts::FontsResource;
-use crate::ui::minimap::{MinimapAssets, ShowOnMinimap};
-use crate::ui::theme::default_font;
 use crate::{
     components::{
-        gravity::{gravity_step, GravitySource},
+        gravity::{gravity_step, GravityAffected, GravitySource},
+        health::Regeneration,
         movement::MaxSpeed,
     },
     entities::{
-        bullet::BulletSpawnEvent, bullet::BulletTarget, bullet::BulletType, planet::Planet,
+        bullet::{BulletSpawnEvent, BulletTarget, BulletType},
+        planet::Planet,
     },
-    states::game_running,
+    materials::toon::{ApplyToonMaterial, ToonMaterial},
+    states::{game_running, DespawnOnCleanup, ON_GAME_STARTED},
+    ui::{
+        fonts::FontsResource,
+        minimap::{MinimapAssets, ShowOnMinimap},
+        theme::default_font,
+    },
     utils::sets::Set,
 };
 
@@ -36,7 +37,7 @@ pub struct Player;
 pub struct LastHit(pub(crate) Option<f32>);
 
 fn player_shoot(
-    keyboard_input: Res<Input<KeyCode>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
     query: Query<(&Transform, &Velocity, &Spaceship), With<Player>>,
     mut bullet_spawn_events: EventWriter<BulletSpawnEvent>,
@@ -103,12 +104,12 @@ fn player_setup(
 
 fn player_input(
     timer: Res<Time>,
-    keyboard_input: Res<Input<KeyCode>>,
+    keyboard_input: Res<ButtonInput<KeyCode>>,
     mut query: Query<(&mut Velocity, &mut Transform, Entity, &mut Spaceship), IsPlayer>,
     mut particle_spawn: EventWriter<ParticleSpawnEvent>,
 ) {
     for (mut velocity, mut transform, entity, mut spaceship) in &mut query {
-        if keyboard_input.any_pressed([KeyCode::Up, KeyCode::W]) {
+        if keyboard_input.any_pressed([KeyCode::ArrowUp, KeyCode::KeyW]) {
             velocity.linvel += transform.forward().normalize() * timer.delta_seconds() * 60.0;
             particle_spawn.send(ParticleSpawnEvent {
                 entity,
@@ -116,8 +117,8 @@ fn player_input(
             });
         }
 
-        if keyboard_input.any_pressed([KeyCode::Left, KeyCode::A, KeyCode::Right, KeyCode::D]) {
-            let sign = if keyboard_input.any_pressed([KeyCode::Left, KeyCode::A]) {
+        if keyboard_input.any_pressed([KeyCode::ArrowLeft, KeyCode::KeyA, KeyCode::ArrowRight, KeyCode::KeyD]) {
+            let sign = if keyboard_input.any_pressed([KeyCode::ArrowLeft, KeyCode::KeyA]) {
                 1.0
             } else {
                 -1.0
@@ -182,7 +183,7 @@ fn player_trail_setup(
     ];
 
     for trail in TRAILS {
-        let mesh = Mesh::new(PrimitiveTopology::TriangleStrip);
+        let mesh = Mesh::new(PrimitiveTopology::TriangleStrip, RenderAssetUsages::all());
 
         let mesh_handle = meshes.add(mesh);
         commands.spawn((
@@ -269,7 +270,7 @@ fn player_line_setup(
         ..default()
     });
 
-    let mut mesh = Mesh::new(PrimitiveTopology::TriangleStrip);
+    let mut mesh = Mesh::new(PrimitiveTopology::TriangleStrip, RenderAssetUsages::all());
     mesh.insert_attribute(
         Mesh::ATTRIBUTE_POSITION,
         [Vec3::ZERO; PREDICTION_LENGTH * 2].to_vec(),

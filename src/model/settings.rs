@@ -1,6 +1,7 @@
 use std::{fs, io};
 
 use bevy::prelude::*;
+use cfg_if::cfg_if;
 use serde::{Deserialize, Serialize};
 
 const SETTINGS_PATH: &str = "settings.json";
@@ -27,32 +28,48 @@ pub enum PersistSettingsError {
 }
 
 pub fn persist_settings(settings: &Settings) -> Result<(), PersistSettingsError> {
-    let contents = serde_json::to_string(settings).map_err(PersistSettingsError::Serde)?;
+    cfg_if! {
+        if #[cfg(target_arch = "wasm32")] {
+            return Ok(());
+        } else {
+            let contents = serde_json::to_string(settings).map_err(PersistSettingsError::Serde)?;
 
-    fs::write(SETTINGS_PATH, contents).map_err(PersistSettingsError::Io)?;
-    Ok(())
+            fs::write(SETTINGS_PATH, contents).map_err(PersistSettingsError::Io)?;
+            Ok(())
+        }
+    }
 }
 
+
+
+
 pub fn load_settings() -> Settings {
-    if let Ok(content) = fs::read_to_string(SETTINGS_PATH)
-        && let Ok(settings) = serde_json::from_str(content.as_str())
-    {
-        settings
-    } else {
-        let settings = Settings::default();
-        match persist_settings(&settings) {
-            Ok(_) => {}
-            Err(e) => match e {
-                PersistSettingsError::Io(e) => {
-                    error!("Failed to persist settings: {:?}", e);
+    cfg_if! {
+        if #[cfg(target_family = "wasm")] {
+            return Settings::default();
+        } else {
+            if let Ok(content) = fs::read_to_string(SETTINGS_PATH)
+                && let Ok(settings) = serde_json::from_str(content.as_str())
+            {
+                settings
+            } else {
+                let settings = Settings::default();
+                match persist_settings(&settings) {
+                    Ok(_) => {}
+                    Err(e) => match e {
+                        PersistSettingsError::Io(e) => {
+                            error!("Failed to persist settings: {:?}", e);
+                        }
+                        PersistSettingsError::Serde(e) => {
+                            error!("Failed to encode settings: {:?}", e);
+                        }
+                    },
                 }
-                PersistSettingsError::Serde(e) => {
-                    error!("Failed to encode settings: {:?}", e);
-                }
-            },
+                settings
+            }
         }
-        settings
     }
+    
 }
 
 fn persist_settings_system(settings: Res<Settings>) {
@@ -77,9 +94,9 @@ impl Plugin for SettingsPlugin {
             .add_systems(
                 Update,
                 persist_settings_system.run_if(
-                    resource_changed::<Settings>()
+                    resource_changed::<Settings>
                         // Make sure this system does not run when settings are inserted
-                        .and_then(not(resource_added::<Settings>())),
+                        .and_then(not(resource_added::<Settings>)),
                 ),
             );
     }

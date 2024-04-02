@@ -1,6 +1,5 @@
 use bevy::{
     core_pipeline::{
-        clear_color::ClearColorConfig,
         prepass::{DepthPrepass, NormalPrepass},
         Skybox,
     },
@@ -11,15 +10,12 @@ use bevy::{
     },
 };
 use bevy_asset_loader::asset_collection::AssetCollection;
+use cfg_if::cfg_if;
 
 use crate::{
-    states::{game_running, ON_GAME_STARTED},
-    utils::sets::Set,
+    states::{game_running, AppState, DespawnOnCleanup, ON_GAME_STARTED},
+    utils::{asset_loading::AppExtension, sets::Set},
     Movement,
-};
-use crate::{
-    states::{AppState, DespawnOnCleanup},
-    utils::asset_loading::AppExtension,
 };
 
 use super::spaceship::player::Player;
@@ -71,11 +67,9 @@ pub fn spawn_camera(commands: &mut Commands, transform: Transform, camera_assets
     commands.spawn((
         DespawnOnCleanup,
         Camera2dBundle {
-            camera_2d: Camera2d {
-                clear_color: ClearColorConfig::None,
-            },
             camera: Camera {
                 order: 1,
+                clear_color: ClearColorConfig::None,
                 ..default()
             },
             ..default()
@@ -83,30 +77,36 @@ pub fn spawn_camera(commands: &mut Commands, transform: Transform, camera_assets
         RenderLayers::layer(RENDER_LAYER_2D),
     ));
 
-    commands.spawn((
+    let mut camera = commands.spawn((
         Camera3dBundle {
             transform,
             projection: Projection::Perspective(PerspectiveProjection {
                 far: 10000.0,
                 ..default()
             }),
-            camera_3d: Camera3d {
-                clear_color: ClearColorConfig::Custom(Color::MIDNIGHT_BLUE),
-                ..default()
-            },
             ..default()
         },
-        Skybox(camera_assets.skybox.clone()),
+        Skybox {
+            image: camera_assets.skybox.clone(), 
+            brightness: 1000., 
+        },
         CameraComponent,
-        DepthPrepass,
-        NormalPrepass,
         Movement::default(),
         DespawnOnCleanup,
     ));
+
+    cfg_if! {
+        if #[cfg(not(target_family = "wasm"))] {
+            camera.insert((
+                DepthPrepass,
+                NormalPrepass,
+            ));
+        }
+    }
 }
 
 fn control_camera(
-    input: Res<Input<KeyCode>>,
+    input: Res<ButtonInput<KeyCode>>,
     mut camera: Query<&mut Transform, With<CameraComponent>>,
     time: Res<Time>,
 ) {
@@ -114,16 +114,16 @@ fn control_camera(
         return;
     };
 
-    if input.pressed(KeyCode::Up) {
+    if input.pressed(KeyCode::ArrowUp) {
         camera_transform.rotate_local_x(time.delta_seconds() * 2.0);
     }
-    if input.pressed(KeyCode::Down) {
+    if input.pressed(KeyCode::ArrowDown) {
         camera_transform.rotate_local_x(-time.delta_seconds() * 2.0);
     }
-    if input.pressed(KeyCode::Left) {
+    if input.pressed(KeyCode::ArrowLeft) {
         camera_transform.rotate_local_y(time.delta_seconds() * 2.0);
     }
-    if input.pressed(KeyCode::Right) {
+    if input.pressed(KeyCode::ArrowRight) {
         camera_transform.rotate_local_y(-time.delta_seconds() * 2.0);
     }
 }

@@ -120,6 +120,7 @@ fn score_setup(mut commands: Commands, font_resource: Res<FontsResource>) {
                     align_items: AlignItems::Center,
                     justify_content: JustifyContent::Center,
                     width: Val::Percent(100.0),
+                    height: Val::Percent(100.0), 
                     ..default()
                 },
                 ..default()

@@ -1,12 +1,9 @@
 use std::f32::consts::FRAC_PI_2;
 
 use bevy::{
-    core_pipeline::clear_color::ClearColorConfig,
     prelude::*,
-    render::{
-        mesh::shape::Quad,
-        render_resource::{AsBindGroup, ShaderRef},
-    },
+    render::render_resource::{AsBindGroup, ShaderRef}
+    ,
 };
 
 use crate::states::AppState;
@@ -42,7 +39,7 @@ fn particle_test_scene_setup(
     mut materials: ResMut<Assets<ParticleMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
-    let mesh = meshes.add(Quad::new(Vec2::new(5.0, 5.0)).into());
+    let mesh = meshes.add(Rectangle::new(5.0, 5.0));
     let material = materials.add(ParticleMaterial {
         color: Color::GREEN,
     });
@@ -64,7 +61,7 @@ fn init_camera(mut commands: Commands) {
             far: 10000.0,
             ..default()
         }),
-        camera_3d: Camera3d {
+        camera: Camera {
             clear_color: ClearColorConfig::Custom(Color::MIDNIGHT_BLUE),
             ..default()
         },

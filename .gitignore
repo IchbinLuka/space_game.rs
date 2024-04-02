@@ -1,4 +1,5 @@
 /target
 /.idea/
+/out/
 *.blend1
 settings.json

@@ -124,12 +124,11 @@ pub fn spawn_planet(
     });
 
     let mesh = meshes.add(
-        shape::UVSphere {
-            sectors: 20,
+        Sphere {
+            // sectors: 20,
             radius: size,
             ..default()
         }
-        .into(),
     );
 
     let angvel = Vec3 {

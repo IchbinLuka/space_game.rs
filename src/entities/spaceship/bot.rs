@@ -13,20 +13,18 @@ use crate::{
         bullet::{BulletSpawnEvent, BulletTarget, BulletType},
         explosion::ExplosionEvent,
     },
-    states::game_running,
-    ui::{enemy_indicator::SpawnEnemyIndicator, health_bar_3d::SpawnHealthBar, score::ScoreEvent},
+    materials::toon::{ApplyToonMaterial, ToonMaterial},
+    states::{game_running, DespawnOnCleanup, ON_GAME_STARTED},
+    ui::{
+        enemy_indicator::SpawnEnemyIndicator,
+        health_bar_3d::SpawnHealthBar,
+        minimap::{MinimapAssets, ShowOnMinimap},
+        score::ScoreEvent,
+    },
     utils::{
         collisions::{BOT_COLLISION_GROUP, CRUISER_COLLISION_GROUP},
         math,
     },
-};
-use crate::{
-    materials::toon::{ApplyToonMaterial, ToonMaterial},
-    states::ON_GAME_STARTED,
-};
-use crate::{
-    states::DespawnOnCleanup,
-    ui::minimap::{MinimapAssets, ShowOnMinimap},
 };
 
 use super::{
@@ -280,7 +278,7 @@ fn bot_update(
 
         match bot.state {
             BotState::Chasing => {
-                let mut sign = angle_between_sign(transform.forward(), delta);
+                let mut sign = angle_between_sign(*transform.forward(), delta);
 
                 if distance < 30.0 {
                     sign *= -1.0;
@@ -299,7 +297,7 @@ fn bot_update(
                 }
             }
             BotState::Fleeing => {
-                let angle = delta.angle_between(-transform.forward());
+                let angle = delta.angle_between(-*transform.forward());
                 if angle > 0.1 {
                     let cross = (-transform.forward()).cross(delta);
                     let sign = cross.y.signum();
@@ -350,7 +348,7 @@ fn bot_avoid_collisions(
                 continue;
             }
 
-            let sign = angle_between_sign(transform.forward(), delta);
+            let sign = angle_between_sign(*transform.forward(), delta);
             transform.rotate_y(-sign * 4.0 * time.delta_seconds());
         }
     }
@@ -374,7 +372,7 @@ fn bot_squad_update(
 
         let angle = transform.forward().angle_between(delta);
 
-        let sign = angle_between_sign(transform.forward(), delta);
+        let sign = angle_between_sign(*transform.forward(), delta);
 
         transform.rotate_y(sign * 5.0 * time.delta_seconds());
 
@@ -405,7 +403,7 @@ fn bot_repulsion(
             continue;
         }
 
-        let sign = angle_between_sign(transform.forward(), delta);
+        let sign = angle_between_sign(*transform.forward(), delta);
 
         transform.rotate_y(-sign * 4.0 * time.delta_seconds());
     }

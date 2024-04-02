@@ -6,12 +6,12 @@ use bevy_mod_outline::OutlineBundle;
 use bevy_rapier3d::prelude::*;
 use rand::Rng;
 
-use crate::states::{AppState, DespawnOnCleanup, ON_GAME_STARTED};
 use crate::{
     components::{colliders::VelocityColliderBundle, despawn_after::DespawnTimer},
     entities::bullet::BulletType,
     particles::ParticleMaterial,
     states::game_running,
+    states::{AppState, DespawnOnCleanup, ON_GAME_STARTED},
     ui::score::ScoreEvent,
     utils::{
         collisions::BULLET_COLLISION_GROUP, materials::default_outline,
@@ -239,7 +239,7 @@ fn asteroid_setup(
         color: Color::hex("665F64").unwrap(),
     });
 
-    let particle_mesh = meshes.add(shape::Quad::new(Vec2::splat(0.2)).into());
+    let particle_mesh = meshes.add(Rectangle::new(0.2, 0.2));
 
     commands.insert_resource(AsteroidRes {
         material,

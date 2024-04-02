@@ -183,12 +183,12 @@ fn setup_start_screen(
 #[derive(Component)]
 struct MenuItem;
 
-trait ChildBuilderExtension<'w, 's, 't> {
-    fn menu_item(&mut self, materials: &MenuItemResource) -> EntityCommands<'w, 's, '_>;
+trait ChildBuilderExtension {
+    fn menu_item<'w>(&'w mut self, materials: &MenuItemResource) -> EntityCommands<'w>;
 }
 
-impl<'w, 's, 'a> ChildBuilderExtension<'w, 's, 'a> for ChildBuilder<'w, 's, 'a> {
-    fn menu_item(&mut self, materials: &MenuItemResource) -> EntityCommands<'w, 's, '_> {
+impl ChildBuilderExtension for ChildBuilder<'_> {
+    fn menu_item<'w>(&'w mut self, materials: &MenuItemResource) -> EntityCommands<'w> {
         self.spawn((
             MenuItem,
             MaterialNodeBundle {

@@ -2,18 +2,19 @@ use std::time::Duration;
 
 use bevy::prelude::*;
 use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
-use bevy_audio::VolumeLevel;
 use bevy_mod_outline::{OutlineBundle, OutlineVolume};
 use bevy_rapier3d::prelude::*;
 
-use crate::entities::spaceship::player::LastHit;
-use crate::states::{game_running, AppState, DespawnOnCleanup, ON_GAME_STARTED};
 use crate::{
     components::{gravity::GravityAffected, health::Health},
+    states::{game_running, AppState, DespawnOnCleanup, ON_GAME_STARTED},
     utils::{collisions::BULLET_COLLISION_GROUP, sets::Set},
 };
 
-use super::{explosion::ExplosionEvent, spaceship::player::Player};
+use super::{
+    explosion::ExplosionEvent,
+    spaceship::player::{LastHit, Player},
+};
 
 #[derive(Component)]
 pub struct Bullet {
@@ -55,7 +56,7 @@ fn bullet_setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    let bullet_mesh = meshes.add(shape::Box::from_corners(BULLET_CORNER_1, BULLET_CORNER_2).into());
+    let bullet_mesh = meshes.add(Cuboid::from_corners(BULLET_CORNER_1, BULLET_CORNER_2));
     let bullet_material = materials.add(StandardMaterial {
         base_color: Color::WHITE,
         emissive: Color::WHITE,
@@ -90,7 +91,7 @@ fn bullet_spawn(
         let mut bullet_transform = Transform::from_translation(event.position.translation);
 
         let rotation =
-            Quat::from_rotation_arc(bullet_transform.forward(), event.direction.normalize());
+            Quat::from_rotation_arc(*bullet_transform.forward(), event.direction.normalize());
 
         bullet_transform.rotate(rotation);
 
@@ -132,13 +133,13 @@ fn bullet_spawn(
             AudioBundle {
                 source: assets.test_sound.clone(),
                 settings: PlaybackSettings {
-                    volume: bevy_audio::Volume::Relative(VolumeLevel::new(f32::min(
+                    volume: bevy_audio::Volume::new(f32::min(
                         0.5,
                         40.0 / event
                             .position
                             .translation
                             .distance_squared(player.translation),
-                    ))),
+                    )),
                     ..default()
                 },
             },
@@ -209,7 +210,7 @@ fn bullet_collision(
 fn bullet_rotation_correction(mut query: Query<(&mut Transform, &Velocity, &Bullet)>) {
     for (mut transform, vel, bullet) in &mut query {
         let rotation = Quat::from_rotation_arc(
-            transform.forward(),
+            *transform.forward(),
             (vel.linvel - bullet.relative_speed).normalize(),
         );
         transform.rotate(rotation);

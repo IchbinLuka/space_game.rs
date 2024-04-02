@@ -17,7 +17,6 @@ use crate::components::{
     despawn_after::DespawnTimer,
     health::{DespawnOnDeath, Health, Shield},
 };
-
 use crate::entities::spaceship::bot::SpawnSquad;
 use crate::materials::toon::{ApplyToonMaterial, ToonMaterial};
 use crate::states::{game_running, AppState, DespawnOnCleanup};
@@ -36,8 +35,7 @@ use super::planet::Planet;
 use super::space_station::SpaceStation;
 use super::spaceship::bot::EnemyTarget;
 use super::spaceship::player::Player;
-use super::spaceship::IsBot;
-use super::spaceship::SpaceshipCollisions;
+use super::spaceship::{IsBot, SpaceshipCollisions};
 
 const CRUISER_HITBOX_SIZE: Vec3 = Vec3::new(3.5, 3., 13.);
 const CRUISER_SPEED: f32 = 2.0;
@@ -342,11 +340,10 @@ fn finish_cruiser(
             CruiserShield,
             PbrBundle {
                 mesh: meshes.add(
-                    shape::UVSphere {
+                    Sphere {
                         radius: 10.,
                         ..default()
                     }
-                    .into(),
                 ),
                 material: materials.add(StandardMaterial {
                     base_color: Color::hex("2ae0ed0f").unwrap(),
@@ -460,12 +457,11 @@ fn cruiser_scene_setup(
                                 ..default()
                             }),
                             mesh: meshes.add(
-                                shape::Cylinder {
+                                Cylinder {
                                     radius: 1.,
-                                    height: CRUISER_TRAIL_LENGTH,
+                                    half_height: CRUISER_TRAIL_LENGTH / 2.,
                                     ..default()
                                 }
-                                .into(),
                             ),
                             transform: Transform {
                                 rotation: Quat::from_rotation_x(FRAC_PI_2),
@@ -486,7 +482,7 @@ fn cruiser_scene_setup(
 
                 commands.entity(entity).insert(CruiserTurret {
                     shoot_timer,
-                    base_orientation: global_transform.compute_transform().forward(),
+                    base_orientation: *global_transform.compute_transform().forward(),
                 });
             }
         }

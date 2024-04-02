@@ -15,7 +15,7 @@
     texture_sampler
 }
 
-@group(1)
+@group(2)
 @binding(3)
 var<uniform> center: vec3<f32>;
 

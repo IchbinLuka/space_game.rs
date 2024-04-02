@@ -1,7 +1,7 @@
 use bevy::{
     ecs::system::Command,
     prelude::*,
-    render::{render_resource::PrimitiveTopology, view::RenderLayers},
+    render::{render_asset::RenderAssetUsages, render_resource::PrimitiveTopology, view::RenderLayers},
     sprite::MaterialMesh2dBundle,
 };
 
@@ -84,7 +84,7 @@ fn setup_enemy_indicator(
     mut commands: Commands,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
+    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::all());
     mesh.insert_attribute(
         Mesh::ATTRIBUTE_POSITION,
         vec![[0., 0.5, 0.], [0., -0.5, 0.], [1., 0., 0.]],
@@ -92,7 +92,7 @@ fn setup_enemy_indicator(
 
     let mesh = meshes.add(mesh);
 
-    let material = materials.add(Color::RED.into());
+    let material = materials.add(Color::RED);
 
     commands.insert_resource(EnemyIndicatorRes { mesh, material });
 }

@@ -21,7 +21,7 @@ fn setup_fire_particles(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ParticleMaterial>>,
 ) {
-    let mesh = meshes.add(shape::Quad::new(Vec2::splat(0.4)).into());
+    let mesh = meshes.add(Rectangle::new(0.4, 0.4));
 
     let colors = [
         Color::hex("ef8904").unwrap(),
