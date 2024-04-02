@@ -118,7 +118,7 @@ pub fn spawn_planet(
     let mut rng = rand::thread_rng();
 
     let material = materials.add(PlanetMaterial {
-        center: pos,
+        center: Vec4::new(pos.x, pos.y, pos.z, 0.0),
         color,
         texture: planet_assets.texture.clone(),
     });

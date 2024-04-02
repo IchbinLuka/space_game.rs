@@ -13,7 +13,7 @@ pub struct PlanetMaterial {
     pub color: Color,
 
     #[uniform(3)]
-    pub center: Vec3,
+    pub center: Vec4,
 
     #[texture(1)]
     #[sampler(2)]

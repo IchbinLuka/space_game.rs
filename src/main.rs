@@ -8,7 +8,7 @@ i18n!();
 
 use std::f32::consts::FRAC_PI_4;
 
-use bevy::{log::LogPlugin, pbr::DirectionalLightShadowMap, prelude::*, window::PresentMode};
+use bevy::{asset::AssetMetaCheck, log::LogPlugin, pbr::DirectionalLightShadowMap, prelude::*, window::PresentMode};
 use bevy_mod_outline::{AutoGenerateOutlineNormalsPlugin, OutlinePlugin};
 use bevy_obj::ObjPlugin;
 use bevy_rapier3d::prelude::*;
@@ -116,9 +116,25 @@ fn scene_setup_3d(mut commands: Commands, settings: Res<Settings>) {
     ));
 }
 
+// https://taintedcoders.com/bevy/how-to/browser-fullscreen/
+#[cfg(target_family = "wasm")]
+fn update_canvas_size(mut window: Query<&mut Window, With<bevy::window::PrimaryWindow>>) {
+    (|| {
+        let mut window = window.get_single_mut().ok()?;
+        let browser_window = web_sys::window()?;
+        let width = browser_window.inner_width().ok()?.as_f64()?;
+        let height = browser_window.inner_height().ok()?.as_f64()?;
+        window.resolution.set(width as f32, height as f32);
+        Some(())
+    })();
+}
+
+
 fn main() {
     let mut app = App::new();
-    app.add_plugins(
+    app
+        .insert_resource(AssetMetaCheck::Never)
+        .add_plugins(
         DefaultPlugins
             .set(LogPlugin {
                 level: bevy::log::Level::INFO,
@@ -128,6 +144,7 @@ fn main() {
                 primary_window: Some(Window {
                     title: "Space Game".into(),
                     present_mode: PresentMode::AutoVsync,
+                    prevent_default_event_handling: false,
                     ..default()
                 }),
                 ..default()
@@ -168,6 +185,7 @@ fn main() {
     cfg_if! {
         if #[cfg(target_family = "wasm")] {
             app.insert_resource(Msaa::Off);
+            app.add_systems(Update, update_canvas_size);
         }
     }
 

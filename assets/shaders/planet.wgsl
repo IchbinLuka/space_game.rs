@@ -17,7 +17,7 @@
 
 @group(2)
 @binding(3)
-var<uniform> center: vec3<f32>;
+var<uniform> center: vec4<f32>;
 
 fn shadow_multiplier(in: VertexOutput) -> f32 {
     let n_directional_lights = lights.n_directional_lights;
@@ -26,7 +26,7 @@ fn shadow_multiplier(in: VertexOutput) -> f32 {
     for (var i: u32 = 0u; i < n_directional_lights; i = i + 1u) {
         let light = &lights.directional_lights[i];
 
-        let normal = in.world_position.xyz - center;
+        let normal = in.world_position.xyz - center.xyz;
 
         let dot_prod = dot(normal, (*light).direction_to_light);
 
@@ -44,10 +44,10 @@ fn shadow_multiplier(in: VertexOutput) -> f32 {
         // }
     }
 
-    return shadow; // TODO: implement shadows
+    return shadow;
 }
 
 @fragment
 fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
-    return settings.color *  shadow_multiplier(in) * textureSampleBias(texture, texture_sampler, in.uv, view.mip_bias);
+    return vec4<f32>((shadow_multiplier(in) * settings.color).xyz, settings.color.w) * textureSampleBias(texture, texture_sampler, in.uv, view.mip_bias);
 }

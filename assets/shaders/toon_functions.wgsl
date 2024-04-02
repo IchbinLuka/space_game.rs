@@ -35,7 +35,7 @@
     texture_sampler
 }
 
-
+#ifndef WEBGL2
 fn toon_outline(position: vec3<f32>, world_pos: vec3<f32>) -> bool {
     let sample_index = 0u;
 
@@ -80,6 +80,7 @@ fn toon_outline(position: vec3<f32>, world_pos: vec3<f32>) -> bool {
 
     return edge_normal || edge_depth;
 }
+#endif
 
 
 fn toon_fragment(in: VertexOutput) -> vec4<f32> {
@@ -89,9 +90,11 @@ fn toon_fragment(in: VertexOutput) -> vec4<f32> {
         out_color *= textureSampleBias(texture, texture_sampler, in.uv, view.mip_bias);
     }
 
+    #ifndef WEBGL2
     if toon_outline(in.position.xyz, in.world_position.xyz) {
         return vec4(0.0, 0.0, 0.0, 1.0);
     }
+    #endif
 
     return out_color;
 }
@@ -109,12 +112,15 @@ fn toon_fragment_multisampled(in: VertexOutput, subsample_radius: f32) -> vec4<f
 
     let sample_count = 7u;
     var outline_count: u32 = 0u;
+    
+    #ifndef WEBGL2
     for (var i: u32 = 0u; i < sample_count; i += 1u) {
         let offset = subsample_offsets[i];
         if toon_outline(in.position.xyz + vec3<f32>(offset, 0.0), in.world_position.xyz) {
             outline_count += 1u;
         }
     }
+    #endif
 
     var out_color: vec4<f32> = settings.color;
 
