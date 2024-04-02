@@ -163,8 +163,7 @@ fn main() {
         MaterialsPlugin,
         ModelPlugin,
     ))
-    .insert_resource(DirectionalLightShadowMap { size: 4096 })
-    .insert_resource(Msaa::Off);
+    .insert_resource(DirectionalLightShadowMap { size: 4096 });
 
     cfg_if! {
         if #[cfg(target_family = "wasm")] {

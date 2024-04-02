@@ -115,12 +115,12 @@ fn score_setup(mut commands: Commands, font_resource: Res<FontsResource>) {
         .spawn((
             NodeBundle {
                 style: Style {
-                    align_content: AlignContent::Center,
-                    display: Display::Flex,
-                    align_items: AlignItems::Center,
+                    position_type: PositionType::Absolute,
+                    flex_direction: FlexDirection::Row, 
+                    align_items: AlignItems::Start,
                     justify_content: JustifyContent::Center,
                     width: Val::Percent(100.0),
-                    height: Val::Percent(100.0),
+                    top: Val::Px(10.), 
                     ..default()
                 },
                 ..default()
