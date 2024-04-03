@@ -32,7 +32,8 @@ impl Plugin for PlanetPlugin {
         .add_systems(
             ON_GAME_STARTED,
             planet_setup_main_scene.after(setup_space_station),
-        );
+        )
+        .add_systems(Startup, planet_setup);
     }
 }
 
@@ -47,6 +48,11 @@ pub struct PlanetAssets {
     texture: Handle<Image>,
 }
 
+#[derive(Resource)]
+pub struct PlanetRes {
+    mesh: Handle<Mesh>, 
+}
+
 const PLANET_COUNT: usize = 15;
 const COLLISION_GROUPS: CollisionGroups = CollisionGroups::new(PLANET_COLLISION_GROUP, Group::ALL);
 
@@ -54,6 +60,18 @@ pub struct PlanetSpawnConfig {
     pub color: Color,
     pub size: f32,
     pub pos: Vec3,
+}
+
+fn planet_setup(
+    mut commands: Commands, 
+    mut meshes: ResMut<Assets<Mesh>>,
+) {
+    commands.insert_resource(PlanetRes {
+        mesh: meshes.add(Sphere {
+            radius: 1.0,
+            ..default()
+        }.mesh().uv(32, 18)),
+    });
 }
 
 pub fn planet_setup_main_scene(
@@ -67,10 +85,10 @@ pub fn planet_setup_main_scene(
     for _ in 0..PLANET_COUNT {
         let size = rng.gen_range(7.0..25.0);
 
-        let color = Color::rgb(
-            rng.gen_range(0.0..1.0),
-            rng.gen_range(0.0..1.0),
-            rng.gen_range(0.0..1.0),
+        let color = Color::hsl(
+            rng.gen_range(0.0..360.0), 
+            rng.gen_range(0.5..1.0), 
+            rng.gen_range(0.5..0.8)
         );
 
         // Try 10 times to find a suitable position for the planet, then abort
@@ -109,9 +127,9 @@ pub fn spawn_planet(
     In(config): In<PlanetSpawnConfig>,
     mut commands: Commands,
     mut materials: ResMut<Assets<PlanetMaterial>>,
-    mut meshes: ResMut<Assets<Mesh>>,
     planet_assets: Res<PlanetAssets>,
     minimap_assets: Res<MinimapAssets>,
+    planet_res: Res<PlanetRes>,
 ) {
     let PlanetSpawnConfig { color, size, pos } = config;
 
@@ -123,12 +141,6 @@ pub fn spawn_planet(
         texture: planet_assets.texture.clone(),
     });
 
-    let mesh = meshes.add(Sphere {
-        // sectors: 20,
-        radius: size,
-        ..default()
-    });
-
     let angvel = Vec3 {
         y: rng.gen_range(-0.1..0.1),
         ..Vec3::ZERO
@@ -137,7 +149,7 @@ pub fn spawn_planet(
     commands.spawn((
         DespawnOnCleanup,
         MaterialMeshBundle {
-            mesh,
+            mesh: planet_res.mesh.clone(),
             material,
             transform: Transform {
                 translation: pos,
@@ -147,12 +159,13 @@ pub fn spawn_planet(
                     rng.gen_range(0.0..std::f32::consts::PI),
                     rng.gen_range(0.0..std::f32::consts::PI),
                 ),
-                ..default()
+                // ..default()
+                scale: Vec3::splat(size),
             },
             ..default()
         },
         Planet { radius: size },
-        Collider::ball(size),
+        Collider::ball(1.0),
         RigidBody::KinematicVelocityBased,
         Velocity {
             angvel,

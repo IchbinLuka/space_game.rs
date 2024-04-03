@@ -1,6 +1,7 @@
 use bevy::{pbr::StandardMaterial, render::color::Color, utils::default};
 use bevy_mod_outline::OutlineVolume;
 
+#[inline(always)]
 pub fn _matte_material() -> StandardMaterial {
     StandardMaterial {
         metallic: 0.0,
@@ -9,6 +10,7 @@ pub fn _matte_material() -> StandardMaterial {
     }
 }
 
+#[inline(always)]
 pub fn default_outline() -> OutlineVolume {
     OutlineVolume {
         visible: true,

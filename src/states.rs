@@ -1,6 +1,7 @@
 pub mod loading_screen;
 pub mod pause;
 pub mod start_screen;
+pub mod main_scene;
 
 use bevy::app::{App, Plugin};
 use bevy::ecs::component::Component;
@@ -119,6 +120,7 @@ impl Plugin for StatesPlugin {
                 pause::PausePlugin,
                 loading_screen::LoadingScreenPlugin,
                 start_screen::StartScreenPlugin,
+                main_scene::MainScenePlugin,
             ));
     }
 }

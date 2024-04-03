@@ -1,1 +1,1 @@
-cargo run --features "bevy/dynamic_linking bevy_rapier3d/parallel"
+cargo run --features "bevy/dynamic_linking bevy_rapier3d/parallel debug"

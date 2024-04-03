@@ -14,7 +14,6 @@ use cfg_if::cfg_if;
 use crate::{
     states::{game_running, AppState, DespawnOnCleanup, ON_GAME_STARTED},
     utils::{asset_loading::AppExtension, sets::Set},
-    Movement,
 };
 
 use super::spaceship::player::Player;
@@ -90,7 +89,6 @@ pub fn spawn_camera(commands: &mut Commands, transform: Transform, camera_assets
             brightness: 1000.,
         },
         CameraComponent,
-        Movement::default(),
         DespawnOnCleanup,
     ));
 

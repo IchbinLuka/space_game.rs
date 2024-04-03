@@ -1,6 +1,7 @@
 use bevy::animation::RepeatAnimation;
 use bevy::prelude::*;
 use bevy_asset_loader::asset_collection::AssetCollection;
+use bevy_mod_outline::{OutlineBundle, OutlineVolume};
 use bevy_rapier3d::prelude::*;
 use rand::Rng;
 
@@ -10,6 +11,7 @@ use crate::states::DespawnOnCleanup;
 use crate::ui::game_over::GameOverEvent;
 use crate::ui::minimap::{MinimapAssets, ShowOnMinimap};
 use crate::utils::asset_loading::AppExtension;
+use crate::utils::materials::default_outline;
 use crate::utils::scene::AnimationRoot;
 use crate::{
     components::health::Health,
@@ -87,7 +89,16 @@ pub fn spawn_space_station(
             LastHit::default(),
             ActiveCollisionTypes::DYNAMIC_STATIC | ActiveCollisionTypes::KINEMATIC_STATIC,
             Health::new(200.),
-            DespawnOnCleanup,
+            (
+                DespawnOnCleanup,
+                OutlineBundle {
+                    outline: OutlineVolume {
+                        width: 1.0,
+                        ..default_outline()
+                    }, 
+                    ..default()
+                }
+            )
         ))
         .id();
 
