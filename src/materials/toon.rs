@@ -169,6 +169,6 @@ impl Plugin for ToonMaterialPlugin {
             prepass_enabled: true,
             ..default()
         })
-        .add_systems(Update, apply_toon_materials);
+        .add_systems(PostUpdate, apply_toon_materials);
     }
 }

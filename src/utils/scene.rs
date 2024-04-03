@@ -59,6 +59,6 @@ pub struct ScenePlugin;
 
 impl Plugin for ScenePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (setup_scene_once_loaded, setup_animation_root));
+        app.add_systems(PostUpdate, (setup_scene_once_loaded, setup_animation_root));
     }
 }
