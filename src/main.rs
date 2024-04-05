@@ -51,7 +51,6 @@ fn update_canvas_size(mut window: Query<&mut Window, With<bevy::window::PrimaryW
     })();
 }
 
-
 fn main() {
     let mut app = App::new();
     app
