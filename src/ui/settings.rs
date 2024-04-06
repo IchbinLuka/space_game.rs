@@ -73,13 +73,13 @@ impl Command for OpenSettings {
             .spawn((
                 SettingsScreen,
                 NodeBundle {
-                    z_index: ZIndex::Global(10), 
+                    z_index: ZIndex::Global(10),
                     focus_policy: FocusPolicy::Block,
                     style: Style {
-                        position_type: PositionType::Absolute, 
+                        position_type: PositionType::Absolute,
                         width: Val::Percent(100.),
                         height: Val::Percent(100.),
-                        
+
                         display: Display::Flex,
                         align_content: AlignContent::Center,
                         align_items: AlignItems::Center,

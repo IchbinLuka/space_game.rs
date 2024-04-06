@@ -9,6 +9,8 @@ use crate::ui::button::TextButtonBundle;
 use crate::ui::fonts::FontsResource;
 use crate::ui::theme::{fullscreen_center_style, text_button_style, text_title_style};
 
+use super::score::Score;
+
 #[derive(Event)]
 pub struct GameOverEvent;
 
@@ -32,6 +34,7 @@ fn game_over_screen_setup(
     mut commands: Commands,
     font_res: Res<FontsResource>,
     mut rapier_config: ResMut<RapierConfiguration>,
+    score: Res<Score>,
 ) {
     pause_physics(&mut rapier_config);
     commands
@@ -47,6 +50,11 @@ fn game_over_screen_setup(
             c.spawn(TextBundle::from_section(
                 t!("game_over"),
                 text_title_style(&font_res),
+            ));
+
+            c.spawn(TextBundle::from_section(
+                t!("score", score = score.0),
+                text_button_style(&font_res),
             ));
 
             c.spawn((

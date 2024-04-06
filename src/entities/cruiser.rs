@@ -340,10 +340,7 @@ fn finish_cruiser(
         .spawn((
             CruiserShield,
             PbrBundle {
-                mesh: meshes.add(Sphere {
-                    radius: 10.,
-                    ..default()
-                }),
+                mesh: meshes.add(Sphere { radius: 10., }),
                 material: materials.add(StandardMaterial {
                     base_color: Color::hex("2ae0ed0f").unwrap(),
                     unlit: true,
@@ -458,7 +455,6 @@ fn cruiser_scene_setup(
                             mesh: meshes.add(Cylinder {
                                 radius: 1.,
                                 half_height: CRUISER_TRAIL_LENGTH / 2.,
-                                ..default()
                             }),
                             transform: Transform {
                                 rotation: Quat::from_rotation_x(FRAC_PI_2),

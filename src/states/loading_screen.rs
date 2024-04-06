@@ -44,25 +44,26 @@ fn loading_screen_setup(mut commands: Commands, font_res: Res<FontsResource>) {
 
             p.spawn(NodeBundle {
                 style: Style {
-                    width: Val::Px(300.), 
+                    width: Val::Px(300.),
                     height: Val::Px(20.),
-                    border: UiRect::all(Val::Px(2.)), 
+                    border: UiRect::all(Val::Px(2.)),
                     ..default()
-                }, 
+                },
                 border_color: Color::WHITE.into(),
                 ..default()
-            }).with_children(|c| {
+            })
+            .with_children(|c| {
                 c.spawn((
-                    ProgressBar, 
+                    ProgressBar,
                     NodeBundle {
                         style: Style {
                             width: Val::Percent(0.),
                             height: Val::Percent(100.),
                             ..default()
-                        }, 
+                        },
                         background_color: Color::WHITE.into(),
                         ..default()
-                    }
+                    },
                 ));
             });
         });
@@ -76,7 +77,7 @@ fn loading_screen_cleanup(mut commands: Commands, query: Query<Entity, With<Load
 
 fn loading_screen_progress(
     mut progress_bars: Query<&mut Style, With<ProgressBar>>,
-    counter: Res<ProgressCounter>, 
+    counter: Res<ProgressCounter>,
 ) {
     let progress = counter.progress_complete();
     let float_progress: f32 = progress.into();
@@ -90,10 +91,12 @@ pub struct LoadingScreenPlugin;
 impl Plugin for LoadingScreenPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         for LoadingStateItem { loading_state, .. } in AppState::LOADING_STATES {
-            app
-                .add_systems(OnEnter(*loading_state), loading_screen_setup)
+            app.add_systems(OnEnter(*loading_state), loading_screen_setup)
                 .add_systems(OnExit(*loading_state), loading_screen_cleanup)
-                .add_systems(Update, loading_screen_progress.run_if(in_state(loading_state.clone())));
+                .add_systems(
+                    Update,
+                    loading_screen_progress.run_if(in_state(*loading_state)),
+                );
         }
     }
 }

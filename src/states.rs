@@ -1,7 +1,7 @@
 pub mod loading_screen;
+pub mod main_scene;
 pub mod pause;
 pub mod start_screen;
-pub mod main_scene;
 
 use bevy::app::{App, Plugin};
 use bevy::ecs::component::Component;
@@ -110,10 +110,8 @@ impl Plugin for StatesPlugin {
         } in AppState::LOADING_STATES
         {
             // app.add_loading_state(LoadingState::new(*loading_state).continue_to_state(*next_state));
-            app
-                .add_loading_state(LoadingState::new(*loading_state))
+            app.add_loading_state(LoadingState::new(*loading_state))
                 .add_plugins(ProgressPlugin::new(*loading_state).continue_to(*next_state));
-
         }
 
         app.init_state::<AppState>()

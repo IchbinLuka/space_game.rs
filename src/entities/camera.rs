@@ -1,6 +1,7 @@
 use bevy::{
     core_pipeline::{
-        prepass::{DepthPrepass, NormalPrepass}, Skybox
+        prepass::{DepthPrepass, NormalPrepass},
+        Skybox,
     },
     prelude::*,
     render::{

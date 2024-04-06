@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 
 use bevy::{
+    pbr::{NotShadowCaster, NotShadowReceiver},
     prelude::*,
     render::{render_asset::RenderAssetUsages, render_resource::PrimitiveTopology},
 };
@@ -201,6 +202,8 @@ fn player_trail_setup(
                 ..default()
             },
             trail,
+            NotShadowReceiver,
+            NotShadowCaster,
             DespawnOnCleanup,
         ));
     }

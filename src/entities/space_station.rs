@@ -95,10 +95,10 @@ pub fn spawn_space_station(
                     outline: OutlineVolume {
                         width: 1.0,
                         ..default_outline()
-                    }, 
+                    },
                     ..default()
-                }
-            )
+                },
+            ),
         ))
         .id();
 

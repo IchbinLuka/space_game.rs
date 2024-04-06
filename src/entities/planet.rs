@@ -50,7 +50,7 @@ pub struct PlanetAssets {
 
 #[derive(Resource)]
 pub struct PlanetRes {
-    mesh: Handle<Mesh>, 
+    mesh: Handle<Mesh>,
 }
 
 const PLANET_COUNT: usize = 15;
@@ -62,15 +62,13 @@ pub struct PlanetSpawnConfig {
     pub pos: Vec3,
 }
 
-fn planet_setup(
-    mut commands: Commands, 
-    mut meshes: ResMut<Assets<Mesh>>,
-) {
+fn planet_setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
     commands.insert_resource(PlanetRes {
-        mesh: meshes.add(Sphere {
-            radius: 1.0,
-            ..default()
-        }.mesh().uv(32, 18)),
+        mesh: meshes.add(
+            Sphere { radius: 1.0, }
+            .mesh()
+            .uv(32, 18),
+        ),
     });
 }
 
@@ -86,9 +84,9 @@ pub fn planet_setup_main_scene(
         let size = rng.gen_range(7.0..25.0);
 
         let color = Color::hsl(
-            rng.gen_range(0.0..360.0), 
-            rng.gen_range(0.5..1.0), 
-            rng.gen_range(0.5..0.8)
+            rng.gen_range(0.0..360.0),
+            rng.gen_range(0.5..1.0),
+            rng.gen_range(0.5..0.8),
         );
 
         // Try 10 times to find a suitable position for the planet, then abort

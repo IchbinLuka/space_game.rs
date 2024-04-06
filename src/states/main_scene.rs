@@ -1,14 +1,16 @@
-use std::f32::consts::FRAC_PI_4;
+use std::{f32::consts::FRAC_PI_4, time::Duration};
 
 use bevy::prelude::*;
 
-use crate::model::settings::Settings;
+use crate::{
+    components::despawn_after::DespawnTimer,
+    model::settings::Settings,
+    ui::{fonts::FontsResource, theme::text_body_style},
+};
 
 use super::{DespawnOnCleanup, ON_GAME_STARTED};
 
-
-
-fn scene_setup_3d(mut commands: Commands, settings: Res<Settings>) {
+fn main_scene_setup(mut commands: Commands, settings: Res<Settings>, font_res: Res<FontsResource>) {
     commands.insert_resource(AmbientLight {
         color: Color::WHITE,
         brightness: 0.5,
@@ -31,12 +33,42 @@ fn scene_setup_3d(mut commands: Commands, settings: Res<Settings>) {
             ..default()
         },
     ));
-}
 
+    commands
+        .spawn((
+            DespawnOnCleanup,
+            DespawnTimer::new(Duration::from_secs(5)),
+            NodeBundle {
+                style: Style {
+                    position_type: PositionType::Absolute,
+                    justify_content: JustifyContent::Center,
+                    width: Val::Percent(100.),
+                    height: Val::Percent(100.),
+                    ..default()
+                },
+                ..default()
+            },
+        ))
+        .with_children(|c| {
+            c.spawn(TextBundle {
+                style: Style {
+                    top: Val::Percent(30.),
+                    ..default()
+                },
+                ..TextBundle::from_section(
+                    t!("protect_space_stations"),
+                    TextStyle {
+                        font_size: 50.,
+                        ..text_body_style(&font_res)
+                    },
+                )
+            });
+        });
+}
 
 pub struct MainScenePlugin;
 impl Plugin for MainScenePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(ON_GAME_STARTED, scene_setup_3d);
+        app.add_systems(ON_GAME_STARTED, main_scene_setup);
     }
 }

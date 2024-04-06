@@ -146,7 +146,9 @@ fn apply_toon_materials(
                         ..apply_outline.base_material.clone()
                     });
 
-                    let Some(mut entity_commands) = commands.get_entity(entity) else { continue; };
+                    let Some(mut entity_commands) = commands.get_entity(entity) else {
+                        continue;
+                    };
                     entity_commands
                         .insert(outline_material)
                         .remove::<Handle<StandardMaterial>>();

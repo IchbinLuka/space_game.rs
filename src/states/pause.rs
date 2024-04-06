@@ -33,7 +33,7 @@ fn on_pause(
             PauseScreen,
             NodeBundle {
                 style: Style {
-                    position_type: PositionType::Absolute, 
+                    position_type: PositionType::Absolute,
                     height: Val::Percent(100.),
                     display: Display::Flex,
                     flex_direction: FlexDirection::Column,
