@@ -15,8 +15,7 @@ use crate::{
         movement::MaxSpeed,
     },
     entities::{
-        bullet::{BulletSpawnEvent, BulletTarget, BulletType},
-        planet::Planet,
+        bullet::{BulletSpawnEvent, BulletTarget, BulletType}, explosion::ExplosionEvent, planet::Planet
     },
     materials::toon::{ApplyToonMaterial, ToonMaterial},
     states::{game_running, DespawnOnCleanup, ON_GAME_STARTED},
@@ -25,7 +24,7 @@ use crate::{
         minimap::{MinimapAssets, ShowOnMinimap},
         theme::default_font,
     },
-    utils::sets::Set,
+    utils::{misc::AsCommand, sets::Set},
 };
 
 use super::bot::EnemyTarget;
@@ -71,7 +70,7 @@ fn player_shoot(
 const HEAL_COOLDOWN: f32 = 4.0;
 const HEAL_SPEED: f32 = 2.0;
 
-fn player_setup(
+fn spawn_player(
     mut commands: Commands,
     assets: Res<SpaceshipAssets>,
     minimap_assets: Res<MinimapAssets>,
@@ -452,6 +451,7 @@ fn return_to_mission_warning_spawn(
 fn return_to_mission_warning_update(
     mut warnings: Query<(Entity, &mut ReturnToMissionWarning), Without<ReturnToMissionWarningText>>,
     mut warning_text: Query<&mut Text, With<ReturnToMissionWarningText>>,
+    mut players: Query<&mut Health, IsPlayer>,
     time: Res<Time>,
     mut commands: Commands,
 ) {
@@ -468,8 +468,45 @@ fn return_to_mission_warning_update(
 
         if warning.timer.finished() {
             commands.entity(entity).despawn_recursive();
+            for mut health in &mut players {
+                health.kill();
+            }
         }
     }
+}
+
+#[derive(Resource, Deref, DerefMut)]
+pub struct PlayerRespawnTimer(pub Timer);
+
+
+fn player_death(
+    players: Query<(Entity, &Health, &Transform), (IsPlayer, Changed<Health>)>,
+    mut commands: Commands,
+    mut explosion_events: EventWriter<ExplosionEvent>,
+) {
+    for (entity, health, transform) in &players {
+        if health.is_dead() {
+            explosion_events.send(ExplosionEvent {
+                position: transform.translation,
+                parent: None,
+                radius: 10.0,
+            });
+            commands.entity(entity).despawn_recursive();
+            commands.insert_resource(PlayerRespawnTimer(Timer::from_seconds(2.0, TimerMode::Once)))
+        }
+    }
+}
+
+fn player_respawn(
+    mut player_respawn_timer: ResMut<PlayerRespawnTimer>,
+    mut commands: Commands, 
+    time: Res<Time>,
+) {
+    player_respawn_timer.tick(time.delta());
+    if !player_respawn_timer.just_finished() { return; }
+
+    commands.remove_resource::<PlayerRespawnTimer>();
+    commands.add(spawn_player.to_command(()));
 }
 
 pub struct PlayerPlugin;
@@ -478,7 +515,7 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             ON_GAME_STARTED,
-            (player_setup, player_line_setup, player_trail_setup),
+            (spawn_player, player_line_setup, player_trail_setup),
         )
         .add_systems(
             Update,
@@ -490,6 +527,8 @@ impl Plugin for PlayerPlugin {
                 return_to_mission_warning_spawn,
                 return_to_mission_warning_update,
                 return_to_mission_warning_despawn,
+                player_death,
+                player_respawn.run_if(resource_exists::<PlayerRespawnTimer>)
             )
                 .run_if(game_running()),
         );

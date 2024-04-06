@@ -20,24 +20,28 @@ use crate::{
 use super::spaceship::player::Player;
 
 #[derive(Component)]
-pub struct CameraComponent;
+pub struct MainCamera;
 
 pub const RENDER_LAYER_2D: u8 = 1;
 
 fn camera_follow_system(
-    mut camera_query: Query<&mut Transform, (With<CameraComponent>, Without<Player>)>,
+    mut camera_query: Query<&mut Transform, (With<MainCamera>, Without<Player>)>,
     player_query: Query<&Transform, With<Player>>,
 ) {
     for mut camera_transform in &mut camera_query {
         let player_tranform = player_query.iter().next();
         if let Some(transform) = player_tranform {
-            camera_transform.translation = Vec3::new(
-                transform.translation.x,
-                camera_transform.translation.y,
-                transform.translation.z,
-            );
+            camera_transform.translation = Vec3 {
+                x: transform.translation.x,
+                z: transform.translation.z,
+                ..camera_transform.translation
+            };
         } else {
-            println!("No cube transform found");
+            camera_transform.translation = Vec3 {
+                x: 0.0,
+                z: 0.0,
+                ..camera_transform.translation
+            };
         }
     }
 }
@@ -89,7 +93,7 @@ pub fn spawn_camera(commands: &mut Commands, transform: Transform, camera_assets
             image: camera_assets.skybox.clone(),
             brightness: 1000.,
         },
-        CameraComponent,
+        MainCamera,
         DespawnOnCleanup,
     ));
 
@@ -105,7 +109,7 @@ pub fn spawn_camera(commands: &mut Commands, transform: Transform, camera_assets
 
 fn control_camera(
     input: Res<ButtonInput<KeyCode>>,
-    mut camera: Query<&mut Transform, With<CameraComponent>>,
+    mut camera: Query<&mut Transform, With<MainCamera>>,
     time: Res<Time>,
 ) {
     let Ok(mut camera_transform) = camera.get_single_mut() else {

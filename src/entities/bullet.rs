@@ -18,8 +18,7 @@ use crate::{
 };
 
 use super::{
-    explosion::ExplosionEvent,
-    spaceship::player::{LastHit, Player},
+    camera::MainCamera, explosion::ExplosionEvent, spaceship::player::LastHit
 };
 
 #[derive(Component)]
@@ -80,15 +79,15 @@ fn bullet_setup(
 fn bullet_spawn(
     mut commands: Commands,
     mut events: EventReader<BulletSpawnEvent>,
-    player_query: Query<&Transform, With<Player>>,
+    camera_query: Query<&Transform, With<MainCamera>>,
     bullet_res: Res<BulletResource>,
     assets: Res<BulletAssets>,
     time: Res<Time>,
 ) {
     let bullet_size = BULLET_CORNER_1 - BULLET_CORNER_2;
 
-    let Ok(player) = player_query.get_single() else {
-        warn!("No player found");
+    let Ok(camera_transform) = camera_query.get_single() else {
+        warn!("Could not find camera. Cannot play sound");
         return;
     };
 
@@ -144,7 +143,7 @@ fn bullet_spawn(
                         40.0 / event
                             .position
                             .translation
-                            .distance_squared(player.translation),
+                            .distance_squared(Vec3 { y: 0., ..camera_transform.translation }),
                     )),
                     ..default()
                 },

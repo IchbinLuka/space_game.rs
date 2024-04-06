@@ -17,6 +17,10 @@ impl Health {
         self.health = (self.health + amount).min(self.max_health);
     }
 
+    pub fn kill(&mut self) {
+        self.health = 0.0;
+    }
+
     #[inline]
     pub fn is_dead(&self) -> bool {
         self.health <= 0.0
