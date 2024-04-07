@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use bevy_rapier3d::plugin::RapierConfiguration;
 
 use crate::states::{
-    game_over, game_running, pause_physics, resume_physics, AppState, DespawnOnCleanup,
+    game_over, game_running, reset_physics_speed, slow_down_physics, AppState, DespawnOnCleanup
 };
 use crate::ui::button::TextButtonBundle;
 use crate::ui::fonts::FontsResource;
@@ -22,7 +22,6 @@ struct RestartButton;
 
 fn game_over_events(
     mut game_over_events: EventReader<GameOverEvent>,
-
     mut next_state: ResMut<NextState<AppState>>,
 ) {
     for _ in game_over_events.read() {
@@ -36,7 +35,7 @@ fn game_over_screen_setup(
     mut rapier_config: ResMut<RapierConfiguration>,
     score: Res<Score>,
 ) {
-    pause_physics(&mut rapier_config);
+    slow_down_physics(&mut rapier_config);
     commands
         .spawn((
             GameOverScreen,
@@ -80,7 +79,7 @@ fn restart_game(
 ) {
     for interaction in &restart_button {
         if *interaction == Interaction::Pressed {
-            resume_physics(&mut rapier_config);
+            reset_physics_speed(&mut rapier_config);
             commands.add(ClearWorld);
             next_state.set(AppState::MainSceneLoading);
         }

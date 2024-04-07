@@ -23,6 +23,7 @@ use crate::materials::toon::{ApplyToonMaterial, ToonMaterial};
 use crate::states::{game_running, AppState, DespawnOnCleanup};
 use crate::ui::enemy_indicator::SpawnEnemyIndicator;
 use crate::ui::health_bar_3d::SpawnHealthBar;
+use crate::ui::minimap::{MinimapAssets, ShowOnMinimap};
 use crate::utils::collisions::CRUISER_COLLISION_GROUP;
 use crate::utils::materials::default_outline;
 use crate::utils::math::sphere_intersection;
@@ -270,6 +271,7 @@ fn spawn_cruiser(
     In((start_pos, destination)): In<(Vec3, Vec3)>,
     mut commands: Commands,
     assets: Res<CruiserAssets>,
+    minimap_res: Res<MinimapAssets>, 
 ) {
     let Vec3 { x, y, z } = CRUISER_HITBOX_SIZE;
 
@@ -317,6 +319,10 @@ fn spawn_cruiser(
         },
         DespawnOnCleanup,
         COLLISION_GROUPS,
+        ShowOnMinimap {
+            sprite: minimap_res.cruiser_indicator.clone(),
+            size: Some(Vec2::new(10., 30.)),
+        }
     ));
 }
 
@@ -340,7 +346,7 @@ fn finish_cruiser(
         .spawn((
             CruiserShield,
             PbrBundle {
-                mesh: meshes.add(Sphere { radius: 10., }),
+                mesh: meshes.add(Sphere { radius: 10. }),
                 material: materials.add(StandardMaterial {
                     base_color: Color::hex("2ae0ed0f").unwrap(),
                     unlit: true,

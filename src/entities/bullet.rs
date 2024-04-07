@@ -17,9 +17,7 @@ use crate::{
     utils::{collisions::BULLET_COLLISION_GROUP, sets::Set},
 };
 
-use super::{
-    camera::MainCamera, explosion::ExplosionEvent, spaceship::player::LastHit
-};
+use super::{camera::MainCamera, explosion::ExplosionEvent, spaceship::player::LastHit};
 
 #[derive(Component)]
 pub struct Bullet {
@@ -140,10 +138,10 @@ fn bullet_spawn(
                 settings: PlaybackSettings {
                     volume: bevy_audio::Volume::new(f32::min(
                         0.5,
-                        40.0 / event
-                            .position
-                            .translation
-                            .distance_squared(Vec3 { y: 0., ..camera_transform.translation }),
+                        40.0 / event.position.translation.distance_squared(Vec3 {
+                            y: 0.,
+                            ..camera_transform.translation
+                        }),
                     )),
                     ..default()
                 },

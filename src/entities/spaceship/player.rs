@@ -15,10 +15,12 @@ use crate::{
         movement::MaxSpeed,
     },
     entities::{
-        bullet::{BulletSpawnEvent, BulletTarget, BulletType}, explosion::ExplosionEvent, planet::Planet
+        bullet::{BulletSpawnEvent, BulletTarget, BulletType},
+        explosion::ExplosionEvent,
+        planet::Planet,
     },
     materials::toon::{ApplyToonMaterial, ToonMaterial},
-    states::{game_running, DespawnOnCleanup, ON_GAME_STARTED},
+    states::{game_running, AppState, DespawnOnCleanup, ON_GAME_STARTED},
     ui::{
         fonts::FontsResource,
         minimap::{MinimapAssets, ShowOnMinimap},
@@ -478,7 +480,6 @@ fn return_to_mission_warning_update(
 #[derive(Resource, Deref, DerefMut)]
 pub struct PlayerRespawnTimer(pub Timer);
 
-
 fn player_death(
     players: Query<(Entity, &Health, &Transform), (IsPlayer, Changed<Health>)>,
     mut commands: Commands,
@@ -492,18 +493,23 @@ fn player_death(
                 radius: 10.0,
             });
             commands.entity(entity).despawn_recursive();
-            commands.insert_resource(PlayerRespawnTimer(Timer::from_seconds(2.0, TimerMode::Once)))
+            commands.insert_resource(PlayerRespawnTimer(Timer::from_seconds(
+                2.0,
+                TimerMode::Once,
+            )))
         }
     }
 }
 
 fn player_respawn(
     mut player_respawn_timer: ResMut<PlayerRespawnTimer>,
-    mut commands: Commands, 
+    mut commands: Commands,
     time: Res<Time>,
 ) {
     player_respawn_timer.tick(time.delta());
-    if !player_respawn_timer.just_finished() { return; }
+    if !player_respawn_timer.just_finished() {
+        return;
+    }
 
     commands.remove_resource::<PlayerRespawnTimer>();
     commands.add(spawn_player.to_command(()));
@@ -522,15 +528,20 @@ impl Plugin for PlayerPlugin {
             (
                 player_shoot.in_set(Set::BulletEvents),
                 player_input,
-                player_line_update,
-                player_trail_update,
                 return_to_mission_warning_spawn,
                 return_to_mission_warning_update,
                 return_to_mission_warning_despawn,
                 player_death,
-                player_respawn.run_if(resource_exists::<PlayerRespawnTimer>)
+                player_respawn.run_if(resource_exists::<PlayerRespawnTimer>),
             )
                 .run_if(game_running()),
+        )
+        .add_systems(
+            Update, 
+            (
+                player_line_update,
+                player_trail_update,
+            ).run_if(game_running().or_else(in_state(AppState::GameOver)))
         );
     }
 }

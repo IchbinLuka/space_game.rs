@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use bevy::prelude::*;
 
-use crate::states::game_running;
+use crate::states::game_paused;
 
 #[derive(Component, Deref, DerefMut)]
 pub struct DespawnTimer(pub Timer);
@@ -30,6 +30,8 @@ pub struct DespawnAfterPlugin;
 
 impl Plugin for DespawnAfterPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, despawn_after_system.run_if(game_running()));
+        app.add_systems(
+            Update, 
+            despawn_after_system.run_if(not(game_paused())));
     }
 }

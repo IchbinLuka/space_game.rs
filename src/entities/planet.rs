@@ -64,11 +64,7 @@ pub struct PlanetSpawnConfig {
 
 fn planet_setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
     commands.insert_resource(PlanetRes {
-        mesh: meshes.add(
-            Sphere { radius: 1.0, }
-            .mesh()
-            .uv(32, 18),
-        ),
+        mesh: meshes.add(Sphere { radius: 1.0 }.mesh().uv(32, 18)),
     });
 }
 

@@ -13,7 +13,7 @@ use bevy::ecs::system::{Commands, Query, ReadOnlySystem};
 use bevy::hierarchy::DespawnRecursiveExt;
 use bevy::prelude::{OnExit, Res, State};
 use bevy_asset_loader::loading_state::{LoadingState, LoadingStateAppExt};
-use bevy_rapier3d::plugin::RapierConfiguration;
+use bevy_rapier3d::plugin::{RapierConfiguration, TimestepMode};
 use iyes_progress::ProgressPlugin;
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash, Default, States, Copy)]
@@ -82,6 +82,24 @@ pub fn pause_physics(rapier_config: &mut RapierConfiguration) {
 pub fn resume_physics(rapier_config: &mut RapierConfiguration) {
     rapier_config.physics_pipeline_active = true;
     rapier_config.query_pipeline_active = true;
+}
+
+#[inline]
+pub fn slow_down_physics(rapier_config: &mut RapierConfiguration) {
+    rapier_config.timestep_mode = TimestepMode::Variable {
+        time_scale: 0.025,
+        substeps: 1, 
+        max_dt: 1.0 / 60.0,
+    };
+}
+
+#[inline]
+pub fn reset_physics_speed(rapier_config: &mut RapierConfiguration) {
+    rapier_config.timestep_mode = TimestepMode::Variable {
+        time_scale: 1.0,
+        substeps: 1, 
+        max_dt: 1.0 / 60.0,
+    };
 }
 
 pub const ON_GAME_STARTED: OnEnter<AppState> = OnEnter(AppState::MainScene);

@@ -165,33 +165,35 @@ struct RespawnTimerUIParent;
 #[derive(Component)]
 struct RespawnTimerUI;
 
-fn respawn_ui_setup(
-    mut commands: Commands, 
-    font_res: Res<FontsResource>, 
-) {
-    commands.spawn((
-        RespawnTimerUIParent,
-        NodeBundle {
-            style: Style {
-                position_type: PositionType::Absolute,
-                flex_direction: FlexDirection::Row,
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                width: Val::Percent(100.0),
-                height: Val::Percent(100.),
+fn respawn_ui_setup(mut commands: Commands, font_res: Res<FontsResource>) {
+    commands
+        .spawn((
+            RespawnTimerUIParent,
+            NodeBundle {
+                style: Style {
+                    position_type: PositionType::Absolute,
+                    flex_direction: FlexDirection::Row,
+                    align_items: AlignItems::Center,
+                    justify_content: JustifyContent::Center,
+                    width: Val::Percent(100.0),
+                    height: Val::Percent(100.),
+                    ..default()
+                },
                 ..default()
             },
-            ..default()
-        },
-    )).with_children(|c| {
-        c.spawn((
-            RespawnTimerUI, 
-            TextBundle::from_section(t!("respawning_in", time = 0), TextStyle { 
-                font_size: 70., 
-                ..text_body_style(&font_res)
-             }), 
-        ));
-    });
+        ))
+        .with_children(|c| {
+            c.spawn((
+                RespawnTimerUI,
+                TextBundle::from_section(
+                    t!("respawning_in", time = 0),
+                    TextStyle {
+                        font_size: 70.,
+                        ..text_body_style(&font_res)
+                    },
+                ),
+            ));
+        });
 }
 
 fn respawn_ui_update(
@@ -199,12 +201,16 @@ fn respawn_ui_update(
     timer: Res<PlayerRespawnTimer>,
 ) {
     for mut text in &mut respawn_ui {
-        text.sections[0].value = t!("respawning_in", time = timer.0.remaining_secs().ceil() as u32).to_string();
+        text.sections[0].value = t!(
+            "respawning_in",
+            time = timer.0.remaining_secs().ceil() as u32
+        )
+        .to_string();
     }
 }
 
 fn respawn_ui_cleanup(
-    mut commands: Commands, 
+    mut commands: Commands,
     respawn_ui: Query<Entity, With<RespawnTimerUIParent>>,
 ) {
     for entity in &mut respawn_ui.iter() {
@@ -225,7 +231,7 @@ impl Plugin for ScorePlugin {
                     score_update,
                     respawn_ui_setup.run_if(resource_added::<PlayerRespawnTimer>),
                     respawn_ui_cleanup.run_if(resource_removed::<PlayerRespawnTimer>()),
-                    respawn_ui_update.run_if(resource_exists::<PlayerRespawnTimer>)
+                    respawn_ui_update.run_if(resource_exists::<PlayerRespawnTimer>),
                 )
                     .run_if(game_running()),
             )

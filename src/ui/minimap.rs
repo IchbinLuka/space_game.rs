@@ -142,6 +142,8 @@ pub struct MinimapAssets {
     pub space_station_indicator: Handle<Image>,
     #[asset(path = "textures/minimap/planet.png")]
     pub planet_indicator: Handle<Image>,
+    #[asset(path = "textures/minimap/cruiser.png")]
+    pub cruiser_indicator: Handle<Image>,
 }
 
 pub struct MinimapPlugin;
