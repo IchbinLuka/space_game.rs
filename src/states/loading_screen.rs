@@ -3,7 +3,8 @@ use iyes_progress::ProgressCounter;
 
 use crate::{
     states::{AppState, LoadingStateItem},
-    ui::fonts::FontsResource, utils::misc::cleanup_system,
+    ui::fonts::FontsResource,
+    utils::misc::cleanup_system,
 };
 
 #[derive(Component)]

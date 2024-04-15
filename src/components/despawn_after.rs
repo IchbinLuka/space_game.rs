@@ -30,8 +30,6 @@ pub struct DespawnAfterPlugin;
 
 impl Plugin for DespawnAfterPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
-            Update, 
-            despawn_after_system.run_if(not(game_paused())));
+        app.add_systems(Update, despawn_after_system.run_if(not(game_paused())));
     }
 }

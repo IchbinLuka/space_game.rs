@@ -87,7 +87,7 @@ pub fn resume_physics(rapier_config: &mut RapierConfiguration) {
 pub fn slow_down_physics(rapier_config: &mut RapierConfiguration) {
     rapier_config.timestep_mode = TimestepMode::Variable {
         time_scale: 0.025,
-        substeps: 1, 
+        substeps: 1,
         max_dt: 1.0 / 60.0,
     };
 }
@@ -96,7 +96,7 @@ pub fn slow_down_physics(rapier_config: &mut RapierConfiguration) {
 pub fn reset_physics_speed(rapier_config: &mut RapierConfiguration) {
     rapier_config.timestep_mode = TimestepMode::Variable {
         time_scale: 1.0,
-        substeps: 1, 
+        substeps: 1,
         max_dt: 1.0 / 60.0,
     };
 }
@@ -125,8 +125,14 @@ impl Plugin for StatesPlugin {
         app.init_state::<AppState>()
             .init_state::<PausedState>()
             .add_systems(GAME_CLEANUP, cleanup_system::<DespawnOnCleanup>)
-            .add_systems(OnEnter(AppState::MainSceneLoading), cleanup_system::<DespawnOnCleanup>)
-            .add_systems(OnEnter(AppState::StartScreenLoading), cleanup_system::<DespawnOnCleanup>)
+            .add_systems(
+                OnEnter(AppState::MainSceneLoading),
+                cleanup_system::<DespawnOnCleanup>,
+            )
+            .add_systems(
+                OnEnter(AppState::StartScreenLoading),
+                cleanup_system::<DespawnOnCleanup>,
+            )
             .add_plugins((
                 pause::PausePlugin,
                 loading_screen::LoadingScreenPlugin,

@@ -222,7 +222,8 @@ impl Plugin for ScorePlugin {
                     score_element_update,
                     score_update,
                     respawn_ui_setup.run_if(resource_added::<PlayerRespawnTimer>),
-                    cleanup_system::<RespawnTimerUIParent>.run_if(resource_removed::<PlayerRespawnTimer>()),
+                    cleanup_system::<RespawnTimerUIParent>
+                        .run_if(resource_removed::<PlayerRespawnTimer>()),
                     respawn_ui_update.run_if(resource_exists::<PlayerRespawnTimer>),
                 )
                     .run_if(game_running()),

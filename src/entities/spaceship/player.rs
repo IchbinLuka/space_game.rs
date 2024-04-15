@@ -537,11 +537,9 @@ impl Plugin for PlayerPlugin {
                 .run_if(game_running()),
         )
         .add_systems(
-            Update, 
-            (
-                player_line_update,
-                player_trail_update,
-            ).run_if(game_running().or_else(in_state(AppState::GameOver)))
+            Update,
+            (player_line_update, player_trail_update)
+                .run_if(game_running().or_else(in_state(AppState::GameOver))),
         );
     }
 }

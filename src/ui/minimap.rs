@@ -28,7 +28,7 @@ pub struct ShowOnMinimap {
 }
 
 pub enum MinimapSize {
-    Scale(f32), 
+    Scale(f32),
     Custom(Vec2),
 }
 
@@ -43,7 +43,6 @@ impl From<f32> for MinimapSize {
         MinimapSize::Scale(scale)
     }
 }
-
 
 #[inline]
 fn get_minimap_pos(window_width: f32, window_height: f32) -> Vec3 {
@@ -93,7 +92,7 @@ fn spawn_minimap_objects(
         } else {
             1.0
         };
-        
+
         let marker = commands
             .spawn((
                 MinimapObject { entity },
@@ -107,7 +106,7 @@ fn spawn_minimap_objects(
                         anchor: Anchor::Center,
                         ..default()
                     },
-                    transform: Transform::from_scale(Vec3::new(scale, scale, 1.)), 
+                    transform: Transform::from_scale(Vec3::new(scale, scale, 1.)),
                     texture: show_on_minimap.sprite.clone(),
                     ..default()
                 },

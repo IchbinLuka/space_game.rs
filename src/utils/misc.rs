@@ -55,10 +55,7 @@ impl<In, Out, Marker, T: IntoSystem<In, Out, Marker>> AsCommand<In, Out, Marker>
     }
 }
 
-pub fn cleanup_system<T: Component>(
-    query: Query<Entity, With<T>>,
-    mut commands: Commands,
-) {
+pub fn cleanup_system<T: Component>(query: Query<Entity, With<T>>, mut commands: Commands) {
     for entity in &mut query.iter() {
         commands.entity(entity).despawn_recursive();
     }

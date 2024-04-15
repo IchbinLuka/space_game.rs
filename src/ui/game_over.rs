@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use bevy_rapier3d::plugin::RapierConfiguration;
 
 use crate::states::{
-    game_over, game_running, reset_physics_speed, slow_down_physics, AppState, DespawnOnCleanup
+    game_over, game_running, reset_physics_speed, slow_down_physics, AppState, DespawnOnCleanup,
 };
 use crate::ui::button::TextButtonBundle;
 use crate::ui::fonts::FontsResource;
