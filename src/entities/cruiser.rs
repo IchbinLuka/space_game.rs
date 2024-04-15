@@ -20,10 +20,11 @@ use crate::components::{
 };
 use crate::entities::spaceship::bot::SpawnSquad;
 use crate::materials::toon::{ApplyToonMaterial, ToonMaterial};
-use crate::states::{game_running, AppState, DespawnOnCleanup};
+use crate::states::{game_running, AppState, DespawnOnCleanup, ON_GAME_STARTED};
 use crate::ui::enemy_indicator::SpawnEnemyIndicator;
 use crate::ui::health_bar_3d::SpawnHealthBar;
 use crate::ui::minimap::{MinimapAssets, ShowOnMinimap};
+use crate::ui::score::ScoreEvent;
 use crate::utils::collisions::CRUISER_COLLISION_GROUP;
 use crate::utils::materials::default_outline;
 use crate::utils::math::sphere_intersection;
@@ -160,18 +161,24 @@ fn cruiser_turret_shoot(
 
 const CRUISER_SPAWN_COOLDOWN: f32 = 30.0;
 
-#[derive(Resource)]
-struct LastCruiserSpawn(Option<f32>);
+#[derive(Resource, Deref, DerefMut)]
+struct CruiserSpawnTimer(Timer);
 
 fn spawn_cruisers(
     mut spawn_cruiser_events: EventWriter<SpawnCruiserEvent>,
-    mut last_cruiser_spawn: ResMut<LastCruiserSpawn>,
+    mut last_cruiser_spawn: ResMut<CruiserSpawnTimer>,
     time: Res<Time>,
 ) {
-    if time.elapsed_seconds() - last_cruiser_spawn.0.unwrap_or(0.0) > CRUISER_SPAWN_COOLDOWN {
-        last_cruiser_spawn.0 = Some(time.elapsed_seconds());
+    last_cruiser_spawn.tick(time.delta());
+    if last_cruiser_spawn.just_finished() {
         spawn_cruiser_events.send(SpawnCruiserEvent);
     }
+}
+
+fn cruiser_spawn_setup(mut commands: Commands) {
+    let mut timer = Timer::from_seconds(CRUISER_SPAWN_COOLDOWN, TimerMode::Repeating);
+    timer.tick(Duration::from_secs_f32(CRUISER_SPAWN_COOLDOWN - 2.0));
+    commands.insert_resource(CruiserSpawnTimer(timer));
 }
 
 #[derive(Event)]
@@ -271,7 +278,7 @@ fn spawn_cruiser(
     In((start_pos, destination)): In<(Vec3, Vec3)>,
     mut commands: Commands,
     assets: Res<CruiserAssets>,
-    minimap_res: Res<MinimapAssets>, 
+    minimap_res: Res<MinimapAssets>,
 ) {
     let Vec3 { x, y, z } = CRUISER_HITBOX_SIZE;
 
@@ -322,7 +329,7 @@ fn spawn_cruiser(
         ShowOnMinimap {
             sprite: minimap_res.cruiser_indicator.clone(),
             size: 0.1.into(),
-        }
+        },
     ));
 }
 
@@ -519,6 +526,7 @@ fn cruiser_shield_regenerate(
 fn cruiser_death(
     query: Query<(&Health, &Transform), (With<Cruiser>, Changed<Health>)>,
     mut explosion_events: EventWriter<ExplosionEvent>,
+    mut score_events: EventWriter<ScoreEvent>,
 ) {
     for (health, transform) in &query {
         if health.is_dead() {
@@ -540,6 +548,10 @@ fn cruiser_death(
                     ..default()
                 },
             ]);
+            score_events.send(ScoreEvent {
+                score: 500,
+                world_pos: transform.translation,
+            });
         }
     }
 }
@@ -614,7 +626,7 @@ impl Plugin for CruiserPLugin {
             LoadingStateConfig::new(AppState::MainSceneLoading).load_collection::<CruiserAssets>(),
         )
         .add_event::<SpawnCruiserEvent>()
-        .insert_resource(LastCruiserSpawn(None))
+        .add_systems(ON_GAME_STARTED, cruiser_spawn_setup)
         .add_systems(
             Update,
             (
