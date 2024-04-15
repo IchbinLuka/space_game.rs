@@ -3,6 +3,7 @@ use bevy::{render::view::RenderLayers, sprite::Anchor};
 
 use crate::entities::spaceship::player::PlayerRespawnTimer;
 use crate::states::{game_running, DespawnOnCleanup, ON_GAME_STARTED};
+use crate::utils::misc::cleanup_system;
 use crate::{entities::camera::RENDER_LAYER_2D, utils::sets::Set};
 
 use super::fonts::FontsResource;
@@ -209,15 +210,6 @@ fn respawn_ui_update(
     }
 }
 
-fn respawn_ui_cleanup(
-    mut commands: Commands,
-    respawn_ui: Query<Entity, With<RespawnTimerUIParent>>,
-) {
-    for entity in &mut respawn_ui.iter() {
-        commands.entity(entity).despawn_recursive();
-    }
-}
-
 pub struct ScorePlugin;
 
 impl Plugin for ScorePlugin {
@@ -230,7 +222,7 @@ impl Plugin for ScorePlugin {
                     score_element_update,
                     score_update,
                     respawn_ui_setup.run_if(resource_added::<PlayerRespawnTimer>),
-                    respawn_ui_cleanup.run_if(resource_removed::<PlayerRespawnTimer>()),
+                    cleanup_system::<RespawnTimerUIParent>.run_if(resource_removed::<PlayerRespawnTimer>()),
                     respawn_ui_update.run_if(resource_exists::<PlayerRespawnTimer>),
                 )
                     .run_if(game_running()),

@@ -91,7 +91,7 @@ fn spawn_player(
         },
         ShowOnMinimap {
             sprite: minimap_assets.player_indicator.clone(),
-            size: Some(Vec2::splat(15.)),
+            size: 0.1.into(),
         },
         BulletTarget {
             target_type: BulletType::Bot,

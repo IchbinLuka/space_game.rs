@@ -321,7 +321,7 @@ fn spawn_cruiser(
         COLLISION_GROUPS,
         ShowOnMinimap {
             sprite: minimap_res.cruiser_indicator.clone(),
-            size: Some(Vec2::new(10., 30.)),
+            size: 0.1.into(),
         }
     ));
 }

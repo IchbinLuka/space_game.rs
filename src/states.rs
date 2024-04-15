@@ -5,16 +5,15 @@ pub mod start_screen;
 
 use bevy::app::{App, Plugin};
 use bevy::ecs::component::Component;
-use bevy::ecs::entity::Entity;
-use bevy::ecs::query::With;
 use bevy::ecs::schedule::common_conditions::in_state;
 use bevy::ecs::schedule::{Condition, OnEnter, States};
-use bevy::ecs::system::{Commands, Query, ReadOnlySystem};
-use bevy::hierarchy::DespawnRecursiveExt;
+use bevy::ecs::system::ReadOnlySystem;
 use bevy::prelude::{OnExit, Res, State};
 use bevy_asset_loader::loading_state::{LoadingState, LoadingStateAppExt};
 use bevy_rapier3d::plugin::{RapierConfiguration, TimestepMode};
 use iyes_progress::ProgressPlugin;
+
+use crate::utils::misc::cleanup_system;
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash, Default, States, Copy)]
 pub enum AppState {
@@ -108,15 +107,6 @@ pub const GAME_CLEANUP: OnExit<AppState> = OnExit(AppState::GameOver);
 #[derive(Component)]
 pub struct DespawnOnCleanup;
 
-fn cleanup_entities(
-    cleanup_entities: Query<Entity, With<DespawnOnCleanup>>,
-    mut commands: Commands,
-) {
-    for entity in &cleanup_entities {
-        commands.entity(entity).despawn_recursive();
-    }
-}
-
 pub struct StatesPlugin;
 
 impl Plugin for StatesPlugin {
@@ -134,9 +124,9 @@ impl Plugin for StatesPlugin {
 
         app.init_state::<AppState>()
             .init_state::<PausedState>()
-            .add_systems(GAME_CLEANUP, cleanup_entities)
-            .add_systems(OnEnter(AppState::MainSceneLoading), cleanup_entities)
-            .add_systems(OnEnter(AppState::StartScreenLoading), cleanup_entities)
+            .add_systems(GAME_CLEANUP, cleanup_system::<DespawnOnCleanup>)
+            .add_systems(OnEnter(AppState::MainSceneLoading), cleanup_system::<DespawnOnCleanup>)
+            .add_systems(OnEnter(AppState::StartScreenLoading), cleanup_system::<DespawnOnCleanup>)
             .add_plugins((
                 pause::PausePlugin,
                 loading_screen::LoadingScreenPlugin,

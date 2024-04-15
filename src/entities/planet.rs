@@ -6,7 +6,7 @@ use rand::Rng;
 
 use crate::materials::toon::PlanetMaterial;
 use crate::states::{AppState, DespawnOnCleanup};
-use crate::ui::minimap::{MinimapAssets, ShowOnMinimap, MINIMAP_RANGE, MINIMAP_SIZE};
+use crate::ui::minimap::{MinimapAssets, MinimapSize, ShowOnMinimap, MINIMAP_RANGE, MINIMAP_SIZE};
 use crate::utils::asset_loading::AppExtension;
 use crate::utils::misc::AsCommand;
 use crate::{
@@ -186,7 +186,7 @@ pub fn spawn_planet(
         },
         ShowOnMinimap {
             sprite: minimap_assets.planet_indicator.clone(),
-            size: Some(Vec2::splat(size / MINIMAP_RANGE * MINIMAP_SIZE)),
+            size: MinimapSize::Custom(Vec2::splat(size / MINIMAP_RANGE * MINIMAP_SIZE)),
         },
     ));
 }

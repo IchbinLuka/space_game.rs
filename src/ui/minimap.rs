@@ -21,11 +21,29 @@ struct MinimapObject {
     entity: Entity,
 }
 
-#[derive(Component)]
+#[derive(Component, Default)]
 pub struct ShowOnMinimap {
     pub sprite: Handle<Image>,
-    pub size: Option<Vec2>,
+    pub size: MinimapSize,
 }
+
+pub enum MinimapSize {
+    Scale(f32), 
+    Custom(Vec2),
+}
+
+impl Default for MinimapSize {
+    fn default() -> Self {
+        MinimapSize::Scale(1.)
+    }
+}
+
+impl From<f32> for MinimapSize {
+    fn from(scale: f32) -> Self {
+        MinimapSize::Scale(scale)
+    }
+}
+
 
 #[inline]
 fn get_minimap_pos(window_width: f32, window_height: f32) -> Vec3 {
@@ -70,15 +88,26 @@ fn spawn_minimap_objects(
     };
 
     for (entity, show_on_minimap) in &new_objects {
+        let scale = if let MinimapSize::Scale(scale) = show_on_minimap.size {
+            scale
+        } else {
+            1.0
+        };
+        
         let marker = commands
             .spawn((
                 MinimapObject { entity },
                 SpriteBundle {
                     sprite: Sprite {
+                        custom_size: if let MinimapSize::Custom(size) = show_on_minimap.size {
+                            Some(size)
+                        } else {
+                            None
+                        },
                         anchor: Anchor::Center,
-                        custom_size: show_on_minimap.size,
                         ..default()
                     },
+                    transform: Transform::from_scale(Vec3::new(scale, scale, 1.)), 
                     texture: show_on_minimap.sprite.clone(),
                     ..default()
                 },

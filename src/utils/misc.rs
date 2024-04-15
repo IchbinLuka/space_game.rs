@@ -55,6 +55,15 @@ impl<In, Out, Marker, T: IntoSystem<In, Out, Marker>> AsCommand<In, Out, Marker>
     }
 }
 
+pub fn cleanup_system<T: Component>(
+    query: Query<Entity, With<T>>,
+    mut commands: Commands,
+) {
+    for entity in &mut query.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+}
+
 /// A wrapper type for `f32` that implements `PartialOrd` and `Ord` traits.
 ///
 /// Note: since we are dealing with floating point numbers, this may not always work as expected.

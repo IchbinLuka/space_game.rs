@@ -2,9 +2,9 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   width="19.610205mm"
-   height="29.274988mm"
-   viewBox="0 0 19.610205 29.274988"
+   width="40mm"
+   height="40mm"
+   viewBox="0 0 40.000001 39.999999"
    version="1.1"
    id="svg5"
    inkscape:version="1.1.2 (0a00cf5339, 2022-02-04)"
@@ -25,13 +25,14 @@
      showgrid="false"
      inkscape:zoom="2.8284271"
      inkscape:cx="16.086679"
-     inkscape:cy="42.77996"
+     inkscape:cy="29.521708"
      inkscape:window-width="1868"
-     inkscape:window-height="1023"
+     inkscape:window-height="1019"
      inkscape:window-x="1920"
      inkscape:window-y="31"
      inkscape:window-maximized="1"
-     inkscape:current-layer="layer1" />
+     inkscape:current-layer="layer1"
+     scale-x="1" />
   <defs
      id="defs2">
     <inkscape:path-effect
@@ -53,7 +54,7 @@
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(-77.304676,-61.113212)">
+     transform="translate(-77.304674,-72.172049)">
     <path
        style="fill:#34e482;fill-opacity:1;stroke:none;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        d="m 77.304703,90.388201 9.80532,-29.274989 -2.72e-4,23.896822 c 0,0 -3.838877,-0.149765 -9.805075,5.378167 z m 19.61015,0 -9.80532,-29.274989 2.72e-4,23.896822 c 0,0 3.838877,-0.149765 9.805075,5.378167 z"
@@ -63,6 +64,7 @@
        sodipodi:nodetypes="ccccc"
        inkscape:export-filename="/home/luka/Documents/Rust/test_game.rs/assets/textures/minimap/player_indicator.png"
        inkscape:export-xdpi="96"
-       inkscape:export-ydpi="96" />
+       inkscape:export-ydpi="96"
+       transform="matrix(2.0079807,0,0,1.2494516,-77.610079,-2.4747924)" />
   </g>
 </svg>

@@ -147,7 +147,7 @@ fn spawn_bot_from_world(world: &mut World, spawn_bot: SpawnBot) -> Result<Entity
         },
         ShowOnMinimap {
             sprite: minimap_assets.enemy_indicator.clone(),
-            size: Some(Vec2::splat(10.)),
+            size: 0.1.into(),
         },
         DespawnOnCleanup,
     ));

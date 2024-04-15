@@ -234,12 +234,6 @@ struct MenuItemResource {
     normal_material: Handle<RoundUiMaterial>,
 }
 
-fn start_screen_cleanup(mut commands: Commands, query: Query<Entity, With<StartScreen>>) {
-    for entity in query.iter() {
-        commands.entity(entity).despawn_recursive();
-    }
-}
-
 fn start_game(
     start_button: Query<&Interaction, (With<StartButton>, Changed<Interaction>)>,
     mut next_state: ResMut<NextState<AppState>>,
@@ -262,7 +256,6 @@ impl Plugin for StartScreenPlugin {
                 // space_station_animation.after(setup_start_screen),
             ),
         )
-        .add_systems(OnExit(AppState::StartScreen), start_screen_cleanup)
         .add_systems(
             Update,
             (start_game, menu_item_hover_effect).run_if(in_start_menu()),

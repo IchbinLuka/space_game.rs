@@ -79,7 +79,7 @@ pub fn spawn_space_station(
             },
             ShowOnMinimap {
                 sprite: minimap_res.space_station_indicator.clone(),
-                size: Some(Vec2::splat(40.)),
+                size: 0.1.into(),
             },
             EnemyTarget,
             Regeneration {

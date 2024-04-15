@@ -3,7 +3,7 @@ use iyes_progress::ProgressCounter;
 
 use crate::{
     states::{AppState, LoadingStateItem},
-    ui::fonts::FontsResource,
+    ui::fonts::FontsResource, utils::misc::cleanup_system,
 };
 
 #[derive(Component)]
@@ -69,12 +69,6 @@ fn loading_screen_setup(mut commands: Commands, font_res: Res<FontsResource>) {
         });
 }
 
-fn loading_screen_cleanup(mut commands: Commands, query: Query<Entity, With<LoadingScreen>>) {
-    for entity in &query {
-        commands.entity(entity).despawn_recursive();
-    }
-}
-
 fn loading_screen_progress(
     mut progress_bars: Query<&mut Style, With<ProgressBar>>,
     counter: Res<ProgressCounter>,
@@ -92,7 +86,7 @@ impl Plugin for LoadingScreenPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         for LoadingStateItem { loading_state, .. } in AppState::LOADING_STATES {
             app.add_systems(OnEnter(*loading_state), loading_screen_setup)
-                .add_systems(OnExit(*loading_state), loading_screen_cleanup)
+                .add_systems(OnExit(*loading_state), cleanup_system::<LoadingScreen>)
                 .add_systems(
                     Update,
                     loading_screen_progress.run_if(in_state(*loading_state)),
