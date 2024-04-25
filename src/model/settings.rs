@@ -28,7 +28,7 @@ impl Default for Settings {
 pub enum PersistSettingsError {
     Io(io::Error),
     Serde(serde_json::Error),
-    LocalStorageError, 
+    LocalStorageError,
 }
 
 impl Display for PersistSettingsError {
@@ -43,13 +43,11 @@ impl Display for PersistSettingsError {
 
 #[cfg(target_arch = "wasm32")]
 fn get_local_storage() -> Result<web_sys::Storage, PersistSettingsError> {
-    Ok(
-        web_sys::window()
-            .expect("could not find a window")
-            .local_storage()
-            .map_err(|_| PersistSettingsError::LocalStorageError)?
-            .expect("local storage could not be loaded")
-    )
+    Ok(web_sys::window()
+        .expect("could not find a window")
+        .local_storage()
+        .map_err(|_| PersistSettingsError::LocalStorageError)?
+        .expect("local storage could not be loaded"))
 }
 
 pub fn persist_settings(settings: &Settings) -> Result<(), PersistSettingsError> {
@@ -67,6 +65,7 @@ pub fn persist_settings(settings: &Settings) -> Result<(), PersistSettingsError>
 }
 
 pub fn load_settings() -> Settings {
+    #[allow(clippy::needless_late_init)]
     let content;
     cfg_if! {
         if #[cfg(target_arch = "wasm32")] {
@@ -81,7 +80,8 @@ pub fn load_settings() -> Settings {
     };
 
     if let Some(content) = content
-        && let Ok(settings) = serde_json::from_str(content.as_str()) {
+        && let Ok(settings) = serde_json::from_str(content.as_str())
+    {
         settings
     } else {
         let settings = Settings::default();
@@ -89,7 +89,7 @@ pub fn load_settings() -> Settings {
             Ok(_) => {}
             Err(e) => {
                 error!("Failed to persist settings: {:#}", e);
-            },
+            }
         }
         settings
     }

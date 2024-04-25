@@ -201,18 +201,17 @@ pub struct BulletPlugin;
 
 impl Plugin for BulletPlugin {
     fn build(&self, app: &mut App) {
-        app
-        .add_systems(ON_GAME_STARTED, bullet_setup)
-        .add_systems(
-            Update,
-            (
-                bullet_despawn,
-                bullet_collision,
-                bullet_rotation_correction,
-                bullet_spawn.after(Set::BulletEvents),
+        app.add_systems(ON_GAME_STARTED, bullet_setup)
+            .add_systems(
+                Update,
+                (
+                    bullet_despawn,
+                    bullet_collision,
+                    bullet_rotation_correction,
+                    bullet_spawn.after(Set::BulletEvents),
+                )
+                    .run_if(game_running()),
             )
-                .run_if(game_running()),
-        )
-        .add_event::<BulletSpawnEvent>();
+            .add_event::<BulletSpawnEvent>();
     }
 }
