@@ -1,3 +1,5 @@
+use core::fmt;
+use std::fmt::Display;
 use std::{fs, io};
 
 use bevy::prelude::*;
@@ -21,19 +23,43 @@ impl Default for Settings {
     }
 }
 
+#[allow(unused)]
 #[derive(Debug)]
 pub enum PersistSettingsError {
     Io(io::Error),
     Serde(serde_json::Error),
+    LocalStorageError, 
+}
+
+impl Display for PersistSettingsError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            PersistSettingsError::Io(e) => write!(f, "IO error: {}", e),
+            PersistSettingsError::Serde(e) => write!(f, "Serde error: {}", e),
+            PersistSettingsError::LocalStorageError => write!(f, "Local storage error"),
+        }
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+fn get_local_storage() -> Result<web_sys::Storage, PersistSettingsError> {
+    Ok(
+        web_sys::window()
+            .expect("could not find a window")
+            .local_storage()
+            .map_err(|_| PersistSettingsError::LocalStorageError)?
+            .expect("local storage could not be loaded")
+    )
 }
 
 pub fn persist_settings(settings: &Settings) -> Result<(), PersistSettingsError> {
+    let contents = serde_json::to_string(settings).map_err(PersistSettingsError::Serde)?;
     cfg_if! {
         if #[cfg(target_arch = "wasm32")] {
+            let storage = get_local_storage()?;
+            storage.set_item("settings", &contents).map_err(|_| PersistSettingsError::LocalStorageError)?;
             return Ok(());
         } else {
-            let contents = serde_json::to_string(settings).map_err(PersistSettingsError::Serde)?;
-
             fs::write(SETTINGS_PATH, contents).map_err(PersistSettingsError::Io)?;
             Ok(())
         }
@@ -41,30 +67,31 @@ pub fn persist_settings(settings: &Settings) -> Result<(), PersistSettingsError>
 }
 
 pub fn load_settings() -> Settings {
+    let content;
     cfg_if! {
-        if #[cfg(target_family = "wasm")] {
-            return Settings::default();
+        if #[cfg(target_arch = "wasm32")] {
+            let Ok(storage) = get_local_storage() else {
+                error!("Failed to access local storage");
+                return Settings::default();
+            };
+            content = storage.get_item("settings").ok().flatten();
         } else {
-            if let Ok(content) = fs::read_to_string(SETTINGS_PATH)
-                && let Ok(settings) = serde_json::from_str(content.as_str())
-            {
-                settings
-            } else {
-                let settings = Settings::default();
-                match persist_settings(&settings) {
-                    Ok(_) => {}
-                    Err(e) => match e {
-                        PersistSettingsError::Io(e) => {
-                            error!("Failed to persist settings: {:?}", e);
-                        }
-                        PersistSettingsError::Serde(e) => {
-                            error!("Failed to encode settings: {:?}", e);
-                        }
-                    },
-                }
-                settings
-            }
+            content = fs::read_to_string(SETTINGS_PATH).ok()
         }
+    };
+
+    if let Some(content) = content
+        && let Ok(settings) = serde_json::from_str(content.as_str()) {
+        settings
+    } else {
+        let settings = Settings::default();
+        match persist_settings(&settings) {
+            Ok(_) => {}
+            Err(e) => {
+                error!("Failed to persist settings: {:#}", e);
+            },
+        }
+        settings
     }
 }
 
@@ -72,7 +99,7 @@ fn persist_settings_system(settings: Res<Settings>) {
     match persist_settings(&settings) {
         Ok(_) => {}
         Err(e) => {
-            error!("Failed to persist settings: {:?}", e);
+            error!("Failed to persist settings: {:#}", e);
         }
     }
 }

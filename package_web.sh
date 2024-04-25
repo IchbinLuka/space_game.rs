@@ -16,8 +16,10 @@ fi
 echo "Generating wasm bindings..."
 wasm-bindgen --no-typescript --out-dir ./out/ --out-name "space_game" --target web ./target/wasm32-unknown-unknown/$MODE/test_game.wasm
 
-echo "Optimizing wasm..."
-wasm-opt -O ./out/space_game_bg.wasm -o ./out/space_game_bg.wasm
+if [[ $1 == "release" ]] ; then
+    echo "Optimizing wasm..."
+    wasm-opt -O ./out/space_game_bg.wasm -o ./out/space_game_bg.wasm
+fi
 
 echo "Copying assets..."
 rm ./out/assets -r

@@ -22,7 +22,7 @@ rust-i18n = "3.0.0"
 serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.114"
 cfg-if = "1.0.0"
-web-sys = "0.3.69"
+web-sys = { version = "0.3.69", features = ["Window", "Storage"] }
 
 [workspace]
 resolver = "2"
