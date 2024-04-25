@@ -1,23 +1,16 @@
 use std::time::Duration;
 
 use bevy::prelude::*;
-use bevy_asset_loader::{
-    asset_collection::AssetCollection,
-    loading_state::{
-        config::{ConfigureLoadingState, LoadingStateConfig},
-        LoadingStateAppExt,
-    },
-};
 use bevy_mod_outline::{OutlineBundle, OutlineVolume};
 use bevy_rapier3d::prelude::*;
 
 use crate::{
     components::{gravity::GravityAffected, health::Health},
-    states::{game_running, AppState, DespawnOnCleanup, ON_GAME_STARTED},
+    states::{game_running, DespawnOnCleanup, ON_GAME_STARTED},
     utils::{collisions::BULLET_COLLISION_GROUP, sets::Set},
 };
 
-use super::{camera::MainCamera, explosion::ExplosionEvent, spaceship::player::LastHit};
+use super::{explosion::ExplosionEvent, spaceship::player::LastHit};
 
 #[derive(Component)]
 pub struct Bullet {
@@ -77,17 +70,10 @@ fn bullet_setup(
 fn bullet_spawn(
     mut commands: Commands,
     mut events: EventReader<BulletSpawnEvent>,
-    camera_query: Query<&Transform, With<MainCamera>>,
     bullet_res: Res<BulletResource>,
-    assets: Res<BulletAssets>,
     time: Res<Time>,
 ) {
     let bullet_size = BULLET_CORNER_1 - BULLET_CORNER_2;
-
-    let Ok(camera_transform) = camera_query.get_single() else {
-        warn!("Could not find camera. Cannot play sound");
-        return;
-    };
 
     for event in events.read() {
         // let pos = transform.translation + transform.rotation.mul_vec3(side.into());
@@ -132,22 +118,7 @@ fn bullet_spawn(
             DespawnOnCleanup,
             CollidingEntities::default(),
         ));
-        commands.spawn((
-            AudioBundle {
-                source: assets.test_sound.clone(),
-                settings: PlaybackSettings {
-                    volume: bevy_audio::Volume::new(f32::min(
-                        0.5,
-                        40.0 / event.position.translation.distance_squared(Vec3 {
-                            y: 0.,
-                            ..camera_transform.translation
-                        }),
-                    )),
-                    ..default()
-                },
-            },
-            DespawnOnCleanup,
-        ));
+        // TODO: play sound
     }
 }
 
@@ -226,19 +197,11 @@ struct BulletResource {
     bullet_material: Handle<StandardMaterial>,
 }
 
-#[derive(AssetCollection, Resource)]
-struct BulletAssets {
-    #[asset(path = "fire_sound.ogg")]
-    test_sound: Handle<AudioSource>,
-}
-
 pub struct BulletPlugin;
 
 impl Plugin for BulletPlugin {
     fn build(&self, app: &mut App) {
-        app.configure_loading_state(
-            LoadingStateConfig::new(AppState::MainSceneLoading).load_collection::<BulletAssets>(),
-        )
+        app
         .add_systems(ON_GAME_STARTED, bullet_setup)
         .add_systems(
             Update,
