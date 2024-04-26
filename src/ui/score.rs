@@ -2,7 +2,7 @@ use ::bevy::prelude::*;
 use bevy::{render::view::RenderLayers, sprite::Anchor};
 
 use crate::entities::spaceship::player::PlayerRespawnTimer;
-use crate::states::{game_running, DespawnOnCleanup, ON_GAME_STARTED};
+use crate::states::{game_running, AppState, DespawnOnCleanup, ON_GAME_STARTED};
 use crate::utils::misc::cleanup_system;
 use crate::{entities::camera::RENDER_LAYER_2D, utils::sets::Set};
 
@@ -170,6 +170,7 @@ fn respawn_ui_setup(mut commands: Commands, font_res: Res<FontsResource>) {
     commands
         .spawn((
             RespawnTimerUIParent,
+            DespawnOnCleanup,
             NodeBundle {
                 style: Style {
                     position_type: PositionType::Absolute,
@@ -227,6 +228,13 @@ impl Plugin for ScorePlugin {
                     respawn_ui_update.run_if(resource_exists::<PlayerRespawnTimer>),
                 )
                     .run_if(game_running()),
+            )
+            .add_systems(
+                OnExit(AppState::MainScene),
+                (
+                    cleanup_system::<RespawnTimerUIParent>,
+                    cleanup_system::<ScoreElement>,
+                ),
             )
             .add_systems(ON_GAME_STARTED, (score_setup,));
     }

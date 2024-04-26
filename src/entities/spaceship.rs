@@ -197,9 +197,10 @@ fn spaceship_collisions(
             let delta = transform.translation - colliding_transform.translation;
             let distance = delta.length();
             let normal = delta.normalize();
-            velocity.linvel = -velocity.linvel.normalize()
-                * f32::max(velocity.linvel.length() * 0.5, 20.)
-                * normal;
+            let v_norm = velocity.linvel.normalize();
+            velocity.linvel =
+                (v_norm - 2.0 * v_norm.dot(normal) * normal) * velocity.linvel.length() * 0.5;
+
             transform.translation = colliding_transform.translation + normal * (distance + 2.0);
 
             if let Some(ref mut health) = health {

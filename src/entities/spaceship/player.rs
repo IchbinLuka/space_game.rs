@@ -301,6 +301,8 @@ fn player_line_setup(
         },
         PlayerLine,
         DespawnOnCleanup,
+        NotShadowReceiver,
+        NotShadowCaster,
     ));
 }
 
@@ -515,6 +517,11 @@ fn player_respawn(
     commands.add(spawn_player.to_command(()));
 }
 
+fn respawn_timer_cleanup(mut commands: Commands) {
+    info!("Cleaning up respawn timer");
+    commands.remove_resource::<PlayerRespawnTimer>();
+}
+
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
@@ -523,6 +530,7 @@ impl Plugin for PlayerPlugin {
             ON_GAME_STARTED,
             (spawn_player, player_line_setup, player_trail_setup),
         )
+        .add_systems(OnExit(AppState::MainScene), respawn_timer_cleanup)
         .add_systems(
             Update,
             (
