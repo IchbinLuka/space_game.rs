@@ -1,3 +1,4 @@
+pub mod exhaust_test;
 pub mod loading_screen;
 pub mod main_scene;
 pub mod pause;
@@ -17,13 +18,14 @@ use crate::utils::misc::cleanup_system;
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash, Default, States, Copy)]
 pub enum AppState {
-    #[default]
     StartScreenLoading,
     StartScreen,
+    #[default]
     MainSceneLoading,
     MainScene,
     GameOver,
     ParticleTestScene,
+    ExhaustTestScene,
 }
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash, Default, States, Copy)]
@@ -138,6 +140,7 @@ impl Plugin for StatesPlugin {
                 loading_screen::LoadingScreenPlugin,
                 start_screen::StartScreenPlugin,
                 main_scene::MainScenePlugin,
+                exhaust_test::ExhaustTestPlugin,
             ));
     }
 }

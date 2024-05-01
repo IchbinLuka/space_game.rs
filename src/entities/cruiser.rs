@@ -19,6 +19,7 @@ use crate::components::{
     health::{DespawnOnDeath, Health, Shield},
 };
 use crate::entities::spaceship::bot::SpawnSquad;
+use crate::materials::exhaust::{ExhaustMaterial, ExhaustRes};
 use crate::materials::toon::{ApplyToonMaterial, ToonMaterial};
 use crate::states::{game_running, AppState, DespawnOnCleanup, ON_GAME_STARTED};
 use crate::ui::enemy_indicator::SpawnEnemyIndicator;
@@ -70,6 +71,11 @@ struct CruiserAssets {
     pub cruiser_model: Handle<Scene>,
     #[asset(path = "cruiser.glb#Animation0")]
     pub cruiser_animation: Handle<AnimationClip>,
+}
+
+#[derive(Resource)]
+struct CruiserRes {
+    exhaust_material: Handle<ExhaustMaterial>,
 }
 
 #[derive(Component, Deref, DerefMut)]
@@ -175,10 +181,24 @@ fn spawn_cruisers(
     }
 }
 
-fn cruiser_spawn_setup(mut commands: Commands) {
+fn cruiser_spawn_setup(
+    mut commands: Commands,
+    mut exhaust_materials: ResMut<Assets<ExhaustMaterial>>,
+    res: Option<Res<CruiserRes>>,
+) {
     let mut timer = Timer::from_seconds(CRUISER_SPAWN_COOLDOWN, TimerMode::Repeating);
     timer.tick(Duration::from_secs_f32(CRUISER_SPAWN_COOLDOWN - 2.0));
     commands.insert_resource(CruiserSpawnTimer(timer));
+
+    if res.is_none() {
+        commands.insert_resource(CruiserRes {
+            exhaust_material: exhaust_materials.add(ExhaustMaterial {
+                inner_color: Color::hex("c0eff9").unwrap(),
+                outer_color: Color::hex("3ad8fc").unwrap(),
+                ..default()
+            }),
+        });
+    }
 }
 
 #[derive(Event)]
@@ -444,6 +464,8 @@ fn cruiser_scene_setup(
     scene_manager: Res<SceneSpawner>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut toon_materials: ResMut<Assets<ToonMaterial>>,
+    cruiser_res: Res<CruiserRes>,
+    exhaust_res: Res<ExhaustRes>,
 ) {
     for scene in &mut cruisers {
         if !scene_manager.instance_is_ready(**scene) {
@@ -481,7 +503,24 @@ fn cruiser_scene_setup(
                         DespawnTimer::new(Duration::from_millis(400)),
                     ))
                     .id();
-                commands.entity(entity).add_child(trail);
+
+                let exhaust = commands
+                    .spawn((
+                        MaterialMeshBundle {
+                            material: cruiser_res.exhaust_material.clone(),
+                            mesh: exhaust_res.mesh.clone(),
+                            transform: Transform {
+                                rotation: Quat::from_rotation_x(FRAC_PI_2),
+                                scale: Vec3::new(1.5, 0.5, 1.5),
+                                ..default()
+                            },
+                            ..default()
+                        },
+                        OutlineBundle::default(),
+                    ))
+                    .id();
+
+                commands.entity(entity).add_child(trail).add_child(exhaust);
             } else if name.starts_with("turret_bone") {
                 let mut shoot_timer = Timer::from_seconds(1.0, TimerMode::Repeating);
                 shoot_timer.tick(Duration::from_millis(rng.gen_range(0..500)));
