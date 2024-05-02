@@ -25,7 +25,7 @@ impl ExhaustMaterial {
         Self {
             inner_color,
             outer_color,
-            ..Default::default()
+            ..default()
         }
     }
 }

@@ -1,15 +1,13 @@
 use std::time::Duration;
 
 use bevy::prelude::*;
-use bevy::scene::SceneInstance;
 use bevy_asset_loader::loading_state::config::{ConfigureLoadingState, LoadingStateConfig};
 use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::LoadingStateAppExt};
 use bevy_mod_outline::{OutlineBundle, OutlineVolume};
 use bevy_rapier3d::prelude::*;
 use rand::{seq::SliceRandom, Rng};
 
-use crate::materials::exhaust::ExhaustMaterial;
-use crate::states::{AppState, DespawnOnCleanup, ON_GAME_STARTED};
+use crate::states::{AppState, DespawnOnCleanup};
 use crate::{
     components::{colliders::VelocityColliderBundle, despawn_after::DespawnTimer, health::Health},
     particles::fire_particles::FireParticleRes,
@@ -234,50 +232,8 @@ fn auxiliary_drive(
         )) {
             particle_events.send(ParticleSpawnEvent {
                 entity,
-                direction: Some(-delta.normalize()),
+                direction: Some(-delta.normalize() * 0.4),
             });
-        }
-    }
-}
-
-fn spaceship_setup(
-    mut materials: ResMut<Assets<ExhaustMaterial>>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut commands: Commands,
-) {
-    commands.insert_resource(SpaceshipRes {
-        exhaust_material: materials.add(ExhaustMaterial::default()),
-        exhaust_mesh: meshes.add(Cylinder::new(0.4, 1.0)),
-    });
-}
-
-fn spaceship_exhaust_setup(
-    mut commands: Commands,
-    spaceships: Query<&SceneInstance, (Added<SceneInstance>, With<Spaceship>)>,
-    scene_manager: Res<SceneSpawner>,
-    spaceship_res: Res<SpaceshipRes>,
-    names: Query<&Name>,
-) {
-    for scene in &spaceships {
-        if !scene_manager.instance_is_ready(**scene) {
-            continue;
-        }
-
-        for entity in scene_manager.iter_instance_entities(**scene) {
-            let Ok(name) = names.get(entity) else {
-                continue;
-            };
-            if name.as_str().starts_with("exhaust") {
-                let child = commands
-                    .spawn(MaterialMeshBundle {
-                        material: spaceship_res.exhaust_material.clone(),
-                        mesh: spaceship_res.exhaust_mesh.clone(),
-                        ..default()
-                    })
-                    .id();
-
-                commands.entity(entity).add_child(child);
-            }
         }
     }
 }
@@ -288,12 +244,6 @@ struct SpaceshipAssets {
     player_ship: Handle<Scene>,
     #[asset(path = "enemy.glb#Scene0")]
     enemy_ship: Handle<Scene>,
-}
-
-#[derive(Resource)]
-struct SpaceshipRes {
-    exhaust_material: Handle<ExhaustMaterial>,
-    exhaust_mesh: Handle<Mesh>,
 }
 
 #[derive(Component)]
@@ -322,7 +272,7 @@ fn spawn_exhaust_particle(
 ) {
     let mut rng = rand::thread_rng();
     const RANDOM_VEL_RANGE: std::ops::Range<f32> = -4.0..4.0;
-    const LIFE_TIME_RANGE: std::ops::Range<u64> = 200..300;
+    const LIFE_TIME_RANGE: std::ops::Range<u64> = 100..200;
 
     for event in events.read() {
         let Ok((transform, velocity)) = space_ship_query.get(event.entity) else {
@@ -336,7 +286,6 @@ fn spawn_exhaust_particle(
         let linvel = velocity.linvel +
             direction * 10.0 + // Speed relative to spaceship
             direction.cross(Vec3::Y).normalize() * rng.gen_range(RANDOM_VEL_RANGE); // Random sideways velocity
-
         commands.spawn((
             MaterialMeshBundle {
                 material: res.materials.choose(&mut rng).unwrap().clone(),
@@ -379,8 +328,6 @@ impl Plugin for SpaceshipPlugin {
         )
         .add_plugins((bot::BotPlugin, player::PlayerPlugin))
         .add_event::<ParticleSpawnEvent>()
-        .add_systems(ON_GAME_STARTED, spaceship_exhaust_setup)
-        .add_systems(Startup, spaceship_setup)
         .add_systems(
             Update,
             (

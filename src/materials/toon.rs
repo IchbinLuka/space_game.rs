@@ -55,14 +55,14 @@ pub struct ToonMaterial {
 }
 
 #[derive(Debug, Clone, AsBindGroup, ShaderType)]
-pub struct ToonMaterialUniform {
-    pub filter_scale: f32,
-    pub depth_threshold: f32,
-    pub normal_threshold: f32,
-    pub depth_normal_threshold_scale: f32,
-    pub depth_normal_threshold: f32,
-    pub use_texture: u32,
-    pub color: Color,
+struct ToonMaterialUniform {
+    filter_scale: f32,
+    depth_threshold: f32,
+    normal_threshold: f32,
+    depth_normal_threshold_scale: f32,
+    depth_normal_threshold: f32,
+    use_texture: u32,
+    color: Color,
 }
 
 impl AsBindGroupShaderType<ToonMaterialUniform> for ToonMaterial {

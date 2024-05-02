@@ -15,7 +15,6 @@ struct MainCamera;
 fn setup_exhaust(
     mut commands: Commands,
     mut materials: ResMut<Assets<ExhaustMaterial>>,
-    // mut meshes: ResMut<Assets<Mesh>>,
     res: Res<ExhaustRes>,
 ) {
     let material = materials.add(ExhaustMaterial::default());
