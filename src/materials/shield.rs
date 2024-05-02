@@ -1,11 +1,36 @@
-use bevy::{prelude::*, render::render_resource::{AsBindGroup, ShaderRef}};
+use bevy::{
+    pbr::{NotShadowCaster, NotShadowReceiver},
+    prelude::*,
+    render::render_resource::{AsBindGroup, ShaderRef},
+};
+use bevy_rapier3d::{
+    dynamics::RigidBody,
+    geometry::{ActiveCollisionTypes, Collider, CollidingEntities},
+};
 
-
+use crate::{
+    components::health::{Health, Shield},
+    entities::bullet::BulletTarget,
+};
 
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
 pub struct ShieldMaterial {
     #[uniform(0)]
-    pub color: Color, 
+    pub color: Color,
+}
+
+#[derive(Bundle, Default)]
+pub struct ShieldBundle {
+    pub material_mesh: MaterialMeshBundle<ShieldMaterial>,
+    pub not_shadow_caster: NotShadowCaster,
+    pub not_shadow_receiver: NotShadowReceiver,
+    pub shield: Shield,
+    pub health: Health,
+    pub bullet_target: BulletTarget,
+    pub rigid_body: RigidBody,
+    pub collider: Collider,
+    pub colliding_entities: CollidingEntities,
+    pub active_collision_types: ActiveCollisionTypes,
 }
 
 impl Default for ShieldMaterial {
@@ -14,7 +39,6 @@ impl Default for ShieldMaterial {
             color: Color::hex("6fc1fc").unwrap(),
         }
     }
-
 }
 
 impl Material for ShieldMaterial {

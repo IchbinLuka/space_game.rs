@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::entities::spaceship::player::LastHit;
 
-#[derive(Component)]
+#[derive(Component, Default)]
 pub struct Health {
     pub health: f32,
     pub max_health: f32,
@@ -34,7 +34,7 @@ impl Health {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Default)]
 pub struct Shield;
 
 #[derive(Component)]

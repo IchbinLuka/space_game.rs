@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use bevy::animation::RepeatAnimation;
 use bevy::ecs::system::{Command, EntityCommand, RunSystemOnce};
-use bevy::pbr::{NotShadowCaster, NotShadowReceiver};
+use bevy::pbr::NotShadowReceiver;
 use bevy::prelude::*;
 use bevy::scene::SceneInstance;
 use bevy_asset_loader::loading_state::config::{ConfigureLoadingState, LoadingStateConfig};
@@ -16,11 +16,11 @@ use rand::Rng;
 use crate::components::{
     colliders::VelocityColliderBundle,
     despawn_after::DespawnTimer,
-    health::{DespawnOnDeath, Health, Shield},
+    health::{DespawnOnDeath, Health},
 };
 use crate::entities::spaceship::bot::SpawnSquad;
 use crate::materials::exhaust::{ExhaustMaterial, ExhaustRes};
-use crate::materials::shield::ShieldMaterial;
+use crate::materials::shield::{ShieldBundle, ShieldMaterial};
 use crate::materials::toon::{ApplyToonMaterial, ToonMaterial};
 use crate::states::{game_running, AppState, DespawnOnCleanup, ON_GAME_STARTED};
 use crate::ui::enemy_indicator::SpawnEnemyIndicator;
@@ -372,28 +372,28 @@ fn finish_cruiser(
 ) {
     let shield = commands
         .spawn((
-            CruiserShield,
-            MaterialMeshBundle {
-                mesh: meshes.add(Sphere { radius: 10. }),
-                material: materials.add(ShieldMaterial::default()),
-                transform: Transform::from_scale(Vec3 { z: 2., ..Vec3::ONE }),
+            ShieldBundle {
+                material_mesh: MaterialMeshBundle {
+                    mesh: meshes.add(Sphere { radius: 10. }),
+                    material: materials.add(ShieldMaterial::default()),
+                    transform: Transform::from_scale(Vec3 { z: 2., ..Vec3::ONE }),
+                    ..default()
+                },
+                rigid_body: RigidBody::Fixed,
+                active_collision_types: ActiveCollisionTypes::KINEMATIC_STATIC,
+                bullet_target: BulletTarget {
+                    target_type: BulletType::Player,
+                    bullet_damage: Some(10.0),
+                }, 
+                health: Health::new(100.0),
+                collider: Collider::ball(10.),
                 ..default()
             },
-            NotShadowCaster,
+            CruiserShield,
             SpaceshipCollisions {
                 collision_damage: 10.0,
                 ..default()
             },
-            Collider::ball(10.),
-            CollidingEntities::default(),
-            RigidBody::Fixed,
-            ActiveCollisionTypes::KINEMATIC_STATIC,
-            BulletTarget {
-                target_type: BulletType::Player,
-                bullet_damage: Some(10.0),
-            },
-            Health::new(100.0),
-            Shield,
             COLLISION_GROUPS,
         ))
         .id();

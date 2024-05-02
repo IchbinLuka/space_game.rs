@@ -19,16 +19,17 @@ pub struct Bullet {
     pub bullet_type: BulletType,
 }
 
-#[derive(Component)]
+#[derive(Component, Default)]
 pub struct BulletTarget {
     pub target_type: BulletType,
     pub bullet_damage: Option<f32>,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Default)]
 pub enum BulletType {
     Player,
     Bot,
+    #[default]
     Both,
 }
 

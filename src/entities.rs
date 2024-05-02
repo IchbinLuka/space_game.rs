@@ -6,9 +6,9 @@ pub mod camera;
 pub mod cruiser;
 pub mod explosion;
 pub mod planet;
+pub mod powerup;
 pub mod space_station;
 pub mod spaceship;
-pub mod powerup;
 
 pub struct EntitiesPlugin;
 

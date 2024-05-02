@@ -1,23 +1,33 @@
 use std::time::Duration;
 
-use bevy::{pbr::NotShadowCaster, prelude::*};
-use bevy_rapier3d::{dynamics::RigidBody, geometry::{ActiveCollisionTypes, Collider, CollidingEntities}};
+use bevy::prelude::*;
+use bevy_rapier3d::{
+    dynamics::RigidBody,
+    geometry::{ActiveCollisionTypes, Collider, CollidingEntities},
+};
 
-use crate::{components::{despawn_after::DespawnTimer, health::{Health, Shield}}, materials::shield::ShieldMaterial, states::ON_GAME_STARTED, utils::misc::CollidingEntitiesExtension};
+use crate::{
+    components::{despawn_after::DespawnTimer, health::Health},
+    materials::shield::{ShieldBundle, ShieldMaterial},
+    states::ON_GAME_STARTED,
+    utils::misc::CollidingEntitiesExtension,
+};
 
-use super::{bullet::{BulletTarget, BulletType}, spaceship::{player::Player, SpaceshipBundle}};
-
+use super::{
+    bullet::{BulletTarget, BulletType},
+    spaceship::{player::Player, SpaceshipBundle},
+};
 
 #[derive(Component)]
 pub enum PowerUp {
-    Shield, 
+    Shield,
 }
 
 #[derive(Component)]
 pub struct PlayerShield;
 
 fn powerup_setup(
-    mut commands: Commands, 
+    mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
@@ -42,13 +52,13 @@ fn powerup_setup(
                 ..default()
             }),
             ..default()
-        }
+        },
     ));
 }
 
 fn powerup_collisions(
-    powerups: Query<(&CollidingEntities, &PowerUp, Entity)>, 
-    player: Query<Entity, With<Player>>, 
+    powerups: Query<(&CollidingEntities, &PowerUp, Entity)>,
+    player: Query<Entity, With<Player>>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ShieldMaterial>>,
@@ -59,28 +69,33 @@ fn powerup_collisions(
         };
         match powerup {
             PowerUp::Shield => {
-                let shield = commands.spawn((
-                    MaterialMeshBundle {
-                        mesh: meshes.add(Sphere { radius: 2. }),
-                        material: materials.add(ShieldMaterial::default()),
-                        transform: Transform::from_scale(Vec3 { z: 1.3, ..Vec3::ONE }),
-                        ..default()
-                    },
-                    NotShadowCaster,
-                    Collider::ball(2.),
-                    CollidingEntities::default(),
-                    RigidBody::Fixed,
-                    ActiveCollisionTypes::KINEMATIC_STATIC,
-                    BulletTarget {
-                        target_type: BulletType::Bot,
-                        bullet_damage: Some(10.0),
-                    },
-                    Health::new(100.0),
-                    Shield,
-                    PlayerShield,
-                    DespawnTimer::new(Duration::from_secs(20)), 
-                    SpaceshipBundle::COLLISION_GROUPS,
-                )).id();
+                let shield = commands
+                    .spawn((
+                        ShieldBundle {
+                            material_mesh: MaterialMeshBundle {
+                                mesh: meshes.add(Sphere { radius: 2. }),
+                                material: materials.add(ShieldMaterial::default()),
+                                transform: Transform::from_scale(Vec3 {
+                                    z: 1.3,
+                                    ..Vec3::ONE
+                                }),
+                                ..default()
+                            },
+                            collider: Collider::ball(2.),
+                            rigid_body: RigidBody::Fixed,
+                            active_collision_types: ActiveCollisionTypes::KINEMATIC_STATIC,
+                            bullet_target: BulletTarget {
+                                target_type: BulletType::Bot,
+                                bullet_damage: Some(10.0),
+                            },
+                            health: Health::new(100.0),
+                            ..default()
+                        },
+                        PlayerShield,
+                        DespawnTimer::new(Duration::from_secs(20)),
+                        SpaceshipBundle::COLLISION_GROUPS,
+                    ))
+                    .id();
                 commands.entity(player_entity).add_child(shield);
             }
         }
@@ -88,12 +103,10 @@ fn powerup_collisions(
     }
 }
 
-
 pub struct PowerupPlugin;
 impl Plugin for PowerupPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_systems(ON_GAME_STARTED, powerup_setup)
+        app.add_systems(ON_GAME_STARTED, powerup_setup)
             .add_systems(Update, powerup_collisions);
     }
 }

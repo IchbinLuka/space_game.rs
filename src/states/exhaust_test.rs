@@ -4,7 +4,10 @@ use bevy::{prelude::*, render::view::RenderLayers};
 
 use crate::{
     entities::camera::RENDER_LAYER_2D,
-    materials::{exhaust::{ExhaustMaterial, ExhaustRes}, shield::ShieldMaterial},
+    materials::{
+        exhaust::{ExhaustMaterial, ExhaustRes},
+        shield::ShieldMaterial,
+    },
 };
 
 use super::{AppState, DespawnOnCleanup};
@@ -12,7 +15,7 @@ use super::{AppState, DespawnOnCleanup};
 #[derive(Component)]
 struct MainCamera;
 
-fn setup_exhaust(
+fn _setup_exhaust(
     mut commands: Commands,
     mut materials: ResMut<Assets<ExhaustMaterial>>,
     res: Res<ExhaustRes>,
@@ -27,8 +30,8 @@ fn setup_exhaust(
 }
 
 fn setup_shield(
-    mut commands: Commands, 
-    mut materials: ResMut<Assets<ShieldMaterial>>, 
+    mut commands: Commands,
+    mut materials: ResMut<Assets<ShieldMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
     let material = materials.add(ShieldMaterial {
@@ -88,13 +91,7 @@ fn camera_update(mut camera: Query<&mut Transform, With<MainCamera>>, time: Res<
 pub struct ExhaustTestPlugin;
 impl Plugin for ExhaustTestPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
-            OnEnter(AppState::TestScene),
-            (setup_shield, init_camera),
-        )
-        .add_systems(
-            Update,
-            camera_update.run_if(in_state(AppState::TestScene)),
-        );
+        app.add_systems(OnEnter(AppState::TestScene), (setup_shield, init_camera))
+            .add_systems(Update, camera_update.run_if(in_state(AppState::TestScene)));
     }
 }
