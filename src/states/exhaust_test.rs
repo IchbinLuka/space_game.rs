@@ -4,7 +4,7 @@ use bevy::{prelude::*, render::view::RenderLayers};
 
 use crate::{
     entities::camera::RENDER_LAYER_2D,
-    materials::exhaust::{ExhaustMaterial, ExhaustRes},
+    materials::{exhaust::{ExhaustMaterial, ExhaustRes}, shield::ShieldMaterial},
 };
 
 use super::{AppState, DespawnOnCleanup};
@@ -21,6 +21,21 @@ fn setup_exhaust(
     commands.spawn(MaterialMeshBundle {
         mesh: res.mesh.clone(),
         transform: Transform::from_rotation(Quat::from_rotation_x(FRAC_PI_2)),
+        material,
+        ..default()
+    });
+}
+
+fn setup_shield(
+    mut commands: Commands, 
+    mut materials: ResMut<Assets<ShieldMaterial>>, 
+    mut meshes: ResMut<Assets<Mesh>>,
+) {
+    let material = materials.add(ShieldMaterial {
+        color: Color::hex("2ae0ed0f").unwrap(),
+    });
+    commands.spawn(MaterialMeshBundle {
+        mesh: meshes.add(Sphere { radius: 2. }),
         material,
         ..default()
     });
@@ -74,12 +89,12 @@ pub struct ExhaustTestPlugin;
 impl Plugin for ExhaustTestPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
-            OnEnter(AppState::ExhaustTestScene),
-            (setup_exhaust, init_camera),
+            OnEnter(AppState::TestScene),
+            (setup_shield, init_camera),
         )
         .add_systems(
             Update,
-            camera_update.run_if(in_state(AppState::ExhaustTestScene)),
+            camera_update.run_if(in_state(AppState::TestScene)),
         );
     }
 }

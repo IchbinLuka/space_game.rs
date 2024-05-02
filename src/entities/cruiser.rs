@@ -20,6 +20,7 @@ use crate::components::{
 };
 use crate::entities::spaceship::bot::SpawnSquad;
 use crate::materials::exhaust::{ExhaustMaterial, ExhaustRes};
+use crate::materials::shield::ShieldMaterial;
 use crate::materials::toon::{ApplyToonMaterial, ToonMaterial};
 use crate::states::{game_running, AppState, DespawnOnCleanup, ON_GAME_STARTED};
 use crate::ui::enemy_indicator::SpawnEnemyIndicator;
@@ -367,19 +368,14 @@ fn finish_cruiser(
     In(cruiser): In<Entity>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut materials: ResMut<Assets<ShieldMaterial>>,
 ) {
     let shield = commands
         .spawn((
             CruiserShield,
-            PbrBundle {
+            MaterialMeshBundle {
                 mesh: meshes.add(Sphere { radius: 10. }),
-                material: materials.add(StandardMaterial {
-                    base_color: Color::hex("2ae0ed0f").unwrap(),
-                    unlit: true,
-                    alpha_mode: AlphaMode::Blend,
-                    ..default()
-                }),
+                material: materials.add(ShieldMaterial::default()),
                 transform: Transform::from_scale(Vec3 { z: 2., ..Vec3::ONE }),
                 ..default()
             },

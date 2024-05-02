@@ -134,25 +134,26 @@ fn apply_toon_materials(
     standard_material_query: Query<&Handle<StandardMaterial>>,
 ) {
     for (scene_instance, entity, apply_outline) in &query {
-        if scene_manager.instance_is_ready(**scene_instance) {
-            for entity in scene_manager.iter_instance_entities(**scene_instance) {
-                if let Ok(handle) = standard_material_query.get(entity) {
-                    let Some(material) = standard_materials.get(handle) else {
-                        continue;
-                    };
-                    let outline_material = materials.add(ToonMaterial {
-                        color: material.base_color,
-                        texture: material.base_color_texture.clone(),
-                        ..apply_outline.base_material.clone()
-                    });
+        if !scene_manager.instance_is_ready(**scene_instance) {
+            continue;
+        }
+        for entity in scene_manager.iter_instance_entities(**scene_instance) {
+            if let Ok(handle) = standard_material_query.get(entity) {
+                let Some(material) = standard_materials.get(handle) else {
+                    continue;
+                };
+                let outline_material = materials.add(ToonMaterial {
+                    color: material.base_color,
+                    texture: material.base_color_texture.clone(),
+                    ..apply_outline.base_material.clone()
+                });
 
-                    let Some(mut entity_commands) = commands.get_entity(entity) else {
-                        continue;
-                    };
-                    entity_commands
-                        .insert(outline_material)
-                        .remove::<Handle<StandardMaterial>>();
-                }
+                let Some(mut entity_commands) = commands.get_entity(entity) else {
+                    continue;
+                };
+                entity_commands
+                    .insert(outline_material)
+                    .remove::<Handle<StandardMaterial>>();
             }
         }
         commands.entity(entity).remove::<ApplyToonMaterial>();

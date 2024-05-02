@@ -136,7 +136,7 @@ pub struct SpaceshipBundle {
 }
 
 impl SpaceshipBundle {
-    const COLLISION_GROUPS: CollisionGroups =
+    pub const COLLISION_GROUPS: CollisionGroups =
         CollisionGroups::new(BULLET_COLLISION_GROUP, Group::ALL);
 
     fn new(model: Handle<Scene>, pos: Vec3) -> Self {
