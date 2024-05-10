@@ -19,6 +19,7 @@ use self::{bot::Bot, player::Player};
 
 use super::bullet::{BulletSpawnEvent, BulletType};
 use super::explosion::ExplosionEvent;
+use super::powerup::ShieldEnabled;
 
 pub mod bot;
 pub mod player;
@@ -179,15 +180,23 @@ fn spaceship_collisions(
             &CollidingEntities,
             Entity,
             Option<&mut Health>,
+            Option<&ShieldEnabled>, 
         ),
         With<Spaceship>,
     >,
-    planet_query: Query<(&GlobalTransform, &SpaceshipCollisions), Without<Spaceship>>,
+    colliders: Query<(&GlobalTransform, &SpaceshipCollisions), Without<Spaceship>>,
     mut explosions: EventWriter<ExplosionEvent>,
 ) {
-    for (mut velocity, mut transform, colliding_entities, entity, mut health) in &mut spaceship {
+    for (
+        mut velocity, 
+        mut transform, 
+        colliding_entities, 
+        entity, 
+        mut health, 
+        shield_enabled, 
+    ) in &mut spaceship {
         for (global_transform, collisions) in
-            colliding_entities.filter_fulfills_query(&planet_query)
+            colliding_entities.filter_fulfills_query(&colliders)
         {
             explosions.send(ExplosionEvent {
                 parent: Some(entity),
@@ -203,7 +212,7 @@ fn spaceship_collisions(
 
             transform.translation = colliding_transform.translation + normal * (distance + 2.0);
 
-            if let Some(ref mut health) = health {
+            if let Some(ref mut health) = health && shield_enabled.is_none() {
                 health.take_damage(collisions.collision_damage);
             }
         }

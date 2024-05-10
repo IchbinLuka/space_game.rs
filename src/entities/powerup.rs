@@ -1,6 +1,13 @@
-use std::time::Duration;
+use std::{f32::consts::FRAC_PI_2, time::Duration};
 
-use bevy::prelude::*;
+use bevy::{ecs::system::Command, prelude::*};
+use bevy_asset_loader::{
+    asset_collection::AssetCollection,
+    loading_state::{
+        config::{ConfigureLoadingState, LoadingStateConfig},
+        LoadingStateAppExt,
+    },
+};
 use bevy_rapier3d::{
     dynamics::RigidBody,
     geometry::{ActiveCollisionTypes, Collider, CollidingEntities},
@@ -8,8 +15,11 @@ use bevy_rapier3d::{
 
 use crate::{
     components::{despawn_after::DespawnTimer, health::Health},
-    materials::shield::{ShieldBundle, ShieldMaterial},
-    states::ON_GAME_STARTED,
+    materials::{
+        shield::{ShieldBundle, ShieldMaterial},
+        toon::{ApplyToonMaterial, ToonMaterial},
+    },
+    states::AppState,
     utils::misc::CollidingEntitiesExtension,
 };
 
@@ -26,39 +36,67 @@ pub enum PowerUp {
 #[derive(Component)]
 pub struct PlayerShield;
 
-fn powerup_setup(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-) {
-    commands.spawn((
-        CollidingEntities::default(),
-        PowerUp::Shield,
-        Collider::capsule(Vec3::Y * -3.5, Vec3::Y * 3.5, 5.0),
-        RigidBody::Fixed,
-        ActiveCollisionTypes::KINEMATIC_STATIC,
-        BulletTarget {
-            target_type: BulletType::Player,
-            bullet_damage: Some(10.0),
-        },
-        Health::new(100.0),
-        SpaceshipBundle::COLLISION_GROUPS,
-        PbrBundle {
-            transform: Transform::from_translation(Vec3::new(30., 0., 0.)),
-            mesh: meshes.add(Capsule3d::new(5.0, 7.0)),
-            material: materials.add(StandardMaterial {
-                base_color: Color::RED,
-                unlit: true,
+#[derive(Component)]
+pub struct ShieldEnabled;
+
+pub struct SpawnPowerup {
+    #[allow(dead_code)]
+    pub powerup: PowerUp,
+    pub pos: Vec3,
+}
+
+impl Command for SpawnPowerup {
+    fn apply(self, world: &mut World) {
+        let Some(assets) = world.get_resource::<PowerUpAssets>() else {
+            error!("Could not spawn powerup, assets are not loaded");
+            return;
+        };
+
+        world.spawn((
+            CollidingEntities::default(),
+            PowerUp::Shield,
+            Collider::ball(3.0),
+            RigidBody::Fixed,
+            ActiveCollisionTypes::KINEMATIC_STATIC,
+            BulletTarget {
+                target_type: BulletType::Player,
+                bullet_damage: Some(10.0),
+            },
+            Health::new(100.0),
+            SpaceshipBundle::COLLISION_GROUPS,
+            SceneBundle {
+                transform: Transform {
+                    translation: self.pos,
+                    rotation: Quat::from_rotation_x(-FRAC_PI_2),
+                    scale: Vec3::splat(0.5),
+                },
+                scene: assets.shield.clone(),
                 ..default()
-            }),
-            ..default()
-        },
-    ));
+            },
+            ApplyToonMaterial {
+                base_material: ToonMaterial { ..default() },
+            },
+        ));
+    }
+}
+
+fn shield_death(
+    mut commands: Commands, 
+    mut removed_shields: RemovedComponents<PlayerShield>, 
+    player: Query<Entity, With<Player>>,
+) {
+    if removed_shields.read().next().is_none() {
+        return;
+    }
+    for player_entity in player.iter() {
+        commands.entity(player_entity).remove::<ShieldEnabled>();
+    }
 }
 
 fn powerup_collisions(
     powerups: Query<(&CollidingEntities, &PowerUp, Entity)>,
     player: Query<Entity, With<Player>>,
+    player_shields: Query<(), With<PlayerShield>>, 
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ShieldMaterial>>,
@@ -69,6 +107,9 @@ fn powerup_collisions(
         };
         match powerup {
             PowerUp::Shield => {
+                if player_shields.iter().next().is_some() {
+                    continue;
+                }
                 let shield = commands
                     .spawn((
                         ShieldBundle {
@@ -90,23 +131,32 @@ fn powerup_collisions(
                             },
                             health: Health::new(100.0),
                             ..default()
-                        },
+                        }, 
                         PlayerShield,
                         DespawnTimer::new(Duration::from_secs(20)),
                         SpaceshipBundle::COLLISION_GROUPS,
                     ))
                     .id();
-                commands.entity(player_entity).add_child(shield);
+                commands.entity(player_entity)
+                    .add_child(shield)
+                    .insert(ShieldEnabled);
             }
         }
         commands.entity(entity).despawn_recursive();
     }
 }
 
+#[derive(AssetCollection, Resource)]
+struct PowerUpAssets {
+    #[asset(path = "shield.glb#Scene0")]
+    shield: Handle<Scene>,
+}
 pub struct PowerupPlugin;
 impl Plugin for PowerupPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(ON_GAME_STARTED, powerup_setup)
-            .add_systems(Update, powerup_collisions);
+        app.configure_loading_state(
+            LoadingStateConfig::new(AppState::MainSceneLoading).load_collection::<PowerUpAssets>(),
+        )
+        .add_systems(Update, (powerup_collisions, shield_death));
     }
 }

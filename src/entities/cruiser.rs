@@ -384,7 +384,7 @@ fn finish_cruiser(
                 bullet_target: BulletTarget {
                     target_type: BulletType::Player,
                     bullet_damage: Some(10.0),
-                }, 
+                },
                 health: Health::new(100.0),
                 collider: Collider::ball(10.),
                 ..default()
@@ -453,6 +453,7 @@ fn cruiser_trail_update(mut trails: Query<(&mut Transform, &DespawnTimer), With<
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn cruiser_scene_setup(
     mut cruisers: Query<&SceneInstance, (With<Cruiser>, Changed<SceneInstance>)>,
     names: Query<(&Name, &GlobalTransform), Without<Cruiser>>,

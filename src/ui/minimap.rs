@@ -108,6 +108,7 @@ fn spawn_minimap_objects(
                     },
                     transform: Transform::from_scale(Vec3::new(scale, scale, 1.)),
                     texture: show_on_minimap.sprite.clone(),
+                    visibility: Visibility::Hidden,
                     ..default()
                 },
                 RenderLayers::layer(RENDER_LAYER_2D),

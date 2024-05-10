@@ -12,6 +12,7 @@ use crate::{
     entities::{
         bullet::{BulletSpawnEvent, BulletTarget, BulletType},
         explosion::ExplosionEvent,
+        powerup::{PowerUp, SpawnPowerup},
     },
     materials::toon::{ApplyToonMaterial, ToonMaterial},
     states::{game_running, DespawnOnCleanup, ON_GAME_STARTED},
@@ -37,6 +38,7 @@ const COLLISION_GROUPS: CollisionGroups = CollisionGroups::new(
     BOT_COLLISION_GROUP,
     Group::ALL.difference(CRUISER_COLLISION_GROUP),
 );
+const POWERUP_SPAWN_PROBABILITY: f64 = 0.1;
 
 #[derive(Component)]
 pub struct EnemyTarget;
@@ -187,6 +189,14 @@ fn bot_death(
     for (entity, global_transform, health) in &bots {
         if health.is_dead() {
             let transform = global_transform.compute_transform();
+            let mut rng = rand::thread_rng();
+            if rng.gen_bool(POWERUP_SPAWN_PROBABILITY) {
+                commands.add(SpawnPowerup {
+                    pos: transform.translation,
+                    powerup: PowerUp::Shield,
+                });
+            }
+
             explosions.send(ExplosionEvent {
                 parent: None,
                 position: transform.translation,
