@@ -18,9 +18,9 @@ use crate::utils::misc::cleanup_system;
 
 #[derive(Clone, Eq, PartialEq, Debug, Hash, Default, States, Copy)]
 pub enum AppState {
+    #[default]
     StartScreenLoading,
     StartScreen,
-    #[default]
     MainSceneLoading,
     MainScene,
     GameOver,

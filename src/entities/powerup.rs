@@ -8,6 +8,7 @@ use bevy_asset_loader::{
         LoadingStateAppExt,
     },
 };
+use bevy_mod_outline::OutlineBundle;
 use bevy_rapier3d::{
     dynamics::RigidBody,
     geometry::{ActiveCollisionTypes, Collider, CollidingEntities},
@@ -19,8 +20,8 @@ use crate::{
         shield::{ShieldBundle, ShieldMaterial},
         toon::{ApplyToonMaterial, ToonMaterial},
     },
-    states::AppState,
-    utils::misc::CollidingEntitiesExtension,
+    states::{AppState, DespawnOnCleanup},
+    utils::{materials::default_outline, misc::CollidingEntitiesExtension},
 };
 
 use super::{
@@ -57,6 +58,8 @@ impl Command for SpawnPowerup {
             PowerUp::Shield,
             Collider::ball(3.0),
             RigidBody::Fixed,
+            DespawnOnCleanup, 
+            DespawnTimer::new(Duration::from_secs(20)),
             ActiveCollisionTypes::KINEMATIC_STATIC,
             BulletTarget {
                 target_type: BulletType::Player,
@@ -74,8 +77,15 @@ impl Command for SpawnPowerup {
                 ..default()
             },
             ApplyToonMaterial {
-                base_material: ToonMaterial { ..default() },
+                base_material: ToonMaterial { 
+                    filter_scale: 0.0, 
+                    ..default()
+                },
             },
+            OutlineBundle {
+                outline: default_outline(), 
+                ..default()
+            }
         ));
     }
 }
