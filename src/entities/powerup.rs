@@ -13,6 +13,7 @@ use bevy_rapier3d::{
     dynamics::RigidBody,
     geometry::{ActiveCollisionTypes, Collider, CollidingEntities},
 };
+use rand::{rngs::ThreadRng, Rng};
 
 use crate::{
     components::{despawn_after::DespawnTimer, health::Health},
@@ -29,7 +30,7 @@ use super::{
     spaceship::{player::Player, SpaceshipBundle},
 };
 
-#[derive(Component)]
+#[derive(Component, Clone, Copy)]
 pub enum PowerUp {
     Shield,
 }
@@ -41,9 +42,16 @@ pub struct PlayerShield;
 pub struct ShieldEnabled;
 
 pub struct SpawnPowerup {
-    #[allow(dead_code)]
     pub powerup: PowerUp,
     pub pos: Vec3,
+}
+
+impl SpawnPowerup {
+    pub fn random(pos: Vec3, rng: &mut ThreadRng) -> Self {
+        const POWERUPS: [PowerUp; 1] = [PowerUp::Shield];
+        let powerup = POWERUPS[rng.gen_range(0..POWERUPS.len())];
+        Self { powerup, pos }
+    }
 }
 
 impl Command for SpawnPowerup {
@@ -53,40 +61,44 @@ impl Command for SpawnPowerup {
             return;
         };
 
-        world.spawn((
-            CollidingEntities::default(),
-            PowerUp::Shield,
-            Collider::ball(3.0),
-            RigidBody::Fixed,
-            DespawnOnCleanup, 
-            DespawnTimer::new(Duration::from_secs(20)),
-            ActiveCollisionTypes::KINEMATIC_STATIC,
-            BulletTarget {
-                target_type: BulletType::Player,
-                bullet_damage: Some(10.0),
-            },
-            Health::new(100.0),
-            SpaceshipBundle::COLLISION_GROUPS,
-            SceneBundle {
-                transform: Transform {
-                    translation: self.pos,
-                    rotation: Quat::from_rotation_x(-FRAC_PI_2),
-                    scale: Vec3::splat(0.5),
-                },
-                scene: assets.shield.clone(),
-                ..default()
-            },
-            ApplyToonMaterial {
-                base_material: ToonMaterial { 
-                    filter_scale: 0.0, 
-                    ..default()
-                },
-            },
-            OutlineBundle {
-                outline: default_outline(), 
-                ..default()
+        match self.powerup {
+            PowerUp::Shield => {
+                world.spawn((
+                    CollidingEntities::default(),
+                    PowerUp::Shield,
+                    Collider::ball(3.0),
+                    RigidBody::Fixed,
+                    DespawnOnCleanup, 
+                    DespawnTimer::new(Duration::from_secs(20)),
+                    ActiveCollisionTypes::KINEMATIC_STATIC,
+                    BulletTarget {
+                        target_type: BulletType::Player,
+                        bullet_damage: Some(10.0),
+                    },
+                    Health::new(100.0),
+                    SpaceshipBundle::COLLISION_GROUPS,
+                    SceneBundle {
+                        transform: Transform {
+                            translation: self.pos,
+                            rotation: Quat::from_rotation_x(-FRAC_PI_2),
+                            scale: Vec3::splat(0.5),
+                        },
+                        scene: assets.shield.clone(),
+                        ..default()
+                    },
+                    ApplyToonMaterial {
+                        base_material: ToonMaterial { 
+                            filter_scale: 0.0, 
+                            ..default()
+                        },
+                    },
+                    OutlineBundle {
+                        outline: default_outline(), 
+                        ..default()
+                    }
+                ));
             }
-        ));
+        }
     }
 }
 
