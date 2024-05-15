@@ -7,6 +7,7 @@ use bevy::window::{PresentMode, PrimaryWindow};
 use cfg_if::cfg_if;
 use serde::{Deserialize, Serialize};
 
+#[cfg(not(target_family = "wasm"))]
 const SETTINGS_PATH: &str = "settings.json";
 
 #[derive(Resource, Clone, Serialize, Deserialize)]

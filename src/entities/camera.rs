@@ -10,7 +10,6 @@ use bevy::{
     },
 };
 use bevy_asset_loader::asset_collection::AssetCollection;
-use cfg_if::cfg_if;
 
 use crate::{
     states::{game_running, AppState, DespawnOnCleanup, ON_GAME_STARTED},
@@ -80,7 +79,7 @@ pub fn spawn_camera(commands: &mut Commands, transform: Transform, camera_assets
         RenderLayers::layer(RENDER_LAYER_2D),
     ));
 
-    let mut camera = commands.spawn((
+    commands.spawn((
         Camera3dBundle {
             transform,
             projection: Projection::Perspective(PerspectiveProjection {
@@ -95,16 +94,14 @@ pub fn spawn_camera(commands: &mut Commands, transform: Transform, camera_assets
         },
         MainCamera,
         DespawnOnCleanup,
-    ));
-
-    cfg_if! {
-        if #[cfg(not(target_family = "wasm"))] {
-            camera.insert((
-                DepthPrepass,
-                NormalPrepass,
-            ));
-        }
-    }
+        #[cfg(not(target_family = "wasm"))]
+        (
+            // On WebGL, normal and depth prepasses are currently broken.
+            // See https://github.com/bevyengine/bevy/issues/9710
+            DepthPrepass,
+            NormalPrepass,
+        )
+    ));    
 }
 
 fn control_camera(

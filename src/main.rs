@@ -7,7 +7,7 @@ extern crate rust_i18n;
 i18n!();
 
 use bevy::{
-    asset::AssetMetaCheck, log::LogPlugin, pbr::DirectionalLightShadowMap, prelude::*,
+    asset::AssetMetaCheck, log::{self, LogPlugin}, pbr::DirectionalLightShadowMap, prelude::*,
     window::PresentMode,
 };
 use bevy_mod_outline::{AutoGenerateOutlineNormalsPlugin, OutlinePlugin};
@@ -53,13 +53,20 @@ fn update_canvas_size(mut window: Query<&mut Window, With<bevy::window::PrimaryW
     })();
 }
 
+#[cfg(feature = "debug")]
+const LOG_LEVEL: log::Level = log::Level::INFO;
+
+#[cfg(not(feature = "debug"))]
+const LOG_LEVEL: log::Level = log::Level::ERROR;
+
 fn main() {
     let mut app = App::new();
     app.insert_resource(AssetMetaCheck::Never)
+        .insert_resource(Msaa::Off)
         .add_plugins(
             DefaultPlugins
                 .set(LogPlugin {
-                    level: bevy::log::Level::INFO,
+                    level: LOG_LEVEL,
                     ..default()
                 })
                 .set(WindowPlugin {
