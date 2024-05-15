@@ -103,8 +103,8 @@ impl Command for SpawnPowerup {
 }
 
 fn shield_death(
-    mut commands: Commands, 
-    mut removed_shields: RemovedComponents<PlayerShield>, 
+    mut commands: Commands,
+    mut removed_shields: RemovedComponents<PlayerShield>,
     player: Query<Entity, With<Player>>,
 ) {
     if removed_shields.read().next().is_none() {
@@ -118,7 +118,7 @@ fn shield_death(
 fn powerup_collisions(
     powerups: Query<(&CollidingEntities, &PowerUp, Entity)>,
     player: Query<Entity, With<Player>>,
-    player_shields: Query<(), With<PlayerShield>>, 
+    player_shields: Query<(), With<PlayerShield>>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ShieldMaterial>>,
@@ -153,13 +153,14 @@ fn powerup_collisions(
                             },
                             health: Health::new(100.0),
                             ..default()
-                        }, 
+                        },
                         PlayerShield,
                         DespawnTimer::new(Duration::from_secs(20)),
                         SpaceshipBundle::COLLISION_GROUPS,
                     ))
                     .id();
-                commands.entity(player_entity)
+                commands
+                    .entity(player_entity)
                     .add_child(shield)
                     .insert(ShieldEnabled);
             }

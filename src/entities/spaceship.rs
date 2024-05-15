@@ -180,24 +180,17 @@ fn spaceship_collisions(
             &CollidingEntities,
             Entity,
             Option<&mut Health>,
-            Option<&ShieldEnabled>, 
+            Option<&ShieldEnabled>,
         ),
         With<Spaceship>,
     >,
     colliders: Query<(&GlobalTransform, &SpaceshipCollisions), Without<Spaceship>>,
     mut explosions: EventWriter<ExplosionEvent>,
 ) {
-    for (
-        mut velocity, 
-        mut transform, 
-        colliding_entities, 
-        entity, 
-        mut health, 
-        shield_enabled, 
-    ) in &mut spaceship {
-        for (global_transform, collisions) in
-            colliding_entities.filter_fulfills_query(&colliders)
-        {
+    for (mut velocity, mut transform, colliding_entities, entity, mut health, shield_enabled) in
+        &mut spaceship
+    {
+        for (global_transform, collisions) in colliding_entities.filter_fulfills_query(&colliders) {
             explosions.send(ExplosionEvent {
                 parent: Some(entity),
                 ..default()
@@ -212,7 +205,9 @@ fn spaceship_collisions(
 
             transform.translation = colliding_transform.translation + normal * (distance + 2.0);
 
-            if let Some(ref mut health) = health && shield_enabled.is_none() {
+            if let Some(ref mut health) = health
+                && shield_enabled.is_none()
+            {
                 health.take_damage(collisions.collision_damage);
             }
         }

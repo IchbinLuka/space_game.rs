@@ -105,7 +105,6 @@ fn main() {
             ModelPlugin,
         ))
         .insert_resource(DirectionalLightShadowMap { size: 4096 });
-
     cfg_if! {
         if #[cfg(target_family = "wasm")] {
             // app.insert_resource(Msaa::Off);
