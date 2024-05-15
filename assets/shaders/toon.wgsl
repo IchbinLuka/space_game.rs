@@ -83,7 +83,8 @@ fn fragment(
     in: VertexOutput,
     @builtin(front_facing) is_front: bool, 
 ) -> @location(0) vec4<f32> {
+    let sample_index = 0u;
     var pbr_input = pbr_input_from_vertex_output(in, is_front, true);
-    let toon_color = toon_fragment(in);
+    let toon_color = toon_fragment(in, sample_index);
     return vec4<f32>((toon_color.xyz * shadow_multiplier(pbr_input)), toon_color.w);
 }

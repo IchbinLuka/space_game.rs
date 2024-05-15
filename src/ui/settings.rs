@@ -1,10 +1,10 @@
-use bevy::{ecs::system::Command, prelude::*, ui::FocusPolicy};
+use bevy::{ecs::system::Command, prelude::*, ui::FocusPolicy, window::PrimaryWindow};
 use bevy_round_ui::{
     autosize::{RoundUiAutosizeMaterial, RoundUiAutosizeNodePadding},
     prelude::RoundUiMaterial,
 };
 
-use crate::model::settings::{AntialiasingSetting, Settings};
+use crate::model::settings::{AntialiasingSetting, Settings, VSyncSetting};
 
 use super::{
     button::{CheckBox, CheckBoxBundle, TextButtonBundle},
@@ -23,6 +23,9 @@ struct CloseButton;
 
 #[derive(Component)]
 struct ShadowSetting;
+
+#[derive(Component)]
+struct VSyncSettingsItem;
 
 #[derive(Component)]
 struct RotateSetting<T> {
@@ -164,6 +167,20 @@ impl Command for OpenSettings {
                         ));
                     });
 
+                    c.settings_item(false, |c| {
+                        c.spawn(TextBundle::from_section("VSync", style.clone()));
+
+                        let initial: String = settings.vsync.into();
+                        c.spawn((
+                            TextButtonBundle::from_section(initial, style.clone()),
+                            RotateSetting {
+                                current_index: if settings.vsync.0 { 0 } else { 1 },
+                                values: vec![VSyncSetting(true), VSyncSetting(false)],
+                            },
+                            VSyncSettingsItem,
+                        ));
+                    });
+
                     c.spawn(TextBundle {
                         style: Style {
                             margin: UiRect::top(Val::Percent(10.)),
@@ -239,9 +256,11 @@ impl<'w> WorldChildBuilderExtension for WorldChildBuilder<'w> {
     ) {
         self.spawn(NodeBundle {
             style: Style {
+                width: Val::Px(350.),
                 display: Display::Flex,
                 flex_direction: FlexDirection::Row,
                 align_items: AlignItems::Center,
+                justify_content: JustifyContent::SpaceBetween,
                 ..default()
             },
             ..default()
@@ -249,7 +268,7 @@ impl<'w> WorldChildBuilderExtension for WorldChildBuilder<'w> {
         .with_children(|c| {
             c.spawn(NodeBundle {
                 style: Style {
-                    width: Val::Px(300.),
+                    flex_grow: 1.0,
                     display: Display::Flex,
                     flex_direction: FlexDirection::Row,
                     justify_content: JustifyContent::SpaceBetween,
@@ -296,6 +315,25 @@ fn update_shadows(
     }
 }
 
+fn update_vsync(
+    query: Query<
+        &RotateSetting<VSyncSetting>,
+        (
+            Changed<RotateSetting<VSyncSetting>>,
+            With<VSyncSettingsItem>,
+        ),
+    >,
+    mut settings: ResMut<Settings>,
+    mut window: Query<&mut Window, With<PrimaryWindow>>,
+) {
+    for rotate_setting in &query {
+        settings.vsync = *rotate_setting.value();
+        for mut window in &mut window {
+            window.present_mode = settings.vsync.into();
+        }
+    }
+}
+
 fn update_msaa(
     query: Query<
         &RotateSetting<AntialiasingSetting>,
@@ -336,8 +374,10 @@ impl Plugin for SettingsPlugin {
                 update_lang,
                 settings_button,
                 update_msaa,
+                update_vsync,
                 rotate_settings_item::<String>,
                 rotate_settings_item::<AntialiasingSetting>,
+                rotate_settings_item::<VSyncSetting>,
             ),
         );
     }

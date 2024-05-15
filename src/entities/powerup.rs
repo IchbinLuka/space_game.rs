@@ -68,7 +68,7 @@ impl Command for SpawnPowerup {
                     PowerUp::Shield,
                     Collider::ball(3.0),
                     RigidBody::Fixed,
-                    DespawnOnCleanup, 
+                    DespawnOnCleanup,
                     DespawnTimer::new(Duration::from_secs(20)),
                     ActiveCollisionTypes::KINEMATIC_STATIC,
                     BulletTarget {
@@ -87,15 +87,15 @@ impl Command for SpawnPowerup {
                         ..default()
                     },
                     ApplyToonMaterial {
-                        base_material: ToonMaterial { 
-                            filter_scale: 0.0, 
+                        base_material: ToonMaterial {
+                            filter_scale: 0.0,
                             ..default()
                         },
                     },
                     OutlineBundle {
-                        outline: default_outline(), 
+                        outline: default_outline(),
                         ..default()
-                    }
+                    },
                 ));
             }
         }

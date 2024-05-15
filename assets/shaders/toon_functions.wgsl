@@ -36,8 +36,8 @@
 }
 
 #ifndef WEBGL2
-fn toon_outline(position: vec3<f32>, world_pos: vec3<f32>) -> bool {
-    let sample_index = 0u;
+fn toon_outline(position: vec3<f32>, world_pos: vec3<f32>, sample_index: u32) -> bool {
+    // let sample_index = 0u;
 
     let half_scale_floor = floor(settings.filter_scale * 0.5);
     let half_scale_ceil = ceil(settings.filter_scale * 0.5);
@@ -83,7 +83,7 @@ fn toon_outline(position: vec3<f32>, world_pos: vec3<f32>) -> bool {
 #endif
 
 
-fn toon_fragment(in: VertexOutput) -> vec4<f32> {
+fn toon_fragment(in: VertexOutput, sample_index: u32) -> vec4<f32> {
     var out_color: vec4<f32> = settings.color;
 
     if settings.use_texture != 0u {
@@ -91,7 +91,7 @@ fn toon_fragment(in: VertexOutput) -> vec4<f32> {
     }
 
     #ifndef WEBGL2
-    if toon_outline(in.position.xyz, in.world_position.xyz) {
+    if toon_outline(in.position.xyz, in.world_position.xyz, sample_index) {
         return vec4(0.0, 0.0, 0.0, 1.0);
     }
     #endif

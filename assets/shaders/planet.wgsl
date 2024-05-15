@@ -8,7 +8,6 @@
     mesh_types::{MESH_FLAGS_SHADOW_RECEIVER_BIT, MESH_FLAGS_TRANSMITTED_SHADOW_RECEIVER_BIT},
 }
 
-#import "shaders/toon_functions.wgsl"::toon_fragment
 #import "shaders/toon_bindings.wgsl"::{
     settings, 
     texture, 

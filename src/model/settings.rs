@@ -3,6 +3,7 @@ use std::fmt::Display;
 use std::{fs, io};
 
 use bevy::prelude::*;
+use bevy::window::{PresentMode, PrimaryWindow};
 use cfg_if::cfg_if;
 use serde::{Deserialize, Serialize};
 
@@ -13,6 +14,7 @@ pub struct Settings {
     pub shadows_enabled: bool,
     pub lang: String,
     pub antialiasing: AntialiasingSetting,
+    pub vsync: VSyncSetting,
 }
 
 #[derive(Default, Clone, Copy, Serialize, Deserialize, Debug, PartialEq, Eq)]
@@ -20,6 +22,35 @@ pub enum AntialiasingSetting {
     Off,
     #[default]
     On,
+}
+
+#[derive(Debug, Serialize, Deserialize, Copy, Clone)]
+pub struct VSyncSetting(pub bool);
+
+impl Default for VSyncSetting {
+    fn default() -> Self {
+        Self(true)
+    }
+}
+
+impl From<VSyncSetting> for PresentMode {
+    fn from(setting: VSyncSetting) -> Self {
+        if setting.0 {
+            PresentMode::AutoVsync
+        } else {
+            PresentMode::AutoNoVsync
+        }
+    }
+}
+
+impl From<VSyncSetting> for String {
+    fn from(setting: VSyncSetting) -> String {
+        if setting.0 {
+            t!("on").to_string()
+        } else {
+            t!("off").to_string()
+        }
+    }
 }
 
 impl AntialiasingSetting {
@@ -35,17 +66,15 @@ impl From<AntialiasingSetting> for Msaa {
             AntialiasingSetting::On => Msaa::default(),
         }
     }
-
 }
 
 impl From<AntialiasingSetting> for String {
     fn from(setting: AntialiasingSetting) -> String {
         match setting {
-            AntialiasingSetting::Off => "off".to_string(),
-            AntialiasingSetting::On => "on".to_string(),
+            AntialiasingSetting::Off => t!("off").to_string(),
+            AntialiasingSetting::On => t!("on").to_string(),
         }
     }
-
 }
 
 impl Default for Settings {
@@ -53,7 +82,8 @@ impl Default for Settings {
         Self {
             shadows_enabled: true,
             lang: "en".to_string(),
-            antialiasing: AntialiasingSetting::default(),
+            antialiasing: default(),
+            vsync: default(),
         }
     }
 }
@@ -139,10 +169,17 @@ fn persist_settings_system(settings: Res<Settings>) {
     }
 }
 
-fn setup_settings(settings: Res<Settings>, mut commands: Commands) {
+fn setup_settings(
+    settings: Res<Settings>,
+    mut commands: Commands,
+    mut window: Query<&mut Window, With<PrimaryWindow>>,
+) {
     rust_i18n::set_locale(settings.lang.as_str());
     let msaa: Msaa = settings.antialiasing.into();
     commands.insert_resource(msaa);
+    for mut window in window.iter_mut() {
+        window.present_mode = settings.vsync.into();
+    }
 }
 
 pub struct SettingsPlugin;

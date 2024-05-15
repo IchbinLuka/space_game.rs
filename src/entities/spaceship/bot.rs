@@ -12,7 +12,7 @@ use crate::{
     entities::{
         bullet::{BulletSpawnEvent, BulletTarget, BulletType},
         explosion::ExplosionEvent,
-        powerup::{PowerUp, SpawnPowerup},
+        powerup::SpawnPowerup,
     },
     materials::toon::{ApplyToonMaterial, ToonMaterial},
     states::{game_running, DespawnOnCleanup, ON_GAME_STARTED},
@@ -191,10 +191,7 @@ fn bot_death(
             let transform = global_transform.compute_transform();
             let mut rng = rand::thread_rng();
             if rng.gen_bool(POWERUP_SPAWN_PROBABILITY) {
-                commands.add(SpawnPowerup {
-                    pos: transform.translation,
-                    powerup: PowerUp::Shield,
-                });
+                commands.add(SpawnPowerup::random(transform.translation, &mut rng));
             }
 
             explosions.send(ExplosionEvent {
