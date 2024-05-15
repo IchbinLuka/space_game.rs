@@ -12,13 +12,48 @@ const SETTINGS_PATH: &str = "settings.json";
 pub struct Settings {
     pub shadows_enabled: bool,
     pub lang: String,
+    pub antialiasing: AntialiasingSetting,
+}
+
+#[derive(Default, Clone, Copy, Serialize, Deserialize, Debug, PartialEq, Eq)]
+pub enum AntialiasingSetting {
+    Off,
+    #[default]
+    On,
+}
+
+impl AntialiasingSetting {
+    pub fn values() -> Vec<Self> {
+        vec![Self::Off, Self::On]
+    }
+}
+
+impl From<AntialiasingSetting> for Msaa {
+    fn from(setting: AntialiasingSetting) -> Self {
+        match setting {
+            AntialiasingSetting::Off => Msaa::Off,
+            AntialiasingSetting::On => Msaa::default(),
+        }
+    }
+
+}
+
+impl From<AntialiasingSetting> for String {
+    fn from(setting: AntialiasingSetting) -> String {
+        match setting {
+            AntialiasingSetting::Off => "off".to_string(),
+            AntialiasingSetting::On => "on".to_string(),
+        }
+    }
+
 }
 
 impl Default for Settings {
     fn default() -> Self {
-        Settings {
+        Self {
             shadows_enabled: true,
             lang: "en".to_string(),
+            antialiasing: AntialiasingSetting::default(),
         }
     }
 }
@@ -104,15 +139,17 @@ fn persist_settings_system(settings: Res<Settings>) {
     }
 }
 
-fn setup_lang(settings: Res<Settings>) {
+fn setup_settings(settings: Res<Settings>, mut commands: Commands) {
     rust_i18n::set_locale(settings.lang.as_str());
+    let msaa: Msaa = settings.antialiasing.into();
+    commands.insert_resource(msaa);
 }
 
 pub struct SettingsPlugin;
 
 impl Plugin for SettingsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup_lang)
+        app.add_systems(Startup, setup_settings)
             .insert_resource(load_settings())
             .add_systems(
                 Update,

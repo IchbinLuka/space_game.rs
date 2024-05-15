@@ -4,7 +4,7 @@ use bevy_round_ui::{
     prelude::RoundUiMaterial,
 };
 
-use crate::model::settings::Settings;
+use crate::model::settings::{AntialiasingSetting, Settings};
 
 use super::{
     button::{CheckBox, CheckBoxBundle, TextButtonBundle},
@@ -25,10 +25,27 @@ struct CloseButton;
 struct ShadowSetting;
 
 #[derive(Component)]
-struct LanguageSetting {
-    lang: String,
-    available_langs: Vec<String>,
+struct RotateSetting<T> {
+    current_index: usize,
+    values: Vec<T>,
 }
+
+impl<T> RotateSetting<T> {
+    fn next(&mut self) -> &T {
+        self.current_index = (self.current_index + 1) % self.values.len();
+        &self.values[self.current_index]
+    }
+
+    fn value(&self) -> &T {
+        &self.values[self.current_index]
+    }
+}
+
+#[derive(Component)]
+struct LanguageSetting;
+
+#[derive(Component)]
+struct AntialiasSetting;
 
 #[derive(Resource)]
 struct SettingsRes {
@@ -116,12 +133,33 @@ impl Command for OpenSettings {
 
                         c.spawn((
                             TextButtonBundle::from_section(settings.lang.clone(), style.clone()),
-                            LanguageSetting {
-                                lang: settings.lang.clone(),
-                                available_langs: rust_i18n::available_locales!()
+                            LanguageSetting,
+                            RotateSetting {
+                                current_index: rust_i18n::available_locales!()
+                                    .iter()
+                                    .position(|s| s == &settings.lang)
+                                    .unwrap_or(0),
+                                values: rust_i18n::available_locales!()
                                     .iter()
                                     .map(|s| s.to_string())
                                     .collect(),
+                            },
+                        ));
+                    });
+
+                    c.settings_item(false, |c| {
+                        c.spawn(TextBundle::from_section(t!("antialiasing"), style.clone()));
+
+                        let initial: String = settings.antialiasing.into();
+                        c.spawn((
+                            TextButtonBundle::from_section(initial, style.clone()),
+                            AntialiasSetting,
+                            RotateSetting {
+                                current_index: AntialiasingSetting::values()
+                                    .iter()
+                                    .position(|s| s == &settings.antialiasing)
+                                    .unwrap_or(0),
+                                values: AntialiasingSetting::values(),
                             },
                         ));
                     });
@@ -154,6 +192,22 @@ fn restart_required_text_style() -> TextStyle {
         font_size: 30.,
         color: Color::rgb(0.7, 0.7, 0.7),
         ..default()
+    }
+}
+
+fn rotate_settings_item<T>(
+    mut query: Query<(&Interaction, &mut RotateSetting<T>, &mut Text), Changed<Interaction>>,
+) where
+    T: Clone + Into<String> + 'static + Send + Sync,
+{
+    for (interaction, mut rotate_setting, mut text) in &mut query {
+        if *interaction != Interaction::Pressed {
+            continue;
+        }
+
+        let new_text: String = rotate_setting.next().clone().into();
+
+        text.sections[0].value.clone_from(&new_text);
     }
 }
 
@@ -242,26 +296,31 @@ fn update_shadows(
     }
 }
 
+fn update_msaa(
+    query: Query<
+        &RotateSetting<AntialiasingSetting>,
+        (
+            Changed<RotateSetting<AntialiasingSetting>>,
+            With<AntialiasSetting>,
+        ),
+    >,
+    mut settings: ResMut<Settings>,
+    mut commands: Commands,
+) {
+    for rotate_setting in &query {
+        settings.antialiasing = *rotate_setting.value();
+        let res: Msaa = (*rotate_setting.value()).into();
+        commands.insert_resource(res);
+        debug!("Antialiasing set to: {:?}", settings.antialiasing);
+    }
+}
 fn update_lang(
-    mut query: Query<(&Interaction, &mut LanguageSetting, &mut Text), Changed<Interaction>>,
+    query: Query<&RotateSetting<String>, (Changed<RotateSetting<String>>, With<LanguageSetting>)>,
     mut settings: ResMut<Settings>,
 ) {
-    for (interaction, mut lang_settings, mut text) in &mut query {
-        if *interaction != Interaction::Pressed {
-            continue;
-        }
-
-        let next_lang = lang_settings
-            .available_langs
-            .iter()
-            .cycle()
-            .skip_while(|s| *s != &lang_settings.lang)
-            .nth(1)
-            .expect("Error while cycling through available languages: No languages available.")
-            .clone();
-        lang_settings.lang.clone_from(&next_lang);
-        text.sections[0].value.clone_from(&next_lang);
-        settings.lang = next_lang;
+    for rotate_setting in &query {
+        settings.lang.clone_from(rotate_setting.value());
+        debug!("Language set to: {}", settings.lang);
     }
 }
 
@@ -271,7 +330,15 @@ impl Plugin for SettingsPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, settings_setup).add_systems(
             Update,
-            (close_settings, update_shadows, update_lang, settings_button),
+            (
+                close_settings,
+                update_shadows,
+                update_lang,
+                settings_button,
+                update_msaa,
+                rotate_settings_item::<String>,
+                rotate_settings_item::<AntialiasingSetting>,
+            ),
         );
     }
 }
