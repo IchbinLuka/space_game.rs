@@ -11,7 +11,7 @@ use bevy_asset_loader::{
 use bevy_mod_outline::OutlineBundle;
 use bevy_rapier3d::{
     dynamics::RigidBody,
-    geometry::{ActiveCollisionTypes, Collider, CollidingEntities},
+    geometry::{ActiveCollisionTypes, Collider, CollidingEntities, CollisionGroups},
 };
 use rand::{rngs::ThreadRng, Rng};
 
@@ -27,12 +27,16 @@ use crate::{
 
 use super::{
     bullet::{BulletTarget, BulletType},
-    spaceship::{player::Player, SpaceshipBundle},
+    spaceship::{
+        player::{Player, PlayerInventory},
+        SpaceshipBundle,
+    },
 };
 
 #[derive(Component, Clone, Copy)]
 pub enum PowerUp {
     Shield,
+    Bomb,
 }
 
 #[derive(Component)]
@@ -41,6 +45,43 @@ pub struct PlayerShield;
 #[derive(Component)]
 pub struct ShieldEnabled;
 
+#[derive(Bundle)]
+struct PowerupBundle {
+    colliding_entities: CollidingEntities,
+    collider: Collider,
+    rigid_body: RigidBody,
+    despawn_on_cleanup: DespawnOnCleanup,
+    despawn_timer: DespawnTimer,
+    active_collision_types: ActiveCollisionTypes,
+    collision_groups: CollisionGroups,
+    apply_toon_material: ApplyToonMaterial,
+    outline_bundle: OutlineBundle,
+}
+
+impl Default for PowerupBundle {
+    fn default() -> Self {
+        Self {
+            colliding_entities: default(),
+            collider: default(),
+            rigid_body: RigidBody::Fixed,
+            despawn_on_cleanup: default(),
+            despawn_timer: DespawnTimer::new(Duration::from_secs(20)),
+            active_collision_types: ActiveCollisionTypes::KINEMATIC_STATIC,
+            collision_groups: SpaceshipBundle::COLLISION_GROUPS,
+            apply_toon_material: ApplyToonMaterial {
+                base_material: ToonMaterial {
+                    filter_scale: 0.0,
+                    ..default()
+                },
+            },
+            outline_bundle: OutlineBundle {
+                outline: default_outline(),
+                ..default()
+            },
+        }
+    }
+}
+
 pub struct SpawnPowerup {
     pub powerup: PowerUp,
     pub pos: Vec3,
@@ -48,7 +89,7 @@ pub struct SpawnPowerup {
 
 impl SpawnPowerup {
     pub fn random(pos: Vec3, rng: &mut ThreadRng) -> Self {
-        const POWERUPS: [PowerUp; 1] = [PowerUp::Shield];
+        const POWERUPS: [PowerUp; 2] = [PowerUp::Shield, PowerUp::Bomb];
         let powerup = POWERUPS[rng.gen_range(0..POWERUPS.len())];
         Self { powerup, pos }
     }
@@ -64,19 +105,10 @@ impl Command for SpawnPowerup {
         match self.powerup {
             PowerUp::Shield => {
                 world.spawn((
-                    CollidingEntities::default(),
-                    PowerUp::Shield,
-                    Collider::ball(3.0),
-                    RigidBody::Fixed,
-                    DespawnOnCleanup,
-                    DespawnTimer::new(Duration::from_secs(20)),
-                    ActiveCollisionTypes::KINEMATIC_STATIC,
-                    BulletTarget {
-                        target_type: BulletType::Player,
-                        bullet_damage: Some(10.0),
+                    PowerupBundle {
+                        collider: Collider::ball(3.0),
+                        ..default()
                     },
-                    Health::new(100.0),
-                    SpaceshipBundle::COLLISION_GROUPS,
                     SceneBundle {
                         transform: Transform {
                             translation: self.pos,
@@ -86,14 +118,19 @@ impl Command for SpawnPowerup {
                         scene: assets.shield.clone(),
                         ..default()
                     },
-                    ApplyToonMaterial {
-                        base_material: ToonMaterial {
-                            filter_scale: 0.0,
-                            ..default()
-                        },
+                    PowerUp::Shield,
+                ));
+            }
+            PowerUp::Bomb => {
+                world.spawn((
+                    PowerupBundle {
+                        collider: Collider::ball(3.0),
+                        ..default()
                     },
-                    OutlineBundle {
-                        outline: default_outline(),
+                    PowerUp::Bomb,
+                    SceneBundle {
+                        scene: assets.bomb.clone(),
+                        transform: Transform::from_translation(self.pos),
                         ..default()
                     },
                 ));
@@ -122,6 +159,7 @@ fn powerup_collisions(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ShieldMaterial>>,
+    mut player_inventory: ResMut<PlayerInventory>,
 ) {
     for (colliding_entities, powerup, entity) in powerups.iter() {
         let Some(player_entity) = colliding_entities.filter_fulfills_query(&player).next() else {
@@ -164,16 +202,22 @@ fn powerup_collisions(
                     .add_child(shield)
                     .insert(ShieldEnabled);
             }
+            PowerUp::Bomb => {
+                player_inventory.grenades += 1;
+            }
         }
         commands.entity(entity).despawn_recursive();
     }
 }
 
 #[derive(AssetCollection, Resource)]
-struct PowerUpAssets {
+pub struct PowerUpAssets {
     #[asset(path = "shield.glb#Scene0")]
-    shield: Handle<Scene>,
+    pub shield: Handle<Scene>,
+    #[asset(path = "bomb.glb#Scene0")]
+    pub bomb: Handle<Scene>,
 }
+
 pub struct PowerupPlugin;
 impl Plugin for PowerupPlugin {
     fn build(&self, app: &mut App) {

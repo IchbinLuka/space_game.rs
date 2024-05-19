@@ -106,7 +106,7 @@ pub fn reset_physics_speed(rapier_config: &mut RapierConfiguration) {
 pub const ON_GAME_STARTED: OnEnter<AppState> = OnEnter(AppState::MainScene);
 pub const GAME_CLEANUP: OnExit<AppState> = OnExit(AppState::GameOver);
 
-#[derive(Component)]
+#[derive(Component, Default)]
 pub struct DespawnOnCleanup;
 
 pub struct StatesPlugin;

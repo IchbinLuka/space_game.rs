@@ -4,29 +4,35 @@ use bevy::{
     pbr::{NotShadowCaster, NotShadowReceiver},
     prelude::*,
     render::{render_asset::RenderAssetUsages, render_resource::PrimitiveTopology},
+    scene::SceneInstance,
 };
 
+use bevy_mod_outline::OutlineBundle;
 use bevy_rapier3d::dynamics::Velocity;
 
 use crate::{
     components::{
         gravity::{gravity_step, GravityAffected, GravitySource},
-        health::Regeneration,
+        health::{HasShield, Regeneration},
         movement::MaxSpeed,
     },
     entities::{
         bullet::{BulletSpawnEvent, BulletTarget, BulletType},
         explosion::ExplosionEvent,
         planet::Planet,
+        powerup::PowerUpAssets,
     },
-    materials::toon::{ApplyToonMaterial, ToonMaterial},
+    materials::{
+        blink::BlinkMaterial,
+        toon::{ApplyToonMaterial, ToonMaterial},
+    },
     states::{game_running, AppState, DespawnOnCleanup, ON_GAME_STARTED},
     ui::{
         fonts::FontsResource,
         minimap::{MinimapAssets, ShowOnMinimap},
         theme::default_font,
     },
-    utils::{misc::AsCommand, sets::Set},
+    utils::{materials::default_outline, misc::AsCommand, sets::Set},
 };
 
 use super::bot::EnemyTarget;
@@ -37,6 +43,16 @@ use super::{
 
 #[derive(Component)]
 pub struct Player;
+
+#[derive(Resource, Default)]
+pub struct PlayerInventory {
+    pub grenades: u32,
+}
+
+#[derive(Component)]
+pub struct Bomb {
+    pub timer: Timer,
+}
 
 #[derive(Component, Default, Deref, DerefMut)]
 pub struct LastHit(pub(crate) Option<f32>);
@@ -105,6 +121,8 @@ fn spawn_player(
         },
         DespawnOnCleanup,
     ));
+
+    commands.insert_resource(PlayerInventory::default());
 }
 
 fn player_input(
@@ -112,6 +130,9 @@ fn player_input(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mut query: Query<(&mut Velocity, &mut Transform, Entity, &mut Spaceship), IsPlayer>,
     mut particle_spawn: EventWriter<ParticleSpawnEvent>,
+    mut inventory: ResMut<PlayerInventory>,
+    mut commands: Commands,
+    powerup_assets: Res<PowerUpAssets>,
 ) {
     for (mut velocity, mut transform, entity, mut spaceship) in &mut query {
         if keyboard_input.any_pressed([KeyCode::ArrowUp, KeyCode::KeyW]) {
@@ -148,6 +169,111 @@ fn player_input(
 
         if keyboard_input.just_pressed(KeyCode::ShiftLeft) {
             spaceship.auxiliary_drive = !spaceship.auxiliary_drive;
+        }
+
+        if keyboard_input.just_pressed(KeyCode::KeyG) && inventory.grenades > 0 {
+            inventory.grenades -= 1;
+
+            commands.spawn((
+                Bomb {
+                    timer: Timer::from_seconds(3.0, TimerMode::Once),
+                },
+                DespawnOnCleanup,
+                SceneBundle {
+                    transform: Transform::from_translation(transform.translation),
+                    scene: powerup_assets.bomb.clone(),
+                    ..default()
+                },
+                ApplyToonMaterial {
+                    base_material: ToonMaterial {
+                        filter_scale: 0.0,
+                        ..default()
+                    },
+                },
+                OutlineBundle {
+                    outline: default_outline(),
+                    ..default()
+                },
+            ));
+        }
+    }
+}
+
+#[derive(Resource)]
+struct BombRes {
+    bomb_light_material: Handle<BlinkMaterial>,
+}
+
+fn bomb_setup(mut commands: Commands, mut blink_materials: ResMut<Assets<BlinkMaterial>>) {
+    commands.insert_resource(BombRes {
+        bomb_light_material: blink_materials.add(BlinkMaterial {
+            period: 1.0,
+            color_1: Color::rgb(1.0, 0.0, 0.0),
+            color_2: Color::rgb(0.5, 0.0, 0.0),
+        }),
+    });
+}
+
+fn bomb_scene_setup(
+    bombs: Query<&SceneInstance, (With<Bomb>, Changed<SceneInstance>)>,
+    name: Query<&Name>,
+    scene_manager: Res<SceneSpawner>,
+    mut commands: Commands,
+    powerup_res: Res<BombRes>,
+) {
+    for bomb in &bombs {
+        if !scene_manager.instance_is_ready(**bomb) {
+            continue;
+        }
+
+        for entity in scene_manager.iter_instance_entities(**bomb) {
+            let Ok(name) = name.get(entity) else {
+                continue;
+            };
+            if name.as_str() == "light" {
+                info!("Setting up bomb light");
+                commands
+                    .entity(entity)
+                    .insert(powerup_res.bomb_light_material.clone());
+            }
+        }
+    }
+}
+
+fn bomb_update(
+    mut grenades: Query<(&mut Bomb, &Transform, Entity)>,
+    mut bots: Query<(
+        &mut Health,
+        &GlobalTransform,
+        &BulletTarget,
+        Option<&HasShield>,
+    )>,
+    time: Res<Time>,
+    mut explosion_events: EventWriter<ExplosionEvent>,
+    mut commands: Commands,
+) {
+    for (mut grenade, transform, entity) in &mut grenades {
+        grenade.timer.tick(time.delta());
+        if !grenade.timer.finished() {
+            continue;
+        }
+        commands.entity(entity).despawn_recursive();
+        explosion_events.send(ExplosionEvent {
+            position: transform.translation,
+            radius: 20.0,
+            parent: None,
+        });
+
+        for (mut health, bot_transform, bullet_target, has_shield) in &mut bots {
+            if bullet_target.target_type != BulletType::Player {
+                continue;
+            }
+            let bot_transform = bot_transform.compute_transform();
+            let distance = (bot_transform.translation - transform.translation).length();
+
+            if distance < 20.0 && has_shield.is_none() {
+                health.take_damage(1.0 / f32::min(distance * 2.0, 1.0).powi(2) * 20.0);
+            }
         }
     }
 }
@@ -526,28 +652,32 @@ pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
-            ON_GAME_STARTED,
-            (spawn_player, player_line_setup, player_trail_setup),
-        )
-        .add_systems(OnExit(AppState::MainScene), respawn_timer_cleanup)
-        .add_systems(
-            Update,
-            (
-                player_shoot.in_set(Set::BulletEvents),
-                player_input,
-                return_to_mission_warning_spawn,
-                return_to_mission_warning_update,
-                return_to_mission_warning_despawn,
-                player_death,
-                player_respawn.run_if(resource_exists::<PlayerRespawnTimer>),
+        app.insert_resource(PlayerInventory::default())
+            .add_systems(Startup, bomb_setup)
+            .add_systems(
+                ON_GAME_STARTED,
+                (spawn_player, player_line_setup, player_trail_setup),
             )
-                .run_if(game_running()),
-        )
-        .add_systems(
-            Update,
-            (player_line_update, player_trail_update)
-                .run_if(game_running().or_else(in_state(AppState::GameOver))),
-        );
+            .add_systems(OnExit(AppState::MainScene), respawn_timer_cleanup)
+            .add_systems(
+                Update,
+                (
+                    player_shoot.in_set(Set::BulletEvents),
+                    player_input,
+                    return_to_mission_warning_spawn,
+                    return_to_mission_warning_update,
+                    return_to_mission_warning_despawn,
+                    player_death,
+                    bomb_update,
+                    bomb_scene_setup,
+                    player_respawn.run_if(resource_exists::<PlayerRespawnTimer>),
+                )
+                    .run_if(game_running()),
+            )
+            .add_systems(
+                Update,
+                (player_line_update, player_trail_update)
+                    .run_if(game_running().or_else(in_state(AppState::GameOver))),
+            );
     }
 }

@@ -6,15 +6,12 @@ use bevy::{
     ui::{BackgroundColor, Interaction},
 };
 
-pub mod auxiliary_drive;
 pub mod button;
-pub mod enemy_indicator;
 pub mod fonts;
+pub mod game_hud;
 pub mod game_over;
-pub mod health_bar;
 pub mod health_bar_3d;
 pub mod minimap;
-pub mod score;
 pub mod settings;
 pub mod sprite_3d_renderer;
 pub mod theme;
@@ -71,13 +68,10 @@ impl Plugin for UIPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Update, (hover_effect_node, hover_effect_text))
             .add_plugins((
-                health_bar::HealthBarPlugin,
+                game_hud::GameHudPlugin,
                 sprite_3d_renderer::Sprite3DRendererPlugin,
-                score::ScorePlugin,
                 fonts::FontsPlugin,
-                enemy_indicator::EnemyIndicatorPlugin,
                 health_bar_3d::HealthBar3DPlugin,
-                auxiliary_drive::AuxiliaryDriveUIPlugin,
                 settings::SettingsPlugin,
                 button::ButtonPlugin,
                 minimap::MinimapPlugin,

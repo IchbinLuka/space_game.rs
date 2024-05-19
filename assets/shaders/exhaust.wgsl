@@ -28,17 +28,6 @@ const PI: f32 = 3.14159265359;
 @fragment
 fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     let uv = vec2<f32>(in.uv.x, in.uv.y * 0.1 + globals.time % 1.0);
-    // var alpha = textureSampleBias(noise_texture, noise_sampler, uv, view.mip_bias).z + in.uv.y;
-    // alpha *= gradient(in.uv.y);
-
-    // if alpha < 0.3 {
-    //     discard;
-    // } else if alpha < 0.5 {
-    //     return COLOR_1;
-    // } else {
-    //     return COLOR_2;
-    // }
-    // return vec4<f32>(COLOR_1.xyz, clamp(alpha * gradient(in.uv.y), 0.0, 1.0));
     let threshold = 0.4 * textureSampleBias(noise_texture, noise_sampler, vec2<f32>(in.uv.x, globals.time % 1.0), view.mip_bias).x + 
         0.1 * sin(in.uv.x * 20.0 + globals.time * 25.0 * material_config.speed) + 
         0.2;

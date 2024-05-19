@@ -9,7 +9,7 @@ use crate::ui::button::TextButtonBundle;
 use crate::ui::fonts::FontsResource;
 use crate::ui::theme::{fullscreen_center_style, text_button_style, text_title_style};
 
-use super::score::Score;
+use super::game_hud::Score;
 
 #[derive(Event)]
 pub struct GameOverEvent;

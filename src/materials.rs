@@ -1,5 +1,6 @@
 use bevy::app::{App, Plugin};
 
+pub mod blink;
 pub mod exhaust;
 pub mod shield;
 pub mod toon;
@@ -12,6 +13,7 @@ impl Plugin for MaterialsPlugin {
             toon::ToonMaterialPlugin,
             exhaust::ExhaustPlugin,
             shield::ShieldMaterialPlugin,
+            blink::BlinkMaterialPlugin,
         ));
     }
 }

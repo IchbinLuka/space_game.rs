@@ -13,6 +13,7 @@ use bevy_mod_outline::OutlineBundle;
 use bevy_rapier3d::prelude::*;
 use rand::Rng;
 
+use crate::components::health::HasShield;
 use crate::components::{
     colliders::VelocityColliderBundle,
     despawn_after::DespawnTimer,
@@ -23,10 +24,9 @@ use crate::materials::exhaust::{ExhaustMaterial, ExhaustRes};
 use crate::materials::shield::{ShieldBundle, ShieldMaterial};
 use crate::materials::toon::{ApplyToonMaterial, ToonMaterial};
 use crate::states::{game_running, AppState, DespawnOnCleanup, ON_GAME_STARTED};
-use crate::ui::enemy_indicator::SpawnEnemyIndicator;
+use crate::ui::game_hud::{ScoreEvent, SpawnEnemyIndicator};
 use crate::ui::health_bar_3d::SpawnHealthBar;
 use crate::ui::minimap::{MinimapAssets, ShowOnMinimap};
-use crate::ui::score::ScoreEvent;
 use crate::utils::collisions::CRUISER_COLLISION_GROUP;
 use crate::utils::materials::default_outline;
 use crate::utils::math::sphere_intersection;
@@ -92,6 +92,11 @@ impl EntityCommand for DeactivateShield {
             .insert(ColliderDisabled)
             .insert(ShieldDisabled)
             .insert(ShieldRegenerate(Timer::from_seconds(5.0, TimerMode::Once)));
+
+        let Some(parent) = world.entity(id).get::<Parent>() else {
+            return;
+        };
+        world.entity_mut(parent.get()).remove::<HasShield>();
     }
 }
 
@@ -104,6 +109,11 @@ impl EntityCommand for ActivateShield {
             .insert(Visibility::Visible)
             .remove::<ColliderDisabled>()
             .remove::<ShieldDisabled>();
+
+        let Some(parent) = world.entity(id).get::<Parent>() else {
+            return;
+        };
+        world.entity_mut(parent.get()).insert(HasShield);
     }
 }
 
@@ -407,6 +417,8 @@ fn finish_cruiser(
         shield_entity: Some(shield),
     });
     commands.add(SpawnEnemyIndicator { enemy: cruiser });
+
+    commands.entity(shield).add(ActivateShield);
 }
 
 fn cruiser_animation_start(

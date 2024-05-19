@@ -16,9 +16,8 @@ use crate::{
     components::{colliders::VelocityColliderBundle, despawn_after::DespawnTimer},
     entities::bullet::BulletType,
     particles::ParticleMaterial,
-    states::game_running,
-    states::{AppState, DespawnOnCleanup, ON_GAME_STARTED},
-    ui::score::ScoreEvent,
+    states::{game_running, AppState, DespawnOnCleanup, ON_GAME_STARTED},
+    ui::game_hud::ScoreEvent,
     utils::{
         collisions::BULLET_COLLISION_GROUP, materials::default_outline,
         misc::CollidingEntitiesExtension, sets::Set,

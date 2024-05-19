@@ -38,6 +38,9 @@ impl Health {
 pub struct Shield;
 
 #[derive(Component)]
+pub struct HasShield;
+
+#[derive(Component)]
 pub struct DespawnOnDeath;
 
 fn despawn_on_death(

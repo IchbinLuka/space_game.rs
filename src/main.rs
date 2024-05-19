@@ -7,7 +7,10 @@ extern crate rust_i18n;
 i18n!();
 
 use bevy::{
-    asset::AssetMetaCheck, log::{self, LogPlugin}, pbr::DirectionalLightShadowMap, prelude::*,
+    asset::AssetMetaCheck,
+    log::{self, LogPlugin},
+    pbr::DirectionalLightShadowMap,
+    prelude::*,
     window::PresentMode,
 };
 use bevy_mod_outline::{AutoGenerateOutlineNormalsPlugin, OutlinePlugin};

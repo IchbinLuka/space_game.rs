@@ -17,10 +17,9 @@ use crate::{
     materials::toon::{ApplyToonMaterial, ToonMaterial},
     states::{game_running, DespawnOnCleanup, ON_GAME_STARTED},
     ui::{
-        enemy_indicator::SpawnEnemyIndicator,
+        game_hud::{ScoreEvent, SpawnEnemyIndicator},
         health_bar_3d::SpawnHealthBar,
         minimap::{MinimapAssets, ShowOnMinimap},
-        score::ScoreEvent,
     },
     utils::{
         collisions::{BOT_COLLISION_GROUP, CRUISER_COLLISION_GROUP},
@@ -38,7 +37,7 @@ const COLLISION_GROUPS: CollisionGroups = CollisionGroups::new(
     BOT_COLLISION_GROUP,
     Group::ALL.difference(CRUISER_COLLISION_GROUP),
 );
-const POWERUP_SPAWN_PROBABILITY: f64 = 0.1;
+const POWERUP_SPAWN_PROBABILITY: f64 = 0.2;
 
 #[derive(Component)]
 pub struct EnemyTarget;

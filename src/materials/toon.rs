@@ -118,6 +118,21 @@ impl Material for ToonMaterial {
     fn fragment_shader() -> ShaderRef {
         "shaders/toon.wgsl".into()
     }
+
+    fn specialize(
+        _pipeline: &bevy::pbr::MaterialPipeline<Self>,
+        descriptor: &mut bevy::render::render_resource::RenderPipelineDescriptor,
+        _layout: &bevy::render::mesh::MeshVertexBufferLayout,
+        _key: bevy::pbr::MaterialPipelineKey<Self>,
+    ) -> Result<(), bevy::render::render_resource::SpecializedMeshPipelineError> {
+        let fragment = descriptor.fragment.as_mut().unwrap();
+        if fragment.shader_defs.contains(&"NORMAL_PREPASS".into())
+            && fragment.shader_defs.contains(&"DEPTH_PREPASS".into())
+        {
+            fragment.shader_defs.push("DRAW_OUTLINE".into());
+        }
+        Ok(())
+    }
 }
 
 #[derive(Component, Default)]

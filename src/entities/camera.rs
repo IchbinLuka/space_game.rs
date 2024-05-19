@@ -100,8 +100,8 @@ pub fn spawn_camera(commands: &mut Commands, transform: Transform, camera_assets
             // See https://github.com/bevyengine/bevy/issues/9710
             DepthPrepass,
             NormalPrepass,
-        )
-    ));    
+        ),
+    ));
 }
 
 fn control_camera(
