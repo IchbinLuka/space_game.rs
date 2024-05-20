@@ -4,7 +4,6 @@ use bevy::{
     pbr::{NotShadowCaster, NotShadowReceiver},
     prelude::*,
     render::{render_asset::RenderAssetUsages, render_resource::PrimitiveTopology},
-    scene::SceneInstance,
 };
 
 use bevy_mod_outline::OutlineBundle;
@@ -32,7 +31,7 @@ use crate::{
         minimap::{MinimapAssets, ShowOnMinimap},
         theme::default_font,
     },
-    utils::{materials::default_outline, misc::AsCommand, sets::Set},
+    utils::{materials::default_outline, misc::AsCommand, scene::{MaterialBuilder, ReplaceMaterialPlugin}, sets::Set},
 };
 
 use super::bot::EnemyTarget;
@@ -184,12 +183,12 @@ fn player_input(
                     scene: powerup_assets.bomb.clone(),
                     ..default()
                 },
-                ApplyToonMaterial {
-                    base_material: ToonMaterial {
-                        filter_scale: 0.0,
-                        ..default()
-                    },
-                },
+                // ApplyToonMaterial {
+                //     base_material: ToonMaterial {
+                //         filter_scale: 0.0,
+                //         ..default()
+                //     },
+                // },
                 OutlineBundle {
                     outline: default_outline(),
                     ..default()
@@ -199,46 +198,6 @@ fn player_input(
     }
 }
 
-#[derive(Resource)]
-struct BombRes {
-    bomb_light_material: Handle<BlinkMaterial>,
-}
-
-fn bomb_setup(mut commands: Commands, mut blink_materials: ResMut<Assets<BlinkMaterial>>) {
-    commands.insert_resource(BombRes {
-        bomb_light_material: blink_materials.add(BlinkMaterial {
-            period: 1.0,
-            color_1: Color::rgb(1.0, 0.0, 0.0),
-            color_2: Color::rgb(0.5, 0.0, 0.0),
-        }),
-    });
-}
-
-fn bomb_scene_setup(
-    bombs: Query<&SceneInstance, (With<Bomb>, Changed<SceneInstance>)>,
-    name: Query<&Name>,
-    scene_manager: Res<SceneSpawner>,
-    mut commands: Commands,
-    powerup_res: Res<BombRes>,
-) {
-    for bomb in &bombs {
-        if !scene_manager.instance_is_ready(**bomb) {
-            continue;
-        }
-
-        for entity in scene_manager.iter_instance_entities(**bomb) {
-            let Ok(name) = name.get(entity) else {
-                continue;
-            };
-            if name.as_str() == "light" {
-                info!("Setting up bomb light");
-                commands
-                    .entity(entity)
-                    .insert(powerup_res.bomb_light_material.clone());
-            }
-        }
-    }
-}
 
 fn bomb_update(
     mut grenades: Query<(&mut Bomb, &Transform, Entity)>,
@@ -648,17 +607,45 @@ fn respawn_timer_cleanup(mut commands: Commands) {
     commands.remove_resource::<PlayerRespawnTimer>();
 }
 
+
+struct BombToonMaterialReplace;
+impl MaterialBuilder<Bomb, ToonMaterial> for BombToonMaterialReplace {
+    fn build_material(name: &Name, current: &StandardMaterial) -> Option<ToonMaterial> {
+        if name.as_str() == "light" { return None; }
+        Some(ToonMaterial {
+            color: current.base_color, 
+            filter_scale: 0.0,
+            ..default()
+        })
+    }
+}
+
+struct BombBlinkMaterialReplace;
+impl MaterialBuilder<Bomb, BlinkMaterial> for BombBlinkMaterialReplace {
+    fn build_material(name: &Name, _current: &StandardMaterial) -> Option<BlinkMaterial> {
+        if name.as_str() != "light" { return None; }
+        Some(BlinkMaterial {
+            period: 1.0,
+            color_1: Color::rgb(1.0, 0.0, 0.0),
+            color_2: Color::rgb(0.5, 0.0, 0.0),
+        })
+    }
+}
+
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(PlayerInventory::default())
-            .add_systems(Startup, bomb_setup)
             .add_systems(
                 ON_GAME_STARTED,
                 (spawn_player, player_line_setup, player_trail_setup),
             )
             .add_systems(OnExit(AppState::MainScene), respawn_timer_cleanup)
+            .add_plugins((
+                ReplaceMaterialPlugin::<BombToonMaterialReplace, _, _>::default(), 
+                ReplaceMaterialPlugin::<BombBlinkMaterialReplace, _, _>::default(),
+            ))
             .add_systems(
                 Update,
                 (
@@ -669,7 +656,7 @@ impl Plugin for PlayerPlugin {
                     return_to_mission_warning_despawn,
                     player_death,
                     bomb_update,
-                    bomb_scene_setup,
+                    // bomb_scene_setup,
                     player_respawn.run_if(resource_exists::<PlayerRespawnTimer>),
                 )
                     .run_if(game_running()),
