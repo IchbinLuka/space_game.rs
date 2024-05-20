@@ -7,7 +7,9 @@ use bevy_mod_outline::{OutlineBundle, OutlineVolume};
 use bevy_rapier3d::prelude::*;
 use rand::{seq::SliceRandom, Rng};
 
+use crate::materials::toon::{replace_with_toon_materials, ToonMaterial};
 use crate::states::{AppState, DespawnOnCleanup};
+use crate::utils::scene::ReplaceMaterialPlugin;
 use crate::{
     components::{colliders::VelocityColliderBundle, despawn_after::DespawnTimer, health::Health},
     particles::fire_particles::FireParticleRes,
@@ -331,6 +333,12 @@ impl Plugin for SpaceshipPlugin {
                 .load_collection::<SpaceshipAssets>(),
         )
         .add_plugins((bot::BotPlugin, player::PlayerPlugin))
+        .add_plugins(ReplaceMaterialPlugin::<Spaceship, _>::new(
+            replace_with_toon_materials(ToonMaterial {
+                filter_scale: 0.0,
+                ..default()
+            }),
+        ))
         .add_event::<ParticleSpawnEvent>()
         .add_systems(
             Update,

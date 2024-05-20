@@ -21,17 +21,14 @@ use crate::{
         planet::Planet,
         powerup::PowerUpAssets,
     },
-    materials::{
-        blink::BlinkMaterial,
-        toon::{ApplyToonMaterial, ToonMaterial},
-    },
+    materials::{blink::BlinkMaterial, toon::ToonMaterial},
     states::{game_running, AppState, DespawnOnCleanup, ON_GAME_STARTED},
     ui::{
         fonts::FontsResource,
         minimap::{MinimapAssets, ShowOnMinimap},
         theme::default_font,
     },
-    utils::{materials::default_outline, misc::AsCommand, scene::{MaterialBuilder, ReplaceMaterialPlugin}, sets::Set},
+    utils::{materials::default_outline, misc::AsCommand, scene::ReplaceMaterialPlugin, sets::Set},
 };
 
 use super::bot::EnemyTarget;
@@ -45,7 +42,7 @@ pub struct Player;
 
 #[derive(Resource, Default)]
 pub struct PlayerInventory {
-    pub grenades: u32,
+    pub bombs: u32,
 }
 
 #[derive(Component)]
@@ -112,12 +109,6 @@ fn spawn_player(
             target_type: BulletType::Bot,
             bullet_damage: Some(10.0),
         },
-        ApplyToonMaterial {
-            base_material: ToonMaterial {
-                filter_scale: 0.0,
-                ..default()
-            },
-        },
         DespawnOnCleanup,
     ));
 
@@ -170,8 +161,8 @@ fn player_input(
             spaceship.auxiliary_drive = !spaceship.auxiliary_drive;
         }
 
-        if keyboard_input.just_pressed(KeyCode::KeyG) && inventory.grenades > 0 {
-            inventory.grenades -= 1;
+        if keyboard_input.just_pressed(KeyCode::KeyG) && inventory.bombs > 0 {
+            inventory.bombs -= 1;
 
             commands.spawn((
                 Bomb {
@@ -183,12 +174,6 @@ fn player_input(
                     scene: powerup_assets.bomb.clone(),
                     ..default()
                 },
-                // ApplyToonMaterial {
-                //     base_material: ToonMaterial {
-                //         filter_scale: 0.0,
-                //         ..default()
-                //     },
-                // },
                 OutlineBundle {
                     outline: default_outline(),
                     ..default()
@@ -197,7 +182,6 @@ fn player_input(
         }
     }
 }
-
 
 fn bomb_update(
     mut grenades: Query<(&mut Bomb, &Transform, Entity)>,
@@ -607,31 +591,6 @@ fn respawn_timer_cleanup(mut commands: Commands) {
     commands.remove_resource::<PlayerRespawnTimer>();
 }
 
-
-struct BombToonMaterialReplace;
-impl MaterialBuilder<Bomb, ToonMaterial> for BombToonMaterialReplace {
-    fn build_material(name: &Name, current: &StandardMaterial) -> Option<ToonMaterial> {
-        if name.as_str() == "light" { return None; }
-        Some(ToonMaterial {
-            color: current.base_color, 
-            filter_scale: 0.0,
-            ..default()
-        })
-    }
-}
-
-struct BombBlinkMaterialReplace;
-impl MaterialBuilder<Bomb, BlinkMaterial> for BombBlinkMaterialReplace {
-    fn build_material(name: &Name, _current: &StandardMaterial) -> Option<BlinkMaterial> {
-        if name.as_str() != "light" { return None; }
-        Some(BlinkMaterial {
-            period: 1.0,
-            color_1: Color::rgb(1.0, 0.0, 0.0),
-            color_2: Color::rgb(0.5, 0.0, 0.0),
-        })
-    }
-}
-
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
@@ -643,8 +602,26 @@ impl Plugin for PlayerPlugin {
             )
             .add_systems(OnExit(AppState::MainScene), respawn_timer_cleanup)
             .add_plugins((
-                ReplaceMaterialPlugin::<BombToonMaterialReplace, _, _>::default(), 
-                ReplaceMaterialPlugin::<BombBlinkMaterialReplace, _, _>::default(),
+                ReplaceMaterialPlugin::<Bomb, _>::new(Box::new(|name, current| {
+                    if name.as_str() == "light" {
+                        return None;
+                    }
+                    Some(ToonMaterial {
+                        color: current.base_color,
+                        filter_scale: 0.0,
+                        ..default()
+                    })
+                })),
+                ReplaceMaterialPlugin::<Bomb, _>::new(Box::new(|name, _| {
+                    if name.as_str() != "light" {
+                        return None;
+                    }
+                    Some(BlinkMaterial {
+                        period: 1.0,
+                        color_1: Color::rgb(1.0, 0.0, 0.0),
+                        color_2: Color::rgb(0.5, 0.0, 0.0),
+                    })
+                })),
             ))
             .add_systems(
                 Update,

@@ -19,10 +19,12 @@ use crate::{
     components::{despawn_after::DespawnTimer, health::Health},
     materials::{
         shield::{ShieldBundle, ShieldMaterial},
-        toon::{ApplyToonMaterial, ToonMaterial},
+        toon::{replace_with_toon_materials, ToonMaterial},
     },
     states::{AppState, DespawnOnCleanup},
-    utils::{materials::default_outline, misc::CollidingEntitiesExtension},
+    utils::{
+        materials::default_outline, misc::CollidingEntitiesExtension, scene::ReplaceMaterialPlugin,
+    },
 };
 
 use super::{
@@ -54,7 +56,6 @@ struct PowerupBundle {
     despawn_timer: DespawnTimer,
     active_collision_types: ActiveCollisionTypes,
     collision_groups: CollisionGroups,
-    apply_toon_material: ApplyToonMaterial,
     outline_bundle: OutlineBundle,
 }
 
@@ -68,12 +69,6 @@ impl Default for PowerupBundle {
             despawn_timer: DespawnTimer::new(Duration::from_secs(20)),
             active_collision_types: ActiveCollisionTypes::KINEMATIC_STATIC,
             collision_groups: SpaceshipBundle::COLLISION_GROUPS,
-            apply_toon_material: ApplyToonMaterial {
-                base_material: ToonMaterial {
-                    filter_scale: 0.0,
-                    ..default()
-                },
-            },
             outline_bundle: OutlineBundle {
                 outline: default_outline(),
                 ..default()
@@ -203,7 +198,7 @@ fn powerup_collisions(
                     .insert(ShieldEnabled);
             }
             PowerUp::Bomb => {
-                player_inventory.grenades += 1;
+                player_inventory.bombs += 1;
             }
         }
         commands.entity(entity).despawn_recursive();
@@ -221,7 +216,13 @@ pub struct PowerUpAssets {
 pub struct PowerupPlugin;
 impl Plugin for PowerupPlugin {
     fn build(&self, app: &mut App) {
-        app.configure_loading_state(
+        app.add_plugins(ReplaceMaterialPlugin::<PowerUp, _>::new(
+            replace_with_toon_materials(ToonMaterial {
+                filter_scale: 0.0,
+                ..default()
+            }),
+        ))
+        .configure_loading_state(
             LoadingStateConfig::new(AppState::MainSceneLoading).load_collection::<PowerUpAssets>(),
         )
         .add_systems(Update, (powerup_collisions, shield_death));

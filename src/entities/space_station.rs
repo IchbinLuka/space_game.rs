@@ -7,15 +7,16 @@ use rand::Rng;
 
 use crate::components::health::Regeneration;
 use crate::entities::spaceship::player::LastHit;
+use crate::materials::toon::replace_with_toon_materials;
 use crate::states::DespawnOnCleanup;
 use crate::ui::game_over::GameOverEvent;
 use crate::ui::minimap::{MinimapAssets, ShowOnMinimap};
 use crate::utils::asset_loading::AppExtension;
 use crate::utils::materials::default_outline;
-use crate::utils::scene::AnimationRoot;
+use crate::utils::scene::{AnimationRoot, ReplaceMaterialPlugin};
 use crate::{
     components::health::Health,
-    materials::toon::{ApplyToonMaterial, ToonMaterial},
+    materials::toon::ToonMaterial,
     states::{game_running, AppState, ON_GAME_STARTED},
     ui::health_bar_3d::SpawnHealthBar,
 };
@@ -58,12 +59,6 @@ pub fn spawn_space_station(
                 scene: res.model.clone(),
                 transform: Transform::from_translation(position),
                 ..default()
-            },
-            ApplyToonMaterial {
-                base_material: ToonMaterial {
-                    filter_scale: 1.,
-                    ..default()
-                },
             },
             SpaceStation,
             RigidBody::Fixed,
@@ -168,6 +163,12 @@ impl Plugin for SpaceStationPlugin {
             AppState::MainSceneLoading,
             AppState::StartScreenLoading,
         ])
+        .add_plugins(ReplaceMaterialPlugin::<SpaceStation, _>::new(
+            replace_with_toon_materials(ToonMaterial {
+                filter_scale: 1.0,
+                ..default()
+            }),
+        ))
         .add_systems(ON_GAME_STARTED, (setup_space_station,))
         .add_systems(
             Update,

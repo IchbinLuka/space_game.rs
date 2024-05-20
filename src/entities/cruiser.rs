@@ -22,7 +22,7 @@ use crate::components::{
 use crate::entities::spaceship::bot::SpawnSquad;
 use crate::materials::exhaust::{ExhaustMaterial, ExhaustRes};
 use crate::materials::shield::{ShieldBundle, ShieldMaterial};
-use crate::materials::toon::{ApplyToonMaterial, ToonMaterial};
+use crate::materials::toon::{replace_with_toon_materials, ToonMaterial};
 use crate::states::{game_running, AppState, DespawnOnCleanup, ON_GAME_STARTED};
 use crate::ui::game_hud::{ScoreEvent, SpawnEnemyIndicator};
 use crate::ui::health_bar_3d::SpawnHealthBar;
@@ -31,7 +31,7 @@ use crate::utils::collisions::CRUISER_COLLISION_GROUP;
 use crate::utils::materials::default_outline;
 use crate::utils::math::sphere_intersection;
 use crate::utils::misc::{AsCommand, CollidingEntitiesExtension, Comparef32};
-use crate::utils::scene::AnimationRoot;
+use crate::utils::scene::{AnimationRoot, ReplaceMaterialPlugin};
 use crate::utils::sets::Set;
 
 use super::bullet::{Bullet, BulletSpawnEvent, BulletTarget, BulletType};
@@ -328,7 +328,6 @@ fn spawn_cruiser(
             },
             ..default()
         },
-        ApplyToonMaterial::default(),
         VelocityColliderBundle {
             velocity: Velocity {
                 linvel: direction * CRUISER_SPEED,
@@ -675,6 +674,9 @@ impl Plugin for CruiserPLugin {
         )
         .add_event::<SpawnCruiserEvent>()
         .add_systems(ON_GAME_STARTED, cruiser_spawn_setup)
+        .add_plugins(ReplaceMaterialPlugin::<Cruiser, _>::new(
+            replace_with_toon_materials(ToonMaterial::default()),
+        ))
         .add_systems(
             Update,
             (

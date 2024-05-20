@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{marker::PhantomData, sync::Arc};
 
 use bevy::{prelude::*, scene::SceneInstance, utils::HashMap};
 use bevy_mod_outline::{InheritOutlineBundle, OutlineStencil};
@@ -57,20 +57,15 @@ fn setup_animation_root(
     }
 }
 
-
-
 #[derive(Component)]
 pub struct MaterialsApplied;
 
-
-pub trait MaterialBuilder<Id: Component, M: Material> {
-    fn build_material(name: &Name, current: &StandardMaterial) -> Option<M>;
-}
-
-
-fn replace_materials<Id: Component, M: Material, B: MaterialBuilder<Id, M>>(
-    mut commands: Commands, 
-    scene_query: Query<(Entity, &SceneInstance), (With<Id>, Added<SceneInstance>, Without<MaterialsApplied>)>, 
+fn replace_materials<Id: Component, M: Material>(
+    mut commands: Commands,
+    scene_query: Query<
+        (Entity, &SceneInstance),
+        (With<Id>, Added<SceneInstance>, Without<MaterialsApplied>),
+    >,
     scene_manager: Res<SceneSpawner>,
     name_query: Query<(&Name, &Handle<StandardMaterial>)>,
     standard_materials: Res<Assets<StandardMaterial>>,
@@ -82,25 +77,28 @@ fn replace_materials<Id: Component, M: Material, B: MaterialBuilder<Id, M>>(
             continue;
         }
         for entity in scene_manager.iter_instance_entities(**scene) {
-            let Ok((name, handle)) = name_query.get(entity) else { continue; };
+            let Ok((name, handle)) = name_query.get(entity) else {
+                continue;
+            };
             let Some(material) = standard_materials.get(handle) else {
                 continue;
             };
-            
+
             let material = if let Some(handle) = library.materials.get(name.as_str()) {
                 // If the material has already been created, we can resuse it for better performance
                 handle.clone()
+            } else if let Some(m) = (library.builder)(name, material) {
+                let handle = materials.add(m);
+                library
+                    .materials
+                    .insert(name.as_str().to_string(), handle.clone());
+                handle
             } else {
-                if let Some(m) = B::build_material(name, material) {
-                    let handle = materials.add(m);
-                    library.materials.insert(name.as_str().to_string(), handle.clone());
-                    handle
-                } else {
-                    continue;
-                }
+                continue;
             };
 
-            commands.entity(entity)
+            commands
+                .entity(entity)
                 .remove::<Handle<StandardMaterial>>()
                 .insert(material);
         }
@@ -108,49 +106,53 @@ fn replace_materials<Id: Component, M: Material, B: MaterialBuilder<Id, M>>(
     }
 }
 
-
-pub struct ReplaceMaterialPlugin<B, Id, M>
+pub struct ReplaceMaterialPlugin<Id, M>
 where
     Id: Component,
     M: Material,
-    B: MaterialBuilder<Id, M> + Sync + Send + 'static,
 {
-    phantom: PhantomData<(B, Id, M)>,
+    phantom: PhantomData<Id>,
+    material_builder: Arc<MaterialBuilder<M>>,
 }
 
-impl<Id, M, B> Default for ReplaceMaterialPlugin<B, Id, M>
+pub type MaterialBuilder<M> = dyn Fn(&Name, &StandardMaterial) -> Option<M> + Send + Sync;
+
+impl<Id, M> ReplaceMaterialPlugin<Id, M>
 where
     Id: Component,
     M: Material,
-    B: MaterialBuilder<Id, M> + Sync + Send + 'static,
 {
-    fn default() -> Self {
+    pub fn new(builder: Box<MaterialBuilder<M>>) -> Self {
         Self {
             phantom: PhantomData,
+            material_builder: builder.into(),
         }
     }
 }
 
-impl<Id, M, B> Plugin for ReplaceMaterialPlugin<B, Id, M>
+impl<Id, M> Plugin for ReplaceMaterialPlugin<Id, M>
 where
     Id: Component,
     M: Material,
-    B: MaterialBuilder<Id, M> + Sync + Send + 'static,
 {
     fn build(&self, app: &mut App) {
-        app
-            .insert_resource(MaterialLibrary::<Id, M> {
-                materials: HashMap::default(),
-                phantom: PhantomData,
-            })
-            .add_systems(PostUpdate, replace_materials::<Id, M, B>.run_if(any_with_component::<Id>));
+        app.insert_resource(MaterialLibrary::<Id, M> {
+            materials: HashMap::default(),
+            builder: self.material_builder.clone(),
+            phantom: PhantomData,
+        })
+        .add_systems(
+            PostUpdate,
+            replace_materials::<Id, M>.run_if(any_with_component::<Id>),
+        );
     }
 }
 
 #[derive(Resource)]
 struct MaterialLibrary<Id: Component, M: Material> {
     materials: HashMap<String, Handle<M>>,
-    phantom: PhantomData<Id>, 
+    builder: Arc<MaterialBuilder<M>>,
+    phantom: PhantomData<Id>,
 }
 
 pub struct ScenePlugin;

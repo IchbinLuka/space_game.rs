@@ -7,6 +7,8 @@ use bevy::{
     scene::SceneInstance,
 };
 
+use crate::utils::scene::MaterialBuilder;
+
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
 #[uniform(0, ToonMaterialUniform)]
 pub struct PlanetMaterial {
@@ -133,6 +135,19 @@ impl Material for ToonMaterial {
         }
         Ok(())
     }
+}
+
+pub fn replace_with_toon_materials(
+    base_material: ToonMaterial,
+) -> Box<MaterialBuilder<ToonMaterial>> {
+    Box::new(move |_name: &Name, standard_material: &StandardMaterial| {
+        let mut material = base_material.clone();
+        material.color = standard_material.base_color;
+        material
+            .texture
+            .clone_from(&standard_material.base_color_texture);
+        Some(material)
+    })
 }
 
 #[derive(Component, Default)]

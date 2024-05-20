@@ -14,7 +14,6 @@ use crate::{
         explosion::ExplosionEvent,
         powerup::SpawnPowerup,
     },
-    materials::toon::{ApplyToonMaterial, ToonMaterial},
     states::{game_running, DespawnOnCleanup, ON_GAME_STARTED},
     ui::{
         game_hud::{ScoreEvent, SpawnEnemyIndicator},
@@ -37,7 +36,7 @@ const COLLISION_GROUPS: CollisionGroups = CollisionGroups::new(
     BOT_COLLISION_GROUP,
     Group::ALL.difference(CRUISER_COLLISION_GROUP),
 );
-const POWERUP_SPAWN_PROBABILITY: f64 = 0.2;
+const POWERUP_SPAWN_PROBABILITY: f64 = 1.0;
 
 #[derive(Component)]
 pub struct EnemyTarget;
@@ -127,7 +126,6 @@ fn spawn_bot_from_world(world: &mut World, spawn_bot: SpawnBot) -> Result<Entity
     let mut entity_commands = world.spawn((
         Bot {
             state: spawn_bot.initial_state,
-            // current_target: None,
         },
         LastBulletInfo::with_cooldown(0.5),
         SpaceshipBundle {
@@ -139,12 +137,6 @@ fn spawn_bot_from_world(world: &mut World, spawn_bot: SpawnBot) -> Result<Entity
         BulletTarget {
             target_type: BulletType::Player,
             bullet_damage: Some(10.0),
-        },
-        ApplyToonMaterial {
-            base_material: ToonMaterial {
-                filter_scale: 0.0,
-                ..default()
-            },
         },
         ShowOnMinimap {
             sprite: minimap_assets.enemy_indicator.clone(),
