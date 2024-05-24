@@ -58,13 +58,23 @@ fn setup_animation_root(
 }
 
 #[derive(Component)]
-pub struct MaterialsApplied;
+pub struct MaterialsApplied<M> {
+    phantom: PhantomData<M>,
+}
+
+impl<M> Default for MaterialsApplied<M> {
+    fn default() -> Self {
+        Self {
+            phantom: PhantomData,
+        }
+    }
+}
 
 fn replace_materials<Id: Component, M: Material>(
     mut commands: Commands,
     scene_query: Query<
         (Entity, &SceneInstance),
-        (With<Id>, Added<SceneInstance>, Without<MaterialsApplied>),
+        (With<Id>, Added<SceneInstance>, Without<MaterialsApplied<M>>),
     >,
     scene_manager: Res<SceneSpawner>,
     name_query: Query<(&Name, &Handle<StandardMaterial>)>,
@@ -102,7 +112,7 @@ fn replace_materials<Id: Component, M: Material>(
                 .remove::<Handle<StandardMaterial>>()
                 .insert(material);
         }
-        commands.entity(entity).insert(MaterialsApplied);
+        commands.entity(entity).insert(MaterialsApplied::<M>::default());
     }
 }
 

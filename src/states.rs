@@ -9,7 +9,7 @@ use bevy::ecs::component::Component;
 use bevy::ecs::schedule::common_conditions::in_state;
 use bevy::ecs::schedule::{Condition, OnEnter, States};
 use bevy::ecs::system::ReadOnlySystem;
-use bevy::prelude::{OnExit, Res, State};
+use bevy::prelude::{Res, State};
 use bevy_asset_loader::loading_state::{LoadingState, LoadingStateAppExt};
 use bevy_rapier3d::plugin::{RapierConfiguration, TimestepMode};
 use iyes_progress::ProgressPlugin;
@@ -104,7 +104,6 @@ pub fn reset_physics_speed(rapier_config: &mut RapierConfiguration) {
 }
 
 pub const ON_GAME_STARTED: OnEnter<AppState> = OnEnter(AppState::MainScene);
-pub const GAME_CLEANUP: OnExit<AppState> = OnExit(AppState::GameOver);
 
 #[derive(Component, Default)]
 pub struct DespawnOnCleanup;
@@ -121,20 +120,12 @@ impl Plugin for StatesPlugin {
         {
             // app.add_loading_state(LoadingState::new(*loading_state).continue_to_state(*next_state));
             app.add_loading_state(LoadingState::new(*loading_state))
-                .add_plugins(ProgressPlugin::new(*loading_state).continue_to(*next_state));
+                .add_plugins(ProgressPlugin::new(*loading_state).continue_to(*next_state))
+                .add_systems(OnEnter(*loading_state), cleanup_system::<DespawnOnCleanup>);
         }
 
         app.init_state::<AppState>()
             .init_state::<PausedState>()
-            .add_systems(GAME_CLEANUP, cleanup_system::<DespawnOnCleanup>)
-            .add_systems(
-                OnEnter(AppState::MainSceneLoading),
-                cleanup_system::<DespawnOnCleanup>,
-            )
-            .add_systems(
-                OnEnter(AppState::StartScreenLoading),
-                cleanup_system::<DespawnOnCleanup>,
-            )
             .add_plugins((
                 pause::PausePlugin,
                 loading_screen::LoadingScreenPlugin,
