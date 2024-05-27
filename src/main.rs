@@ -13,6 +13,7 @@ use bevy::{
     prelude::*,
     window::PresentMode,
 };
+use bevy_kira_audio::AudioPlugin;
 use bevy_mod_outline::{AutoGenerateOutlineNormalsPlugin, OutlinePlugin};
 use bevy_obj::ObjPlugin;
 use bevy_rapier3d::prelude::*;
@@ -66,7 +67,7 @@ fn main() {
     let mut app = App::new();
     app.insert_resource(AssetMetaCheck::Never)
         .insert_resource(Msaa::Off)
-        .add_plugins(
+        .add_plugins((
             DefaultPlugins
                 .set(LogPlugin {
                     level: LOG_LEVEL,
@@ -81,7 +82,8 @@ fn main() {
                     }),
                     ..default()
                 }),
-        )
+            AudioPlugin,
+        ))
         .add_plugins((
             OutlinePlugin,
             AutoGenerateOutlineNormalsPlugin,

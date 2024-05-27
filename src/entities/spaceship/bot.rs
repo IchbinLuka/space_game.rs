@@ -287,7 +287,7 @@ fn bot_update(
                 if angle < 0.3 || distance < 20.0 {
                     velocity.linvel +=
                         transform.forward().normalize() * time.delta_seconds() * BOT_ACCELERATION;
-                    exhaust_particles.send(ParticleSpawnEvent::main_exhaust(entity));
+                    spaceship.main_exhaust(entity, &mut exhaust_particles);
                 }
 
                 if rng.gen_bool(0.01 * (1. - health.health / health.max_health) as f64) {
@@ -305,7 +305,7 @@ fn bot_update(
                 if angle < 0.3 {
                     velocity.linvel +=
                         transform.forward().normalize() * time.delta_seconds() * BOT_ACCELERATION;
-                    exhaust_particles.send(ParticleSpawnEvent::main_exhaust(entity));
+                    spaceship.main_exhaust(entity, &mut exhaust_particles);
                 }
 
                 if rng.gen_bool(0.01) || distance > 100.0 {
@@ -318,12 +318,12 @@ fn bot_update(
 
 fn bot_avoid_collisions(
     spaceship_collisions: Query<(&Transform, &SpaceshipCollisions), Without<Bot>>,
-    mut bots: Query<(&mut Transform, &mut Velocity, Entity), IsBot>,
+    mut bots: Query<(&mut Transform, &mut Velocity, Entity, &Spaceship), IsBot>,
     time: Res<Time>,
     mut exhaust_particles: EventWriter<ParticleSpawnEvent>,
 ) {
     let colliders = spaceship_collisions.iter().collect::<Vec<_>>();
-    for (mut transform, mut velocity, entity) in &mut bots {
+    for (mut transform, mut velocity, entity, spaceship) in &mut bots {
         for (other_transform, other_collisions) in &colliders {
             let delta = other_transform.translation - transform.translation;
             let distance = delta.length();
@@ -342,7 +342,7 @@ fn bot_avoid_collisions(
             {
                 velocity.linvel +=
                     transform.forward().normalize() * time.delta_seconds() * BOT_ACCELERATION;
-                exhaust_particles.send(ParticleSpawnEvent::main_exhaust(entity));
+                spaceship.main_exhaust(entity, &mut exhaust_particles);
                 continue;
             }
 
@@ -353,13 +353,22 @@ fn bot_avoid_collisions(
 }
 
 fn bot_squad_update(
-    mut squad_bots: Query<(&mut Velocity, &mut Transform, &SquadMember, Entity), IsBot>,
+    mut squad_bots: Query<
+        (
+            &mut Velocity,
+            &mut Transform,
+            &SquadMember,
+            Entity,
+            &Spaceship,
+        ),
+        IsBot,
+    >,
     leader_query: Query<&Transform, Without<SquadMember>>,
     mut commands: Commands,
     time: Res<Time>,
     mut exhaust_particles: EventWriter<ParticleSpawnEvent>,
 ) {
-    for (mut velocity, mut transform, squad_member, entity) in &mut squad_bots {
+    for (mut velocity, mut transform, squad_member, entity, spaceship) in &mut squad_bots {
         let Ok(leader_transform) = leader_query.get(squad_member.leader) else {
             commands.entity(entity).remove::<SquadMember>();
             continue;
@@ -377,7 +386,7 @@ fn bot_squad_update(
         if angle < 0.6 && distance > 5.0 {
             velocity.linvel +=
                 transform.forward().normalize() * time.delta_seconds() * BOT_ACCELERATION;
-            exhaust_particles.send(ParticleSpawnEvent::main_exhaust(entity));
+            spaceship.main_exhaust(entity, &mut exhaust_particles);
         }
     }
 }

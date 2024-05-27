@@ -101,6 +101,16 @@ impl From<BulletSide> for Vec3 {
 #[derive(Component)]
 pub struct Spaceship {
     pub auxiliary_drive: bool,
+    pub main_exhaust_timer: Timer,
+}
+
+impl Default for Spaceship {
+    fn default() -> Self {
+        Self {
+            auxiliary_drive: true,
+            main_exhaust_timer: Timer::from_seconds(0.01, TimerMode::Repeating),
+        }
+    }
 }
 
 impl Spaceship {
@@ -126,6 +136,16 @@ impl Spaceship {
         });
 
         last_bullet.side = side.other();
+    }
+
+    fn tick(&mut self, duration: Duration) {
+        self.main_exhaust_timer.tick(duration);
+    }
+
+    fn main_exhaust(&self, entity: Entity, particle_events: &mut EventWriter<ParticleSpawnEvent>) {
+        if self.main_exhaust_timer.finished() {
+            particle_events.send(ParticleSpawnEvent::main_exhaust(entity));
+        }
     }
 }
 
@@ -166,9 +186,7 @@ impl SpaceshipBundle {
                 inherited_visibility: InheritedVisibility::VISIBLE,
                 ..default()
             },
-            spaceship: Spaceship {
-                auxiliary_drive: true,
-            },
+            spaceship: default(),
             collision_groups: Self::COLLISION_GROUPS,
         }
     }
@@ -241,6 +259,12 @@ fn auxiliary_drive(
                 direction: Some(-delta.normalize() * 0.4),
             });
         }
+    }
+}
+
+fn spaceship_exhaust_timers(mut spaceships: Query<&mut Spaceship>, time: Res<Time>) {
+    for mut spaceship in &mut spaceships {
+        spaceship.tick(time.delta())
     }
 }
 
@@ -345,6 +369,7 @@ impl Plugin for SpaceshipPlugin {
             (
                 spawn_exhaust_particle,
                 exhaust_particle_update,
+                spaceship_exhaust_timers,
                 spaceship_collisions.in_set(Set::ExplosionEvents),
                 auxiliary_drive,
             )

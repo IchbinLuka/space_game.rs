@@ -112,7 +112,9 @@ fn replace_materials<Id: Component, M: Material>(
                 .remove::<Handle<StandardMaterial>>()
                 .insert(material);
         }
-        commands.entity(entity).insert(MaterialsApplied::<M>::default());
+        commands
+            .entity(entity)
+            .insert(MaterialsApplied::<M>::default());
     }
 }
 

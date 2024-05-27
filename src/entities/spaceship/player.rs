@@ -127,10 +127,7 @@ fn player_input(
     for (mut velocity, mut transform, entity, mut spaceship) in &mut query {
         if keyboard_input.any_pressed([KeyCode::ArrowUp, KeyCode::KeyW]) {
             velocity.linvel += transform.forward().normalize() * timer.delta_seconds() * 60.0;
-            particle_spawn.send(ParticleSpawnEvent {
-                entity,
-                direction: None,
-            });
+            spaceship.main_exhaust(entity, &mut particle_spawn);
         }
 
         if keyboard_input.any_pressed([
@@ -279,13 +276,28 @@ fn player_trail_setup(
     }
 }
 
+#[derive(Deref, DerefMut)]
+struct TrailUpdateTimer(Timer);
+
+impl Default for TrailUpdateTimer {
+    fn default() -> Self {
+        Self(Timer::from_seconds(0.01666, TimerMode::Repeating))
+    }
+}
+
 fn player_trail_update(
     mut trails: Query<(&mut Handle<Mesh>, &mut PlayerTrail, &mut Transform), Without<Player>>,
     player_query: Query<(&Transform, &Spaceship, &GlobalTransform, Entity), IsPlayer>,
     player_changed: Query<(), Changed<Spaceship>>,
     mut assets: ResMut<Assets<Mesh>>,
+    mut timer: Local<TrailUpdateTimer>,
+    time: Res<Time>,
 ) {
-    const HISTORY_LENGTH: usize = 50;
+    const HISTORY_LENGTH: usize = 100;
+    timer.tick(time.delta());
+    if !timer.just_finished() {
+        return;
+    }
 
     let Ok((player_transform, spaceship, player_global, player_entity)) = player_query.get_single()
     else {
