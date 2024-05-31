@@ -198,7 +198,9 @@ fn powerup_collisions(
                     .insert(ShieldEnabled);
             }
             PowerUp::Bomb => {
-                player_inventory.bombs += 1;
+                if player_inventory.bombs < 3 {
+                    player_inventory.bombs += 1;
+                }
             }
         }
         commands.entity(entity).despawn_recursive();

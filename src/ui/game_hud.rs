@@ -4,6 +4,7 @@ use bevy::{
     render::{mesh::PrimitiveTopology, render_asset::RenderAssetUsages, view::RenderLayers},
     sprite::{Anchor, MaterialMesh2dBundle},
 };
+use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::{config::ConfigureLoadingState, LoadingState, LoadingStateAppExt}};
 use bevy_round_ui::{
     autosize::RoundUiAutosizeMaterial,
     prelude::{RoundUiBorder, RoundUiMaterial},
@@ -15,7 +16,7 @@ use crate::{
         camera::RENDER_LAYER_2D,
         spaceship::{
             bot::Bot,
-            player::{Player, PlayerRespawnTimer},
+            player::{Player, PlayerInventory, PlayerRespawnTimer},
             IsPlayer, Spaceship,
         },
     },
@@ -27,6 +28,9 @@ use super::{fonts::FontsResource, theme::text_body_style};
 
 #[derive(Component)]
 pub struct HudRootNode;
+
+#[derive(Component)]
+pub struct BombCounter;
 
 #[derive(Component)]
 struct HealthBarContent;
@@ -116,6 +120,18 @@ fn main_hud_setup(
     const PANEL_WIDTH: f32 = 400.;
     const PANEL_HEIGHT: f32 = 40.;
     const PADDING: f32 = 5.;
+    
+    let bomb_counter = commands.spawn((
+        NodeBundle {
+            style: Style {
+                flex_direction: FlexDirection::Row,
+                padding: UiRect::all(Val::Px(PADDING)),
+                ..default()
+            }, 
+            ..default()
+        }, 
+        BombCounter, 
+    )).id();
 
     let health_bar = commands
         .spawn((MaterialNodeBundle {
@@ -155,10 +171,22 @@ fn main_hud_setup(
         })
         .id();
 
+    let bottom_left = commands.spawn(NodeBundle {
+        style: Style {
+            flex_direction: FlexDirection::Column,
+            ..default()
+        }, 
+        ..default()
+    }).id();
+
+    commands.entity(bottom_left)
+        .add_child(bomb_counter)
+        .add_child(health_bar);
+
     commands
         .entity(bottom_section)
-        .add_child(auxiliary_drive_status)
-        .add_child(health_bar);
+        .add_child(bottom_left)
+        .add_child(auxiliary_drive_status);
 }
 
 fn health_bar_update(
@@ -170,6 +198,33 @@ fn health_bar_update(
     };
     for mut style in &mut health_bar_query {
         style.width = Val::Percent(player_health.health / player_health.max_health * 100.);
+    }
+}
+
+fn bomb_counter_update(
+    bomb_counter: Query<Entity, With<BombCounter>>,
+    player_inventory: Res<PlayerInventory>,
+    mut commands: Commands, 
+    ui_assets: Res<UiAssets>,
+) {
+    for entity in &bomb_counter {
+        commands.entity(entity)
+            .despawn_descendants();
+        for _ in 0..player_inventory.bombs {
+            let child = commands.spawn((
+                NodeBundle {
+                    background_color: Color::WHITE.into(),
+                    style: Style {
+                        width: Val::Px(40.),
+                        height: Val::Px(40.),
+                        ..default()
+                    }, 
+                    ..default()
+                }, 
+                UiImage::new(ui_assets.bomb_icon.clone()), 
+            )).id();
+            commands.entity(entity).add_child(child);
+        }
     }
 }
 
@@ -447,6 +502,13 @@ fn respawn_ui_update(
     }
 }
 
+#[derive(AssetCollection, Resource)]
+pub struct UiAssets {
+    #[asset(path = "textures/bomb_icon.png")]
+    bomb_icon: Handle<Image>,
+}
+
+
 pub struct GameHudPlugin;
 
 impl Plugin for GameHudPlugin {
@@ -461,6 +523,7 @@ impl Plugin for GameHudPlugin {
             )
             .add_systems(Startup, setup_enemy_indicator)
             .add_systems(ON_GAME_STARTED, (main_hud_setup,))
+            .add_loading_state(LoadingState::new(AppState::MainSceneLoading).load_collection::<UiAssets>())
             .add_systems(
                 Update,
                 (
@@ -470,6 +533,7 @@ impl Plugin for GameHudPlugin {
                     score_events.in_set(Set::ScoreEvents),
                     score_element_update,
                     score_update,
+                    bomb_counter_update.run_if(resource_changed::<PlayerInventory>),
                     respawn_ui_setup.run_if(resource_added::<PlayerRespawnTimer>),
                     cleanup_system::<RespawnTimerUIParent>
                         .run_if(resource_removed::<PlayerRespawnTimer>()),

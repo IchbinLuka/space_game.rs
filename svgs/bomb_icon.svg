@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="58.581863mm"
+   height="76.789703mm"
+   viewBox="0 0 58.581863 76.789703"
+   version="1.1"
+   id="svg5"
+   inkscape:version="1.1.2 (0a00cf5339, 2022-02-04)"
+   sodipodi:docname="bomb_icon.svg"
+   inkscape:export-filename="/home/luka/Documents/Rust/test_game.rs/assets/textures/bomb_icon.png"
+   inkscape:export-xdpi="59.112701"
+   inkscape:export-ydpi="59.112701"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview7"
+     pagecolor="#6e6e6e"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="false"
+     inkscape:document-units="mm"
+     showgrid="false"
+     inkscape:zoom="2.2734568"
+     inkscape:cx="76.975292"
+     inkscape:cy="129.53842"
+     inkscape:window-width="1868"
+     inkscape:window-height="1022"
+     inkscape:window-x="1920"
+     inkscape:window-y="28"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs2" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-58.971809,-70.541898)">
+    <ellipse
+       style="fill:#ffffff;stroke-width:0.264583"
+       id="path846"
+       cx="88.262741"
+       cy="117.80831"
+       rx="29.290932"
+       ry="29.523289" />
+    <rect
+       style="fill:#ffffff;stroke-width:0.321981"
+       id="rect914"
+       width="21.758327"
+       height="8.8577652"
+       x="76.692139"
+       y="84.323219" />
+    <path
+       style="fill:none;stroke:#ffffff;stroke-width:3.185;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       d="m 86.702914,85.316125 c 0,0 -0.410866,-10.067433 9.936804,-7.804354 10.347672,2.263079 11.451262,-6.776895 11.451262,-6.776895"
+       id="path1055" />
+  </g>
+</svg>

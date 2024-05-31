@@ -259,7 +259,9 @@ fn player_trail_setup(
     ];
 
     for trail in TRAILS {
-        let mesh = Mesh::new(PrimitiveTopology::TriangleStrip, RenderAssetUsages::all());
+        let mut mesh = Mesh::new(PrimitiveTopology::TriangleStrip, RenderAssetUsages::all());
+        mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, Vec::<Vec3>::new());
+        mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, Vec::<Vec3>::new());
 
         let mesh_handle = meshes.add(mesh);
         commands.spawn((
@@ -645,7 +647,6 @@ impl Plugin for PlayerPlugin {
                     return_to_mission_warning_despawn,
                     player_death,
                     bomb_update,
-                    // bomb_scene_setup,
                     player_respawn.run_if(resource_exists::<PlayerRespawnTimer>),
                 )
                     .run_if(game_running()),
