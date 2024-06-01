@@ -58,7 +58,7 @@ fn spawn_asteroid_field(
             let player_direction = player_velocity.linvel.normalize();
             let cross_direction = player_direction.cross(Vec3::Y) * rng.gen_range(-1.0..1.0);
             let position = player_transform.translation
-                + (player_direction + cross_direction) * rng.gen_range(100.0..150.0);
+                + (player_direction + cross_direction) * rng.gen_range(70.0..120.0);
             commands
                 .spawn((
                     AsteroidField,

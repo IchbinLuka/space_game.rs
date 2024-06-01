@@ -200,6 +200,8 @@ fn powerup_collisions(
             PowerUp::Bomb => {
                 if player_inventory.bombs < 3 {
                     player_inventory.bombs += 1;
+                } else {
+                    continue;
                 }
             }
         }

@@ -7,7 +7,7 @@ use bevy::{
 };
 
 use bevy_mod_outline::OutlineBundle;
-use bevy_rapier3d::dynamics::Velocity;
+use bevy_rapier3d::{dynamics::Velocity, geometry::Collider};
 
 use crate::{
     components::{
@@ -186,6 +186,7 @@ fn bomb_update(
         &mut Health,
         &GlobalTransform,
         &BulletTarget,
+        Option<&Collider>, 
         Option<&HasShield>,
     )>,
     time: Res<Time>,
@@ -204,15 +205,20 @@ fn bomb_update(
             parent: None,
         });
 
-        for (mut health, bot_transform, bullet_target, has_shield) in &mut bots {
+        for (mut health, bot_transform, bullet_target, collider, has_shield) in &mut bots {
             if bullet_target.target_type != BulletType::Player {
                 continue;
             }
             let bot_transform = bot_transform.compute_transform();
-            let distance = (bot_transform.translation - transform.translation).length();
+            let distance = if let Some(collider) = collider {
+                collider.distance_to_point(bot_transform.translation, bot_transform.rotation, transform.translation, true)
+            } else {
+                let bot_pos = bot_transform.translation;
+                (bot_pos - transform.translation).length()
+            };
 
             if distance < 20.0 && has_shield.is_none() {
-                health.take_damage(1.0 / f32::min(distance * 2.0, 1.0).powi(2) * 20.0);
+                health.take_damage(1.0 / f32::min(distance * 2.0, 1.0).powi(2) * 40.0);
             }
         }
     }
@@ -567,6 +573,7 @@ pub struct PlayerRespawnTimer(pub Timer);
 
 fn player_death(
     players: Query<(Entity, &Health, &Transform), (IsPlayer, Changed<Health>)>,
+    mut trails: Query<&mut PlayerTrail>,
     mut commands: Commands,
     mut explosion_events: EventWriter<ExplosionEvent>,
 ) {
@@ -578,6 +585,9 @@ fn player_death(
                 radius: 10.0,
             });
             commands.entity(entity).despawn_recursive();
+            for mut trail in &mut trails {
+                trail.pos_history.clear();
+            }
             commands.insert_resource(PlayerRespawnTimer(Timer::from_seconds(
                 2.0,
                 TimerMode::Once,

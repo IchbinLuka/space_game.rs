@@ -24,7 +24,7 @@ fn node_3d_renderer_update(
 
     for (sprite, mut transform, entity) in &mut node_query {
         let Ok(global) = transform_query.get(sprite.parent) else {
-            warn!("Entity of Sprite3DObject must exist and have a GlobalTransform component. Despawning entity...");
+            debug!("Entity of Sprite3DObject must exist and have a GlobalTransform component. Despawning entity...");
             commands.entity(entity).despawn_recursive();
             continue;
         };

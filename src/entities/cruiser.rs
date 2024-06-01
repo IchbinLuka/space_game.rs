@@ -17,7 +17,7 @@ use crate::components::health::HasShield;
 use crate::components::{
     colliders::VelocityColliderBundle,
     despawn_after::DespawnTimer,
-    health::{DespawnOnDeath, Health},
+    health::Health,
 };
 use crate::entities::spaceship::bot::SpawnSquad;
 use crate::materials::exhaust::{ExhaustMaterial, ExhaustRes};
@@ -348,7 +348,6 @@ fn spawn_cruiser(
             outline: default_outline(),
             ..default()
         },
-        DespawnOnDeath,
         Health::new(100.0),
         SpaceshipCollisions {
             collision_damage: 5.0,
@@ -571,35 +570,36 @@ fn cruiser_shield_regenerate(
 }
 
 fn cruiser_death(
-    query: Query<(&Health, &Transform), (With<Cruiser>, Changed<Health>)>,
+    query: Query<(&Health, &Transform, Entity), (With<Cruiser>, Changed<Health>)>,
     mut explosion_events: EventWriter<ExplosionEvent>,
     mut score_events: EventWriter<ScoreEvent>,
+    mut commands: Commands, 
 ) {
-    for (health, transform) in &query {
-        if health.is_dead() {
-            let forward = transform.forward();
-            explosion_events.send_batch([
-                ExplosionEvent {
-                    position: transform.translation,
-                    radius: 10.,
-                    ..default()
-                },
-                ExplosionEvent {
-                    position: transform.translation + forward * 7.,
-                    radius: 10.,
-                    ..default()
-                },
-                ExplosionEvent {
-                    position: transform.translation - forward * 7.,
-                    radius: 10.,
-                    ..default()
-                },
-            ]);
-            score_events.send(ScoreEvent {
-                score: 500,
-                world_pos: transform.translation,
-            });
-        }
+    for (health, transform, entity) in &query {
+        if !health.is_dead() { continue; }
+        let forward = transform.forward();
+        explosion_events.send_batch([
+            ExplosionEvent {
+                position: transform.translation,
+                radius: 10.,
+                ..default()
+            },
+            ExplosionEvent {
+                position: transform.translation + forward * 7.,
+                radius: 10.,
+                ..default()
+            },
+            ExplosionEvent {
+                position: transform.translation - forward * 7.,
+                radius: 10.,
+                ..default()
+            },
+        ]);
+        score_events.send(ScoreEvent {
+            score: 500,
+            world_pos: transform.translation,
+        });
+        commands.entity(entity).despawn_recursive();
     }
 }
 
