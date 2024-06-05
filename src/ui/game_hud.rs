@@ -4,7 +4,10 @@ use bevy::{
     render::{mesh::PrimitiveTopology, render_asset::RenderAssetUsages, view::RenderLayers},
     sprite::{Anchor, MaterialMesh2dBundle},
 };
-use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::{config::ConfigureLoadingState, LoadingState, LoadingStateAppExt}};
+use bevy_asset_loader::{
+    asset_collection::AssetCollection,
+    loading_state::{config::ConfigureLoadingState, LoadingState, LoadingStateAppExt},
+};
 use bevy_round_ui::{
     autosize::RoundUiAutosizeMaterial,
     prelude::{RoundUiBorder, RoundUiMaterial},
@@ -120,18 +123,20 @@ fn main_hud_setup(
     const PANEL_WIDTH: f32 = 400.;
     const PANEL_HEIGHT: f32 = 40.;
     const PADDING: f32 = 5.;
-    
-    let bomb_counter = commands.spawn((
-        NodeBundle {
-            style: Style {
-                flex_direction: FlexDirection::Row,
-                padding: UiRect::all(Val::Px(PADDING)),
+
+    let bomb_counter = commands
+        .spawn((
+            NodeBundle {
+                style: Style {
+                    flex_direction: FlexDirection::Row,
+                    padding: UiRect::all(Val::Px(PADDING)),
+                    ..default()
+                },
                 ..default()
-            }, 
-            ..default()
-        }, 
-        BombCounter, 
-    )).id();
+            },
+            BombCounter,
+        ))
+        .id();
 
     let health_bar = commands
         .spawn((MaterialNodeBundle {
@@ -171,15 +176,18 @@ fn main_hud_setup(
         })
         .id();
 
-    let bottom_left = commands.spawn(NodeBundle {
-        style: Style {
-            flex_direction: FlexDirection::Column,
+    let bottom_left = commands
+        .spawn(NodeBundle {
+            style: Style {
+                flex_direction: FlexDirection::Column,
+                ..default()
+            },
             ..default()
-        }, 
-        ..default()
-    }).id();
+        })
+        .id();
 
-    commands.entity(bottom_left)
+    commands
+        .entity(bottom_left)
         .add_child(bomb_counter)
         .add_child(health_bar);
 
@@ -204,25 +212,26 @@ fn health_bar_update(
 fn bomb_counter_update(
     bomb_counter: Query<Entity, With<BombCounter>>,
     player_inventory: Res<PlayerInventory>,
-    mut commands: Commands, 
+    mut commands: Commands,
     ui_assets: Res<UiAssets>,
 ) {
     for entity in &bomb_counter {
-        commands.entity(entity)
-            .despawn_descendants();
+        commands.entity(entity).despawn_descendants();
         for _ in 0..player_inventory.bombs {
-            let child = commands.spawn((
-                NodeBundle {
-                    background_color: Color::WHITE.into(),
-                    style: Style {
-                        width: Val::Px(40.),
-                        height: Val::Px(40.),
+            let child = commands
+                .spawn((
+                    NodeBundle {
+                        background_color: Color::WHITE.into(),
+                        style: Style {
+                            width: Val::Px(40.),
+                            height: Val::Px(40.),
+                            ..default()
+                        },
                         ..default()
-                    }, 
-                    ..default()
-                }, 
-                UiImage::new(ui_assets.bomb_icon.clone()), 
-            )).id();
+                    },
+                    UiImage::new(ui_assets.bomb_icon.clone()),
+                ))
+                .id();
             commands.entity(entity).add_child(child);
         }
     }
@@ -508,7 +517,6 @@ pub struct UiAssets {
     bomb_icon: Handle<Image>,
 }
 
-
 pub struct GameHudPlugin;
 
 impl Plugin for GameHudPlugin {
@@ -523,7 +531,9 @@ impl Plugin for GameHudPlugin {
             )
             .add_systems(Startup, setup_enemy_indicator)
             .add_systems(ON_GAME_STARTED, (main_hud_setup,))
-            .add_loading_state(LoadingState::new(AppState::MainSceneLoading).load_collection::<UiAssets>())
+            .add_loading_state(
+                LoadingState::new(AppState::MainSceneLoading).load_collection::<UiAssets>(),
+            )
             .add_systems(
                 Update,
                 (

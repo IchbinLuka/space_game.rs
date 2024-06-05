@@ -15,9 +15,7 @@ use rand::Rng;
 
 use crate::components::health::HasShield;
 use crate::components::{
-    colliders::VelocityColliderBundle,
-    despawn_after::DespawnTimer,
-    health::Health,
+    colliders::VelocityColliderBundle, despawn_after::DespawnTimer, health::Health,
 };
 use crate::entities::spaceship::bot::SpawnSquad;
 use crate::materials::exhaust::{ExhaustMaterial, ExhaustRes};
@@ -573,10 +571,12 @@ fn cruiser_death(
     query: Query<(&Health, &Transform, Entity), (With<Cruiser>, Changed<Health>)>,
     mut explosion_events: EventWriter<ExplosionEvent>,
     mut score_events: EventWriter<ScoreEvent>,
-    mut commands: Commands, 
+    mut commands: Commands,
 ) {
     for (health, transform, entity) in &query {
-        if !health.is_dead() { continue; }
+        if !health.is_dead() {
+            continue;
+        }
         let forward = transform.forward();
         explosion_events.send_batch([
             ExplosionEvent {

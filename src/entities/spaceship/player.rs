@@ -186,7 +186,7 @@ fn bomb_update(
         &mut Health,
         &GlobalTransform,
         &BulletTarget,
-        Option<&Collider>, 
+        Option<&Collider>,
         Option<&HasShield>,
     )>,
     time: Res<Time>,
@@ -211,7 +211,12 @@ fn bomb_update(
             }
             let bot_transform = bot_transform.compute_transform();
             let distance = if let Some(collider) = collider {
-                collider.distance_to_point(bot_transform.translation, bot_transform.rotation, transform.translation, true)
+                collider.distance_to_point(
+                    bot_transform.translation,
+                    bot_transform.rotation,
+                    transform.translation,
+                    true,
+                )
             } else {
                 let bot_pos = bot_transform.translation;
                 (bot_pos - transform.translation).length()

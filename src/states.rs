@@ -131,7 +131,7 @@ impl Plugin for StatesPlugin {
                 loading_screen::LoadingScreenPlugin,
                 start_screen::StartScreenPlugin,
                 main_scene::MainScenePlugin,
-                exhaust_test::ExhaustTestPlugin,
+                // exhaust_test::ExhaustTestPlugin,
             ));
     }
 }
