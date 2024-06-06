@@ -11,6 +11,7 @@ use crate::{
         bullet::{BulletSpawnEvent, BulletTarget, BulletType},
         explosion::ExplosionEvent,
         powerup::SpawnPowerup,
+        Enemy,
     },
     states::{game_running, DespawnOnCleanup, ON_GAME_STARTED},
     ui::{
@@ -125,6 +126,7 @@ fn spawn_bot_from_world(world: &mut World, spawn_bot: SpawnBot) -> Result<Entity
             sprite: minimap_assets.enemy_indicator.clone(),
             size: 0.1.into(),
         },
+        Enemy,
         DespawnOnCleanup,
     ));
 
@@ -274,7 +276,7 @@ fn bot_movement(
         let angle = transform.forward().angle_between(f);
         let sign = angle_between_sign(*transform.forward(), f);
 
-        transform.rotate_y(sign * 3.0 * time.delta_seconds());
+        transform.rotate_y(sign * f32::clamp(angle * 3.0, 1.0, 10.0) * time.delta_seconds());
 
         if angle < 0.3 {
             velocity.linvel +=

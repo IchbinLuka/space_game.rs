@@ -20,8 +20,12 @@ use crate::{
         explosion::ExplosionEvent,
         planet::Planet,
         powerup::PowerUpAssets,
+        turret::Turret,
     },
-    materials::{blink::BlinkMaterial, toon::ToonMaterial},
+    materials::{
+        blink::BlinkMaterial,
+        toon::{replace_with_toon_materials, ToonMaterial},
+    },
     states::{game_running, AppState, DespawnOnCleanup, ON_GAME_STARTED},
     ui::{
         fonts::FontsResource,
@@ -43,12 +47,16 @@ pub struct Player;
 #[derive(Resource, Default)]
 pub struct PlayerInventory {
     pub bombs: u32,
+    pub _turrets: u32,
 }
 
 #[derive(Component)]
 pub struct Bomb {
     pub timer: Timer,
 }
+
+#[derive(Component)]
+pub struct PlayerTurret;
 
 #[derive(Component, Default, Deref, DerefMut)]
 pub struct LastHit(pub(crate) Option<f32>);
@@ -169,6 +177,30 @@ fn player_input(
                 SceneBundle {
                     transform: Transform::from_translation(transform.translation),
                     scene: powerup_assets.bomb.clone(),
+                    ..default()
+                },
+                OutlineBundle {
+                    outline: default_outline(),
+                    ..default()
+                },
+            ));
+        }
+
+        if keyboard_input.just_pressed(KeyCode::KeyT) {
+            // inventory.turrets -= 1;
+
+            commands.spawn((
+                PlayerTurret,
+                Turret {
+                    bullet_timer: Timer::from_seconds(1.0, TimerMode::Repeating),
+                    bullet_type: BulletType::Player,
+                    base_orientation: Vec3::Z,
+                    rotation_bounds: (f32::NEG_INFINITY, f32::INFINITY),
+                },
+                DespawnOnCleanup,
+                SceneBundle {
+                    transform: Transform::from_translation(transform.translation),
+                    scene: powerup_assets.turret.clone(),
                     ..default()
                 },
                 OutlineBundle {
@@ -651,6 +683,12 @@ impl Plugin for PlayerPlugin {
                         color_2: Color::rgb(0.5, 0.0, 0.0),
                     })
                 })),
+                ReplaceMaterialPlugin::<PlayerTurret, _>::new(replace_with_toon_materials(
+                    ToonMaterial {
+                        filter_scale: 0.0,
+                        ..default()
+                    },
+                )),
             ))
             .add_systems(
                 Update,

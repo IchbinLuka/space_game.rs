@@ -215,6 +215,8 @@ pub struct PowerUpAssets {
     pub shield: Handle<Scene>,
     #[asset(path = "bomb.glb#Scene0")]
     pub bomb: Handle<Scene>,
+    #[asset(path = "turret.glb#Scene0")]
+    pub turret: Handle<Scene>,
 }
 
 pub struct PowerupPlugin;

@@ -99,7 +99,11 @@ fn bullet_spawn(
             },
             OutlineBundle {
                 outline: OutlineVolume {
-                    colour: Color::RED,
+                    colour: if event.bullet_type == BulletType::Player {
+                        Color::hex("59ccf9").unwrap()
+                    } else {
+                        Color::RED
+                    },
                     width: 2.0,
                     visible: true,
                 },

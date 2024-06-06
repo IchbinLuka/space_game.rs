@@ -32,22 +32,21 @@ use crate::utils::misc::{AsCommand, CollidingEntitiesExtension, Comparef32};
 use crate::utils::scene::{AnimationRoot, ReplaceMaterialPlugin};
 use crate::utils::sets::Set;
 
-use super::bullet::{Bullet, BulletSpawnEvent, BulletTarget, BulletType};
+use super::bullet::{Bullet, BulletTarget, BulletType};
 use super::explosion::ExplosionEvent;
 use super::planet::Planet;
 use super::space_station::SpaceStation;
 use super::spaceship::bot::EnemyTarget;
-use super::spaceship::player::Player;
 use super::spaceship::{IsBot, SpaceshipCollisions};
+use super::turret::Turret;
+use super::Enemy;
 
 const CRUISER_HITBOX_SIZE: Vec3 = Vec3::new(3.5, 3., 13.);
 const CRUISER_SPEED: f32 = 2.0;
 const COLLISION_GROUPS: CollisionGroups = CollisionGroups::new(CRUISER_COLLISION_GROUP, Group::ALL);
 
 // Turret contants
-const TURRET_TURN_SPEED: f32 = 1.0;
 const TURRET_ROTATION_BOUNDS: (f32, f32) = (-1., 1.);
-const TURRET_SHOOT_RANGE: f32 = 150.;
 
 #[derive(Component)]
 pub struct Cruiser {
@@ -116,63 +115,7 @@ impl EntityCommand for ActivateShield {
 }
 
 #[derive(Component)]
-struct CruiserTurret {
-    shoot_timer: Timer,
-    base_orientation: Vec3,
-}
-
-fn cruiser_turret_shoot(
-    mut cruiser_turrets: Query<
-        (&GlobalTransform, &mut Transform, &mut CruiserTurret),
-        Without<Player>,
-    >,
-    target: Query<&Transform, (With<EnemyTarget>, Without<CruiserTurret>)>,
-    time: Res<Time>,
-    mut bullet_events: EventWriter<BulletSpawnEvent>,
-) {
-    for (global_transform, mut transform, mut turret) in &mut cruiser_turrets {
-        let global = global_transform.compute_transform();
-
-        let Some(nearest_transform) = target.iter().min_by_key(|t| {
-            let direction = t.translation - global.translation;
-            direction.length_squared() as i32
-        }) else {
-            continue;
-        };
-
-        turret.shoot_timer.tick(time.delta());
-
-        let global_translation = global_transform.compute_transform();
-        let direction = nearest_transform.translation - global_translation.translation;
-
-        if direction.length_squared() > TURRET_SHOOT_RANGE.powi(2) {
-            continue;
-        }
-
-        let (min, max) = TURRET_ROTATION_BOUNDS;
-
-        let angle = direction.angle_between(turret.base_orientation);
-
-        if angle < min || angle > max {
-            continue;
-        }
-
-        let turn_sign = global_translation.forward().cross(direction).y.signum();
-
-        transform.rotate_y(turn_sign * TURRET_TURN_SPEED * time.delta_seconds());
-
-        if !turret.shoot_timer.just_finished() {
-            continue;
-        }
-
-        bullet_events.send(BulletSpawnEvent {
-            bullet_type: BulletType::Bot,
-            entity_velocity: Velocity::zero(), //  cruiser_velocity.clone(),
-            position: global_translation,
-            direction,
-        });
-    }
-}
+pub struct CruiserTurret;
 
 const CRUISER_SPAWN_COOLDOWN: f32 = 30.0;
 
@@ -351,6 +294,7 @@ fn spawn_cruiser(
             collision_damage: 5.0,
             ..default()
         },
+        Enemy,
         DespawnOnCleanup,
         COLLISION_GROUPS,
         ShowOnMinimap {
@@ -527,13 +471,18 @@ fn cruiser_scene_setup(
 
                 commands.entity(entity).add_child(trail).add_child(exhaust);
             } else if name.starts_with("turret_bone") {
-                let mut shoot_timer = Timer::from_seconds(1.0, TimerMode::Repeating);
-                shoot_timer.tick(Duration::from_millis(rng.gen_range(0..500)));
+                let mut bullet_timer = Timer::from_seconds(1.0, TimerMode::Repeating);
+                bullet_timer.tick(Duration::from_millis(rng.gen_range(0..500)));
 
-                commands.entity(entity).insert(CruiserTurret {
-                    shoot_timer,
-                    base_orientation: *global_transform.compute_transform().forward(),
-                });
+                commands.entity(entity).insert((
+                    Turret {
+                        bullet_timer,
+                        base_orientation: *global_transform.compute_transform().forward(),
+                        bullet_type: BulletType::Bot,
+                        rotation_bounds: TURRET_ROTATION_BOUNDS,
+                    },
+                    CruiserTurret,
+                ));
             }
         }
     }
@@ -689,7 +638,6 @@ impl Plugin for CruiserPLugin {
                 cruiser_animation_start,
                 cruiser_animations,
                 cruiser_trail_update,
-                cruiser_turret_shoot,
                 cruiser_movement,
                 spawn_cruiser_events,
                 spawn_cruisers,
