@@ -21,6 +21,7 @@ use crate::entities::spaceship::bot::SpawnSquad;
 use crate::materials::exhaust::{ExhaustMaterial, ExhaustRes};
 use crate::materials::shield::{ShieldBundle, ShieldMaterial};
 use crate::materials::toon::{replace_with_toon_materials, ToonMaterial};
+use crate::states::main_scene::GameTime;
 use crate::states::{game_running, AppState, DespawnOnCleanup, ON_GAME_STARTED};
 use crate::ui::game_hud::{ScoreEvent, SpawnEnemyIndicator};
 use crate::ui::health_bar_3d::SpawnHealthBar;
@@ -126,7 +127,12 @@ fn spawn_cruisers(
     mut spawn_cruiser_events: EventWriter<SpawnCruiserEvent>,
     mut last_cruiser_spawn: ResMut<CruiserSpawnTimer>,
     time: Res<Time>,
+    game_time: Res<GameTime>,
 ) {
+    last_cruiser_spawn.set_duration(Duration::from_secs_f32(f32::max(
+        30.0 - 5.0 / 60.0 * game_time.elapsed_secs(),
+        5.0,
+    )));
     last_cruiser_spawn.tick(time.delta());
     if last_cruiser_spawn.just_finished() {
         spawn_cruiser_events.send(SpawnCruiserEvent);

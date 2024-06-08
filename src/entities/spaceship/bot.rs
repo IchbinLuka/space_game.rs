@@ -35,7 +35,7 @@ const COLLISION_GROUPS: CollisionGroups = CollisionGroups::new(
     BOT_COLLISION_GROUP,
     Group::ALL.difference(CRUISER_COLLISION_GROUP),
 );
-const POWERUP_SPAWN_PROBABILITY: f64 = 1.0;
+const POWERUP_SPAWN_PROBABILITY: f64 = 0.3;
 
 #[derive(Component)]
 pub struct EnemyTarget;
@@ -259,9 +259,8 @@ fn bot_movement(
             .iter()
             .map(|(t, collisions)| {
                 let delta = transform.translation - t.translation;
-
                 let distance = f32::max(distance - collisions.bound_radius, 0.01);
-                if distance > 75.0 {
+                if distance > 75.0 || distance < 0.01 {
                     return Vec3::ZERO;
                 }
 
