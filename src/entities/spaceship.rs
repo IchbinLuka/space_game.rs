@@ -359,7 +359,7 @@ impl Plugin for SpaceshipPlugin {
         .add_plugins((bot::BotPlugin, player::PlayerPlugin))
         .add_plugins(ReplaceMaterialPlugin::<Spaceship, _>::new(
             replace_with_toon_materials(ToonMaterial {
-                filter_scale: 0.0,
+                disable_outline: true,
                 ..default()
             }),
         ))

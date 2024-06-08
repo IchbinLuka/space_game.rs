@@ -47,7 +47,7 @@ pub struct Player;
 #[derive(Resource, Default)]
 pub struct PlayerInventory {
     pub bombs: u32,
-    pub _turrets: u32,
+    pub turrets: u32,
 }
 
 #[derive(Component)]
@@ -101,7 +101,7 @@ fn spawn_player(
         Player,
         SpaceshipBundle::new(assets.player_ship.clone(), Vec3::ZERO),
         Health::new(100.0),
-        MaxSpeed { max_speed: 60.0 },
+        MaxSpeed { max_speed: 30.0 },
         LastHit::default(),
         EnemyTarget,
         GravityAffected,
@@ -186,8 +186,8 @@ fn player_input(
             ));
         }
 
-        if keyboard_input.just_pressed(KeyCode::KeyT) {
-            // inventory.turrets -= 1;
+        if keyboard_input.just_pressed(KeyCode::KeyT) && inventory.turrets > 0 {
+            inventory.turrets -= 1;
 
             commands.spawn((
                 PlayerTurret,
@@ -669,7 +669,7 @@ impl Plugin for PlayerPlugin {
                     }
                     Some(ToonMaterial {
                         color: current.base_color,
-                        filter_scale: 0.0,
+                        disable_outline: true,
                         ..default()
                     })
                 })),
@@ -685,7 +685,7 @@ impl Plugin for PlayerPlugin {
                 })),
                 ReplaceMaterialPlugin::<PlayerTurret, _>::new(replace_with_toon_materials(
                     ToonMaterial {
-                        filter_scale: 0.0,
+                        disable_outline: true,
                         ..default()
                     },
                 )),

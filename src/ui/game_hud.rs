@@ -36,12 +36,61 @@ pub struct HudRootNode;
 pub struct BombCounter;
 
 #[derive(Component)]
+pub struct TurretCounter;
+
+#[derive(Component)]
 struct HealthBarContent;
+
+fn spawn_inventory_item<C: Component>(
+    commands: &mut Commands,
+    icon: Handle<Image>,
+    font_res: &FontsResource,
+    marker: C,
+) -> Entity {
+    commands
+        .spawn((NodeBundle {
+            style: Style {
+                flex_direction: FlexDirection::Row,
+                align_items: AlignItems::Center,
+                padding: UiRect {
+                    right: Val::Px(20.0),
+                    ..UiRect::all(Val::Px(PADDING))
+                },
+                ..default()
+            },
+            ..default()
+        },))
+        .with_children(|c| {
+            c.spawn((
+                NodeBundle {
+                    style: Style {
+                        width: Val::Px(40.0),
+                        height: Val::Px(40.0),
+                        ..default()
+                    },
+                    background_color: Color::WHITE.into(),
+                    ..default()
+                },
+                UiImage::new(icon),
+            ));
+
+            c.spawn((
+                TextBundle::from_section("", text_body_style(font_res)),
+                marker,
+            ));
+        })
+        .id()
+}
+
+const PANEL_WIDTH: f32 = 400.;
+const PANEL_HEIGHT: f32 = 40.;
+const PADDING: f32 = 5.;
 
 fn main_hud_setup(
     mut commands: Commands,
     font_resource: Res<FontsResource>,
     mut materials: ResMut<Assets<RoundUiMaterial>>,
+    ui_assets: Res<UiAssets>,
 ) {
     let root = commands
         .spawn((
@@ -120,23 +169,33 @@ fn main_hud_setup(
         ))
         .id();
 
-    const PANEL_WIDTH: f32 = 400.;
-    const PANEL_HEIGHT: f32 = 40.;
-    const PADDING: f32 = 5.;
-
-    let bomb_counter = commands
-        .spawn((
-            NodeBundle {
-                style: Style {
-                    flex_direction: FlexDirection::Row,
-                    padding: UiRect::all(Val::Px(PADDING)),
-                    ..default()
-                },
+    let inventory = commands
+        .spawn(NodeBundle {
+            style: Style {
+                flex_direction: FlexDirection::Row,
                 ..default()
             },
-            BombCounter,
-        ))
+            ..default()
+        })
         .id();
+
+    let bomb_counter = spawn_inventory_item(
+        &mut commands,
+        ui_assets.bomb_icon.clone(),
+        &font_resource,
+        BombCounter,
+    );
+    let turret_counter = spawn_inventory_item(
+        &mut commands,
+        ui_assets.turret_icon.clone(),
+        &font_resource,
+        TurretCounter,
+    );
+
+    commands
+        .entity(inventory)
+        .add_child(bomb_counter)
+        .add_child(turret_counter);
 
     let health_bar = commands
         .spawn((MaterialNodeBundle {
@@ -188,7 +247,7 @@ fn main_hud_setup(
 
     commands
         .entity(bottom_left)
-        .add_child(bomb_counter)
+        .add_child(inventory)
         .add_child(health_bar);
 
     commands
@@ -209,31 +268,17 @@ fn health_bar_update(
     }
 }
 
-fn bomb_counter_update(
-    bomb_counter: Query<Entity, With<BombCounter>>,
+fn inventory_update(
     player_inventory: Res<PlayerInventory>,
-    mut commands: Commands,
-    ui_assets: Res<UiAssets>,
+    mut bomb_counter: Query<&mut Text, (With<BombCounter>, Without<TurretCounter>)>,
+    mut turret_counter: Query<&mut Text, (With<TurretCounter>, Without<BombCounter>)>,
 ) {
-    for entity in &bomb_counter {
-        commands.entity(entity).despawn_descendants();
-        for _ in 0..player_inventory.bombs {
-            let child = commands
-                .spawn((
-                    NodeBundle {
-                        background_color: Color::WHITE.into(),
-                        style: Style {
-                            width: Val::Px(40.),
-                            height: Val::Px(40.),
-                            ..default()
-                        },
-                        ..default()
-                    },
-                    UiImage::new(ui_assets.bomb_icon.clone()),
-                ))
-                .id();
-            commands.entity(entity).add_child(child);
-        }
+    // TODO: simply this
+    for mut text in &mut bomb_counter {
+        text.sections[0].value = format!("x{}", player_inventory.bombs);
+    }
+    for mut text in &mut turret_counter {
+        text.sections[0].value = format!("x{}", player_inventory.turrets);
     }
 }
 
@@ -515,6 +560,8 @@ fn respawn_ui_update(
 pub struct UiAssets {
     #[asset(path = "textures/bomb_icon.png")]
     bomb_icon: Handle<Image>,
+    #[asset(path = "textures/turret_icon.png")]
+    turret_icon: Handle<Image>,
 }
 
 pub struct GameHudPlugin;
@@ -543,7 +590,7 @@ impl Plugin for GameHudPlugin {
                     score_events.in_set(Set::ScoreEvents),
                     score_element_update,
                     score_update,
-                    bomb_counter_update.run_if(resource_changed::<PlayerInventory>),
+                    inventory_update.run_if(resource_changed::<PlayerInventory>),
                     respawn_ui_setup.run_if(resource_added::<PlayerRespawnTimer>),
                     cleanup_system::<RespawnTimerUIParent>
                         .run_if(resource_removed::<PlayerRespawnTimer>()),
