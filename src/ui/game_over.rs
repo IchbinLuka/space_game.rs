@@ -1,4 +1,3 @@
-use bevy::ecs::system::Command;
 use bevy::prelude::*;
 use bevy_rapier3d::plugin::RapierConfiguration;
 
@@ -19,6 +18,9 @@ struct GameOverScreen;
 
 #[derive(Component)]
 struct RestartButton;
+
+#[derive(Component)]
+struct BackToMenuButton;
 
 fn game_over_events(
     mut game_over_events: EventReader<GameOverEvent>,
@@ -51,37 +53,51 @@ fn game_over_screen_setup(
                 text_title_style(&font_res),
             ));
 
-            c.spawn(TextBundle::from_section(
-                t!("score", score = score.0),
-                text_button_style(&font_res),
-            ));
+            c.spawn(TextBundle {
+                style: Style {
+                    margin: UiRect::bottom(Val::Px(20.0)),
+                    ..default()
+                },
+                ..TextBundle::from_section(
+                    t!("score", score = score.0),
+                    text_button_style(&font_res),
+                )
+            });
 
             c.spawn((
                 TextButtonBundle::from_section(t!("restart"), text_button_style(&font_res)),
                 RestartButton,
             ));
-        });
-}
 
-struct ClearWorld;
-impl Command for ClearWorld {
-    fn apply(self, world: &mut World) {
-        // world.clear_entities();
-        world.clear_trackers();
-    }
+            c.spawn((
+                TextButtonBundle::from_section(t!("back_to_menu"), text_button_style(&font_res)),
+                BackToMenuButton,
+            ));
+        });
 }
 
 fn restart_game(
     restart_button: Query<&Interaction, (Changed<Interaction>, With<RestartButton>)>,
     mut next_state: ResMut<NextState<AppState>>,
-    mut commands: Commands,
     mut rapier_config: ResMut<RapierConfiguration>,
 ) {
     for interaction in &restart_button {
         if *interaction == Interaction::Pressed {
             reset_physics_speed(&mut rapier_config);
-            commands.add(ClearWorld);
             next_state.set(AppState::MainSceneLoading);
+        }
+    }
+}
+
+fn back_to_menu(
+    back_to_menu_button: Query<&Interaction, (Changed<Interaction>, With<BackToMenuButton>)>,
+    mut next_state: ResMut<NextState<AppState>>,
+    mut rapier_config: ResMut<RapierConfiguration>,
+) {
+    for interaction in &back_to_menu_button {
+        if *interaction == Interaction::Pressed {
+            reset_physics_speed(&mut rapier_config);
+            next_state.set(AppState::StartScreenLoading);
         }
     }
 }
@@ -94,7 +110,7 @@ impl Plugin for GameOverPlugin {
             Update,
             (
                 game_over_events.run_if(game_running()),
-                restart_game.run_if(game_over()),
+                (restart_game, back_to_menu).run_if(game_over()),
             ),
         )
         .add_systems(OnEnter(AppState::GameOver), game_over_screen_setup)

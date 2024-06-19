@@ -260,7 +260,7 @@ fn bot_movement(
             .map(|(t, collisions)| {
                 let delta = transform.translation - t.translation;
                 let distance = f32::max(distance - collisions.bound_radius, 0.01);
-                if distance > 75.0 || distance < 0.01 {
+                if distance > 75.0 || distance < 0.001 {
                     return Vec3::ZERO;
                 }
 
