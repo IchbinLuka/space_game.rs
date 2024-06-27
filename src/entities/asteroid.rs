@@ -11,13 +11,14 @@ use bevy_asset_loader::{
 use bevy_mod_outline::OutlineBundle;
 use bevy_rapier3d::prelude::*;
 use rand::Rng;
+use space_game_common::EnemyType;
 
 use crate::{
     components::{colliders::VelocityColliderBundle, despawn_after::DespawnTimer},
     entities::bullet::BulletType,
     particles::ParticleMaterial,
     states::{game_running, AppState, DespawnOnCleanup, ON_GAME_STARTED},
-    ui::game_hud::ScoreEvent,
+    ui::game_hud::ScoreGameEvent,
     utils::{
         collisions::BULLET_COLLISION_GROUP, materials::default_outline,
         misc::CollidingEntitiesExtension, sets::Set,
@@ -142,7 +143,7 @@ fn asteroid_collisions(
     mut explosions: EventWriter<ExplosionEvent>,
     bullet_query: Query<&Bullet>,
     res: Res<AsteroidRes>,
-    mut score_events: EventWriter<ScoreEvent>,
+    mut score_events: EventWriter<ScoreGameEvent>,
 ) {
     const NUM_DESTRUCTION_PARTICLES: usize = 20;
 
@@ -157,9 +158,9 @@ fn asteroid_collisions(
 
         for bullet in colliding.filter_fulfills_query(&bullet_query) {
             if bullet.bullet_type == BulletType::Player {
-                score_events.send(ScoreEvent {
-                    score: 10,
+                score_events.send(ScoreGameEvent {
                     world_pos: transform.translation,
+                    enemy: EnemyType::Asteroid,
                 });
                 break;
             }

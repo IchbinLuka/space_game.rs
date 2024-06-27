@@ -59,7 +59,7 @@ fn game_over_screen_setup(
                     ..default()
                 },
                 ..TextBundle::from_section(
-                    t!("score", score = score.0),
+                    t!("score", score = score.value),
                     text_button_style(&font_res),
                 )
             });

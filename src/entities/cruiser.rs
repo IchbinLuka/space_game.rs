@@ -12,6 +12,7 @@ use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::Loadin
 use bevy_mod_outline::OutlineBundle;
 use bevy_rapier3d::prelude::*;
 use rand::Rng;
+use space_game_common::EnemyType;
 
 use crate::components::health::HasShield;
 use crate::components::{
@@ -23,7 +24,7 @@ use crate::materials::shield::{ShieldBundle, ShieldMaterial};
 use crate::materials::toon::{replace_with_toon_materials, ToonMaterial};
 use crate::states::main_scene::GameTime;
 use crate::states::{game_running, AppState, DespawnOnCleanup, ON_GAME_STARTED};
-use crate::ui::game_hud::{ScoreEvent, SpawnEnemyIndicator};
+use crate::ui::game_hud::{ScoreGameEvent, SpawnEnemyIndicator};
 use crate::ui::health_bar_3d::SpawnHealthBar;
 use crate::ui::minimap::{MinimapAssets, ShowOnMinimap};
 use crate::utils::collisions::CRUISER_COLLISION_GROUP;
@@ -525,7 +526,7 @@ fn cruiser_shield_regenerate(
 fn cruiser_death(
     query: Query<(&Health, &Transform, Entity), (With<Cruiser>, Changed<Health>)>,
     mut explosion_events: EventWriter<ExplosionEvent>,
-    mut score_events: EventWriter<ScoreEvent>,
+    mut score_events: EventWriter<ScoreGameEvent>,
     mut commands: Commands,
 ) {
     for (health, transform, entity) in &query {
@@ -550,8 +551,8 @@ fn cruiser_death(
                 ..default()
             },
         ]);
-        score_events.send(ScoreEvent {
-            score: 500,
+        score_events.send(ScoreGameEvent {
+            enemy: EnemyType::Cruiser,
             world_pos: transform.translation,
         });
         commands.entity(entity).despawn_recursive();

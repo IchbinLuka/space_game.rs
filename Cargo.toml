@@ -23,6 +23,8 @@ serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.114"
 cfg-if = "1.0.0"
 web-sys = { version = "0.3.69", features = ["Window", "Storage"] }
+space_game_common = { git = "https://github.com/IchbinLuka/space_game_common.git" }
+reqwest = "0.12.5"
 
 [workspace]
 resolver = "2"

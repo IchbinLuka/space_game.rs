@@ -4,6 +4,7 @@ use bevy_rapier3d::{
     geometry::{CollisionGroups, Group},
 };
 use rand::Rng;
+use space_game_common::EnemyType;
 
 use crate::{
     components::movement::MaxSpeed,
@@ -15,7 +16,7 @@ use crate::{
     },
     states::{game_running, DespawnOnCleanup, ON_GAME_STARTED},
     ui::{
-        game_hud::{ScoreEvent, SpawnEnemyIndicator},
+        game_hud::{ScoreGameEvent, SpawnEnemyIndicator},
         health_bar_3d::SpawnHealthBar,
         minimap::{MinimapAssets, ShowOnMinimap},
     },
@@ -159,7 +160,7 @@ impl Command for SpawnBot {
 fn bot_death(
     mut commands: Commands,
     mut explosions: EventWriter<ExplosionEvent>,
-    mut scores: EventWriter<ScoreEvent>,
+    mut scores: EventWriter<ScoreGameEvent>,
     bots: Query<(Entity, &GlobalTransform, &Health), (IsBot, Changed<Health>)>,
 ) {
     for (entity, global_transform, health) in &bots {
@@ -175,8 +176,8 @@ fn bot_death(
                 position: transform.translation,
                 radius: 5.0,
             });
-            scores.send(ScoreEvent {
-                score: 300,
+            scores.send(ScoreGameEvent {
+                enemy: EnemyType::Spaceship,
                 world_pos: transform.translation,
             });
             commands.entity(entity).despawn_recursive();
@@ -260,7 +261,7 @@ fn bot_movement(
             .map(|(t, collisions)| {
                 let delta = transform.translation - t.translation;
                 let distance = f32::max(distance - collisions.bound_radius, 0.01);
-                if distance > 75.0 || distance < 0.001 {
+                if !(0.001..=75.0).contains(&distance) {
                     return Vec3::ZERO;
                 }
 

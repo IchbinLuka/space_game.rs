@@ -12,6 +12,7 @@ use bevy_round_ui::{
     autosize::RoundUiAutosizeMaterial,
     prelude::{RoundUiBorder, RoundUiMaterial},
 };
+use space_game_common as common;
 
 use crate::{
     components::health::Health,
@@ -23,7 +24,7 @@ use crate::{
             IsPlayer, Spaceship,
         },
     },
-    states::{game_running, AppState, DespawnOnCleanup, ON_GAME_STARTED},
+    states::{game_running, main_scene::GameTime, AppState, DespawnOnCleanup, ON_GAME_STARTED},
     utils::{misc::cleanup_system, sets::Set},
 };
 
@@ -111,7 +112,7 @@ fn main_hud_setup(
         ))
         .id();
 
-    commands.insert_resource(Score(0));
+    commands.insert_resource(Score::new());
 
     let score = commands
         .spawn((
@@ -394,29 +395,43 @@ fn auxiliary_drive_update(
     }
 }
 
-#[derive(Resource, Deref, DerefMut)]
-pub struct Score(pub u32);
+#[derive(Resource)]
+pub struct Score {
+    pub value: u32,
+    pub events: Vec<common::ScoreEvent>,
+}
 
-#[derive(Event)]
-pub struct ScoreEvent {
-    pub score: u32,
+impl Score {
+    pub fn new() -> Self {
+        Self {
+            value: 0,
+            events: Vec::new(),
+        }
+    }
+}
+
+#[derive(Event, Clone)]
+pub struct ScoreGameEvent {
     pub world_pos: Vec3,
+    pub enemy: common::EnemyType,
 }
 
 #[derive(Component)]
 pub struct ScoreElement {
-    pub score: u32,
+    pub event: common::ScoreEvent,
 }
 
 #[derive(Component)]
 pub struct ScoreCounter;
 
 fn score_events(
-    mut score_events: EventReader<ScoreEvent>,
+    mut score_events: EventReader<ScoreGameEvent>,
     mut commands: Commands,
     camera_query: Query<(&GlobalTransform, &Camera), With<Camera3d>>,
     window: Query<&Window>,
     font_resource: Res<FontsResource>,
+    mut score: ResMut<Score>,
+    time: Res<GameTime>,
 ) {
     let Ok((transform, camera)) = camera_query.get_single() else {
         return;
@@ -428,6 +443,16 @@ fn score_events(
     let screen_size = Vec2::new(window.width(), window.height());
 
     for event in score_events.read() {
+        let score_event = common::ScoreEvent {
+            time: time.elapsed_secs(),
+            enemy: event.enemy,
+            pos: (event.world_pos.x, event.world_pos.z),
+        };
+
+        let score_count = score_event.get_score();
+
+        score.events.push(score_event.clone());
+
         let Some(screen_pos) = camera.world_to_viewport(transform, event.world_pos) else {
             warn!("Could not get viewport position for node");
             continue;
@@ -443,7 +468,7 @@ fn score_events(
             Text2dBundle {
                 text: Text {
                     sections: vec![TextSection {
-                        value: format!("+{}", event.score),
+                        value: format!("+{}", score_count),
                         style: TextStyle {
                             font_size: 40.0,
                             color: Color::WHITE,
@@ -456,7 +481,7 @@ fn score_events(
                 transform: Transform::from_translation(pos.extend(0.)),
                 ..default()
             },
-            ScoreElement { score: event.score },
+            ScoreElement { event: score_event },
             RenderLayers::layer(RENDER_LAYER_2D),
         ));
     }
@@ -481,7 +506,7 @@ fn score_element_update(
         let delta = counter_location - transform.translation.xy();
 
         if delta.length() < 20.0 {
-            score.0 += score_element.score;
+            score.value += score_element.event.get_score();
             commands.entity(entity).despawn_recursive();
             continue;
         }
@@ -501,7 +526,7 @@ fn score_update(mut score_query: Query<&mut Text, With<ScoreCounter>>, score: Re
         return;
     }
     for mut text in &mut score_query {
-        text.sections[0].value = t!("score", score = score.0).to_string();
+        text.sections[0].value = t!("score", score = score.value).to_string();
     }
 }
 
@@ -568,7 +593,7 @@ pub struct GameHudPlugin;
 
 impl Plugin for GameHudPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<ScoreEvent>()
+        app.add_event::<ScoreGameEvent>()
             .add_systems(
                 OnExit(AppState::MainScene),
                 (
