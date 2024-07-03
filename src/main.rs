@@ -30,6 +30,7 @@ use states::StatesPlugin;
 use ui::UIPlugin;
 use utils::scene::ScenePlugin;
 
+mod api_constants;
 mod components;
 mod entities;
 mod materials;

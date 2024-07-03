@@ -606,6 +606,7 @@ impl Plugin for GameHudPlugin {
             .add_loading_state(
                 LoadingState::new(AppState::MainSceneLoading).load_collection::<UiAssets>(),
             )
+            .add_systems(OnEnter(AppState::GameOver), cleanup_system::<HudRootNode>)
             .add_systems(
                 Update,
                 (

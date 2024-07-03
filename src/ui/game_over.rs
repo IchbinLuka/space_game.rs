@@ -1,6 +1,13 @@
 use bevy::prelude::*;
+use bevy::tasks::IoTaskPool;
+use bevy::tasks::{block_on, futures_lite::future, Task};
 use bevy_rapier3d::plugin::RapierConfiguration;
+use bevy_round_ui::autosize::RoundUiAutosizeMaterial;
+use serde::Deserialize;
 
+use crate::api_constants::API_URL;
+use crate::components::health::Health;
+use crate::entities::space_station::SpaceStation;
 use crate::states::{
     game_over, game_running, reset_physics_speed, slow_down_physics, AppState, DespawnOnCleanup,
 };
@@ -9,6 +16,8 @@ use crate::ui::fonts::FontsResource;
 use crate::ui::theme::{fullscreen_center_style, text_button_style, text_title_style};
 
 use super::game_hud::Score;
+use super::theme::{text_body_style, text_title_style_small};
+use super::UiRes;
 
 #[derive(Event)]
 pub struct GameOverEvent;
@@ -21,6 +30,85 @@ struct RestartButton;
 
 #[derive(Component)]
 struct BackToMenuButton;
+
+#[derive(Deserialize, PartialEq)]
+struct PlayerScore {
+    score: u32,
+    player_name: String,
+    rank: u32,
+}
+
+#[derive(Component)]
+enum Leaderboard {
+    Loading(Task<Result<Vec<PlayerScore>, reqwest::Error>>),
+    Loaded,
+    Error,
+}
+
+async fn fetch_leaderboard(score: u32) -> Result<Vec<PlayerScore>, reqwest::Error> {
+    let url = format!("{}/ranking_near_score/{}/3", API_URL, score);
+    let response = reqwest::blocking::get(url)?;
+    response.json::<Vec<PlayerScore>>()
+}
+
+fn poll_task_status(
+    mut leader_boards: Query<(&mut Leaderboard, Entity)>,
+    mut commands: Commands,
+    font_res: Res<FontsResource>,
+) {
+    for (mut leaderboard, entity) in &mut leader_boards {
+        let Leaderboard::Loading(ref mut task) = *leaderboard else {
+            continue;
+        };
+        let Some(result) = block_on(future::poll_once(task)) else {
+            continue;
+        };
+
+        commands.entity(entity).despawn_descendants();
+
+        let Ok(scores) = result else {
+            commands.entity(entity).with_children(|c| {
+                c.spawn(TextBundle::from_section(
+                    "Error loading leaderboard",
+                    text_body_style(&font_res),
+                ));
+            });
+            *leaderboard = Leaderboard::Error;
+            continue;
+        };
+
+        commands.entity(entity).with_children(|c| {
+            for score in scores {
+                c.spawn(NodeBundle {
+                    style: Style {
+                        flex_direction: FlexDirection::Row,
+                        width: Val::Percent(100.),
+                        justify_content: JustifyContent::SpaceBetween,
+                        ..default()
+                    },
+                    ..default()
+                })
+                .with_children(|c| {
+                    c.spawn(TextBundle::from_section(
+                        format!("{}.", score.rank),
+                        text_body_style(&font_res),
+                    ));
+                    c.spawn(TextBundle::from_section(
+                        score.player_name,
+                        text_body_style(&font_res),
+                    ));
+                    c.spawn(TextBundle::from_section(
+                        score.score.to_string(),
+                        text_body_style(&font_res),
+                    ));
+                });
+            }
+        });
+
+        *leaderboard = Leaderboard::Loaded;
+        // TODO: Remove the loading text and display the leaderboard
+    }
+}
 
 fn game_over_events(
     mut game_over_events: EventReader<GameOverEvent>,
@@ -36,6 +124,7 @@ fn game_over_screen_setup(
     font_res: Res<FontsResource>,
     mut rapier_config: ResMut<RapierConfiguration>,
     score: Res<Score>,
+    ui_res: Res<UiRes>,
 ) {
     slow_down_physics(&mut rapier_config);
     commands
@@ -63,16 +152,76 @@ fn game_over_screen_setup(
                     text_button_style(&font_res),
                 )
             });
+            let thread_pool = IoTaskPool::get();
+            let score_value = score.value;
+            let task: Task<Result<Vec<PlayerScore>, reqwest::Error>> =
+                thread_pool.spawn(async move {
+                    fetch_leaderboard(score_value).await
+                    // Ok(vec![])
+                });
 
             c.spawn((
-                TextButtonBundle::from_section(t!("restart"), text_button_style(&font_res)),
-                RestartButton,
-            ));
+                MaterialNodeBundle {
+                    material: ui_res.card_background_material.clone(),
+                    style: Style {
+                        padding: UiRect::all(Val::Px(20.)),
+                        flex_direction: FlexDirection::Column,
+                        width: Val::Px(400.),
+                        ..default()
+                    },
+                    ..default()
+                },
+                RoundUiAutosizeMaterial,
+            ))
+            .with_children(|c| {
+                c.spawn(TextBundle::from_section(
+                    t!("leaderboard"),
+                    text_title_style_small(&font_res),
+                ));
 
-            c.spawn((
-                TextButtonBundle::from_section(t!("back_to_menu"), text_button_style(&font_res)),
-                BackToMenuButton,
-            ));
+                c.spawn((
+                    NodeBundle {
+                        style: Style {
+                            flex_direction: FlexDirection::Column,
+                            align_items: AlignItems::Center,
+                            margin: UiRect::bottom(Val::Px(20.)),
+                            ..default()
+                        },
+                        ..default()
+                    },
+                    Leaderboard::Loading(task),
+                ))
+                .with_children(|c| {
+                    c.spawn(TextBundle::from_section(
+                        t!("loading"),
+                        text_body_style(&font_res),
+                    ));
+                });
+
+                c.spawn(NodeBundle {
+                    style: Style {
+                        flex_direction: FlexDirection::Row,
+                        justify_content: JustifyContent::SpaceBetween,
+                        width: Val::Percent(100.),
+                        ..default()
+                    },
+                    ..default()
+                })
+                .with_children(|c| {
+                    c.spawn((
+                        TextButtonBundle::from_section(t!("restart"), text_button_style(&font_res)),
+                        RestartButton,
+                    ));
+
+                    c.spawn((
+                        TextButtonBundle::from_section(
+                            t!("back_to_menu"),
+                            text_button_style(&font_res),
+                        ),
+                        BackToMenuButton,
+                    ));
+                });
+            });
         });
 }
 
@@ -102,6 +251,19 @@ fn back_to_menu(
     }
 }
 
+#[allow(dead_code)]
+fn trigger_game_over(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut space_stations: Query<&mut Health, With<SpaceStation>>,
+) {
+    if keyboard_input.pressed(KeyCode::KeyG) {
+        for mut health in &mut space_stations {
+            let max_health = health.max_health;
+            health.take_damage(max_health);
+        }
+    }
+}
+
 pub struct GameOverPlugin;
 
 impl Plugin for GameOverPlugin {
@@ -109,8 +271,13 @@ impl Plugin for GameOverPlugin {
         app.add_systems(
             Update,
             (
-                game_over_events.run_if(game_running()),
-                (restart_game, back_to_menu).run_if(game_over()),
+                (
+                    game_over_events,
+                    #[cfg(feature = "debug")]
+                    trigger_game_over,
+                )
+                    .run_if(game_running()),
+                (restart_game, back_to_menu, poll_task_status).run_if(game_over()),
             ),
         )
         .add_systems(OnEnter(AppState::GameOver), game_over_screen_setup)

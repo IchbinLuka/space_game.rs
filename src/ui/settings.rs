@@ -1,15 +1,13 @@
 use bevy::{ecs::system::Command, prelude::*, ui::FocusPolicy, window::PrimaryWindow};
-use bevy_round_ui::{
-    autosize::{RoundUiAutosizeMaterial, RoundUiAutosizeNodePadding},
-    prelude::RoundUiMaterial,
-};
+use bevy_round_ui::autosize::{RoundUiAutosizeMaterial, RoundUiAutosizeNodePadding};
 
 use crate::model::settings::{AntialiasingSetting, Settings, VSyncSetting};
 
 use super::{
     button::{CheckBox, CheckBoxBundle, TextButtonBundle},
     fonts::FontsResource,
-    theme::{text_button_style, SURFACE_COLOR},
+    theme::text_button_style,
+    UiRes,
 };
 
 #[derive(Component)]
@@ -50,21 +48,6 @@ struct LanguageSetting;
 #[derive(Component)]
 struct AntialiasSetting;
 
-#[derive(Resource)]
-struct SettingsRes {
-    background_material: Handle<RoundUiMaterial>,
-}
-
-fn settings_setup(mut commands: Commands, mut materials: ResMut<Assets<RoundUiMaterial>>) {
-    commands.insert_resource(SettingsRes {
-        background_material: materials.add(RoundUiMaterial {
-            background_color: SURFACE_COLOR,
-            border_radius: Vec4::splat(30.),
-            ..default()
-        }),
-    })
-}
-
 pub struct OpenSettings;
 
 impl Command for OpenSettings {
@@ -78,14 +61,14 @@ impl Command for OpenSettings {
             return;
         };
 
-        let Some(settings_res) = world.get_resource::<SettingsRes>() else {
+        let Some(settings_res) = world.get_resource::<UiRes>() else {
             error!("SettingsRes not found.");
             return;
         };
 
         let settings = settings.clone();
 
-        let background_material = settings_res.background_material.clone();
+        let background_material = settings_res.card_background_material.clone();
 
         let style = text_button_style(font_res);
 
@@ -366,7 +349,7 @@ pub struct SettingsPlugin;
 
 impl Plugin for SettingsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, settings_setup).add_systems(
+        app.add_systems(
             Update,
             (
                 close_settings,
