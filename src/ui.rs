@@ -23,6 +23,22 @@ pub struct TextHoverEffect {
     pub hover_color: Color,
 }
 
+
+fn hover_effect_cursor(
+    query: Query<&Interaction, Changed<Interaction>>,
+    mut windows: Query<&mut Window, With<bevy::window::PrimaryWindow>>,
+) {
+    for interaction in &query {
+        for mut window in &mut windows {
+            window.cursor.icon = if *interaction == Interaction::Hovered {
+                CursorIcon::Pointer
+            } else {
+                CursorIcon::Default
+            };
+        }
+    }
+}
+
 fn hover_effect_node(
     mut query: Query<(&NodeHoverEffect, &Interaction, &mut BackgroundColor), Changed<Interaction>>,
 ) {
@@ -76,8 +92,13 @@ pub struct UIPlugin;
 
 impl Plugin for UIPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, ui_setup)
-            .add_systems(Update, (hover_effect_node, hover_effect_text))
+        app
+            .add_systems(Startup, ui_setup)
+            .add_systems(Update, (
+                hover_effect_node, 
+                hover_effect_text,
+                hover_effect_cursor,  
+            ))
             .add_plugins((
                 game_hud::GameHudPlugin,
                 sprite_3d_renderer::Sprite3DRendererPlugin,
