@@ -1,10 +1,4 @@
-use bevy::{
-    app::{App, Plugin, Update},
-    ecs::{component::Component, query::Changed, system::Query},
-    render::color::Color,
-    text::Text,
-    ui::{BackgroundColor, Interaction},
-};
+use bevy::prelude::*;
 
 pub mod button;
 pub mod fonts;
@@ -26,6 +20,22 @@ pub struct NodeHoverEffect {
 pub struct TextHoverEffect {
     pub normal_color: Color,
     pub hover_color: Color,
+}
+
+
+fn hover_effect_cursor(
+    query: Query<&Interaction, Changed<Interaction>>,
+    mut windows: Query<&mut Window, With<bevy::window::PrimaryWindow>>,
+) {
+    for interaction in &query {
+        for mut window in &mut windows {
+            window.cursor.icon = if *interaction == Interaction::Hovered {
+                CursorIcon::Pointer
+            } else {
+                CursorIcon::Default
+            };
+        }
+    }
 }
 
 fn hover_effect_node(
@@ -66,7 +76,12 @@ pub struct UIPlugin;
 
 impl Plugin for UIPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (hover_effect_node, hover_effect_text))
+        app
+            .add_systems(Update, (
+                hover_effect_node, 
+                hover_effect_text,
+                hover_effect_cursor,  
+            ))
             .add_plugins((
                 game_hud::GameHudPlugin,
                 sprite_3d_renderer::Sprite3DRendererPlugin,
