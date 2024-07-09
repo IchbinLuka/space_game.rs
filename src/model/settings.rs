@@ -7,6 +7,8 @@ use bevy::window::{PresentMode, PrimaryWindow};
 use cfg_if::cfg_if;
 use serde::{Deserialize, Serialize};
 
+use crate::utils::api::Token;
+
 #[cfg(not(target_family = "wasm"))]
 const SETTINGS_PATH: &str = "settings.json";
 
@@ -16,6 +18,7 @@ pub struct Settings {
     pub lang: String,
     pub antialiasing: AntialiasingSetting,
     pub vsync: VSyncSetting,
+    pub api_token: Option<Token>,
 }
 
 #[derive(Default, Clone, Copy, Serialize, Deserialize, Debug, PartialEq, Eq)]
@@ -85,6 +88,7 @@ impl Default for Settings {
             lang: "en".to_string(),
             antialiasing: default(),
             vsync: default(),
+            api_token: None,
         }
     }
 }

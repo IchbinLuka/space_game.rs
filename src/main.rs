@@ -18,6 +18,7 @@ use bevy_mod_outline::{AutoGenerateOutlineNormalsPlugin, OutlinePlugin};
 use bevy_obj::ObjPlugin;
 use bevy_rapier3d::prelude::*;
 use bevy_round_ui::prelude::RoundUiPlugin;
+use bevy_simple_text_input::TextInputPlugin;
 use cfg_if::cfg_if;
 use components::ComponentsPlugin;
 use entities::EntitiesPlugin;
@@ -87,6 +88,7 @@ fn main() {
         ))
         .add_plugins((
             OutlinePlugin,
+            TextInputPlugin, 
             AutoGenerateOutlineNormalsPlugin,
             RapierPhysicsPlugin::<NoUserData>::default(),
             ObjPlugin,

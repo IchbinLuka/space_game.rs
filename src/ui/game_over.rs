@@ -3,17 +3,18 @@ use bevy::tasks::IoTaskPool;
 use bevy::tasks::{block_on, futures_lite::future, Task};
 use bevy_rapier3d::plugin::RapierConfiguration;
 use bevy_round_ui::autosize::RoundUiAutosizeMaterial;
-use serde::Deserialize;
+use bevy_simple_text_input::TextInputBundle;
 
-use crate::api_constants::API_URL;
 use crate::components::health::Health;
 use crate::entities::space_station::SpaceStation;
+use crate::model::settings::Settings;
 use crate::states::{
     game_over, game_running, reset_physics_speed, slow_down_physics, AppState, DespawnOnCleanup,
 };
 use crate::ui::button::TextButtonBundle;
 use crate::ui::fonts::FontsResource;
 use crate::ui::theme::{fullscreen_center_style, text_button_style, text_title_style};
+use crate::utils::api::{ApiManager, PlayerScore, Token};
 
 use super::game_hud::Score;
 use super::theme::{text_body_style, text_title_style_small};
@@ -31,24 +32,14 @@ struct RestartButton;
 #[derive(Component)]
 struct BackToMenuButton;
 
-#[derive(Deserialize, PartialEq)]
-struct PlayerScore {
-    score: u32,
-    player_name: String,
-    rank: u32,
-}
+#[derive(Component)]
+struct SubmitButton;
 
 #[derive(Component)]
 enum Leaderboard {
     Loading(Task<Result<Vec<PlayerScore>, reqwest::Error>>),
     Loaded,
     Error,
-}
-
-async fn fetch_leaderboard(score: u32) -> Result<Vec<PlayerScore>, reqwest::Error> {
-    let url = format!("{}/ranking_near_score/{}/3", API_URL, score);
-    let response = reqwest::blocking::get(url)?;
-    response.json::<Vec<PlayerScore>>()
 }
 
 fn poll_task_status(
@@ -125,6 +116,7 @@ fn game_over_screen_setup(
     mut rapier_config: ResMut<RapierConfiguration>,
     score: Res<Score>,
     ui_res: Res<UiRes>,
+    api_manager: Res<ApiManager>,
 ) {
     slow_down_physics(&mut rapier_config);
     commands
@@ -152,12 +144,46 @@ fn game_over_screen_setup(
                     text_button_style(&font_res),
                 )
             });
+
+            c.spawn(NodeBundle {
+                style: Style {
+                    flex_direction: FlexDirection::Row, 
+                    ..default()
+                }, 
+                ..default()
+            }).with_children(|c| {
+                c.spawn((
+                    NodeBundle {
+                        style: Style {
+                            width: Val::Px(200.), 
+                            height: Val::Px(50.),
+                            ..default()
+                        }, 
+                        // background_color: Color::RED.into(), 
+                        ..default()
+                    }, 
+                    TextInputBundle::default()
+                        .with_text_style(TextStyle {
+                            font_size: 40., 
+                            color: Color::WHITE,
+                            ..default()
+                        })
+                        .with_inactive(true)
+                        .with_text_style(text_button_style(&font_res))
+                        .with_placeholder("Enter your Name", None)
+                ));
+
+                c.spawn((
+                    TextButtonBundle::from_section("Submit", text_button_style(&font_res)), 
+                    SubmitButton, 
+                ));
+            });
             let thread_pool = IoTaskPool::get();
             let score_value = score.value;
+            let api_manager = api_manager.clone();
             let task: Task<Result<Vec<PlayerScore>, reqwest::Error>> =
                 thread_pool.spawn(async move {
-                    fetch_leaderboard(score_value).await
-                    // Ok(vec![])
+                    async_compat::Compat::new(api_manager.fetch_leaderboard(score_value)).await
                 });
 
             c.spawn((
@@ -225,6 +251,92 @@ fn game_over_screen_setup(
         });
 }
 
+
+#[derive(Component)]
+pub struct CreatePlayerTask(Task<Result<Token, reqwest::Error>>);
+
+#[derive(Component)]
+pub struct SubmitScoreTask(Task<Result<(), reqwest::Error>>);
+
+
+
+fn submit_score(
+    submit_button: Query<&Interaction, (Changed<Interaction>, With<SubmitButton>)>,
+    mut commands: Commands,
+    api_manager: Res<ApiManager>,
+) {
+    for interaction in &submit_button {
+        if *interaction != Interaction::Pressed {
+            continue;
+        }
+
+        let task_pool = IoTaskPool::get();
+        let api_manager = api_manager.clone();
+        let task = task_pool.spawn(async move {
+            let player_name = "player".to_string();
+            async_compat::Compat::new(api_manager.create_player(player_name)).await
+            
+        });
+        commands.spawn(CreatePlayerTask(task));
+    }
+}
+
+fn poll_submit_score(
+    mut commands: Commands,
+    mut submit_score_tasks: Query<(Entity, &mut SubmitScoreTask)>,
+) {
+    for (entity, mut task) in &mut submit_score_tasks {
+        let Some(result) = block_on(future::poll_once(&mut task.0)) else {
+            continue;
+        };
+
+        commands.entity(entity).despawn();
+
+        match result {
+            Ok(_) => {
+                info!("Score submitted successfully");
+            }
+            Err(e) => {
+                error!("Error submitting score: {:?}", e);
+            }
+        }
+    }
+}
+
+fn poll_player_creation(
+    mut commands: Commands,
+    mut create_player_tasks: Query<(Entity, &mut CreatePlayerTask)>,
+    mut settings: ResMut<Settings>, 
+    api_manager: Res<ApiManager>,
+    score: Res<Score>,
+) {
+    for (entity, mut task) in &mut create_player_tasks {
+        let Some(result) = block_on(future::poll_once(&mut task.0)) else {
+            continue;
+        };
+
+        commands.entity(entity).despawn();
+        
+        let Ok(token) = result else {
+            error!("Error creating player: {:?}", result);
+            continue;
+        };
+
+        settings.api_token = Some(token.clone());
+
+        // Now that we have a token, we can submit the score
+        let task_pool = IoTaskPool::get();
+        let api_manager = api_manager.clone();
+        let events = score.events.clone();
+        let task = task_pool.spawn(async move {
+            async_compat::Compat::new(api_manager.submit_score(&events, &token)).await
+        });
+
+        commands.spawn(SubmitScoreTask(task));
+    }
+}
+
+
 fn restart_game(
     restart_button: Query<&Interaction, (Changed<Interaction>, With<RestartButton>)>,
     mut next_state: ResMut<NextState<AppState>>,
@@ -268,19 +380,27 @@ pub struct GameOverPlugin;
 
 impl Plugin for GameOverPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
-            Update,
-            (
+        app.insert_resource(ApiManager::new())
+            .add_systems(
+                Update,
                 (
-                    game_over_events,
-                    #[cfg(feature = "debug")]
-                    trigger_game_over,
-                )
-                    .run_if(game_running()),
-                (restart_game, back_to_menu, poll_task_status).run_if(game_over()),
-            ),
-        )
-        .add_systems(OnEnter(AppState::GameOver), game_over_screen_setup)
-        .add_event::<GameOverEvent>();
+                    (
+                        game_over_events,
+                        #[cfg(feature = "debug")]
+                        trigger_game_over,
+                    )
+                        .run_if(game_running()),
+                    (
+                        restart_game, 
+                        back_to_menu, 
+                        poll_task_status, 
+                        submit_score,
+                        poll_player_creation,
+                        poll_submit_score,
+                    ).run_if(game_over()),
+                ),
+            )
+            .add_systems(OnEnter(AppState::GameOver), game_over_screen_setup)
+            .add_event::<GameOverEvent>();
     }
 }
