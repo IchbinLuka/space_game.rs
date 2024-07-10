@@ -58,7 +58,9 @@ impl ApiManager {
     ) -> Result<(), reqwest::Error> {
         let key = KEY_FILE.decrypt();
         let boxed_slice = key.into_boxed_slice();
-        let arr: Box<[u8; 16]> = boxed_slice.try_into().expect("Invalid encryption key: Wrong size");
+        let arr: Box<[u8; 16]> = boxed_slice
+            .try_into()
+            .expect("Invalid encryption key: Wrong size");
 
         let encrypted = ScoreSubmission::from_data(score_events, &arr).unwrap();
 

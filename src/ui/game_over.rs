@@ -3,7 +3,7 @@ use bevy::tasks::IoTaskPool;
 use bevy::tasks::{block_on, futures_lite::future, Task};
 use bevy_rapier3d::plugin::RapierConfiguration;
 use bevy_round_ui::autosize::RoundUiAutosizeMaterial;
-use bevy_simple_text_input::TextInputBundle;
+use bevy_simple_text_input::{TextInputBundle, TextInputInactive, TextInputValue};
 
 use crate::components::health::Health;
 use crate::entities::space_station::SpaceStation;
@@ -33,7 +33,9 @@ struct RestartButton;
 struct BackToMenuButton;
 
 #[derive(Component)]
-struct SubmitButton;
+struct SubmitButton {
+    text_field: Entity,
+}
 
 #[derive(Component)]
 enum Leaderboard {
@@ -147,35 +149,37 @@ fn game_over_screen_setup(
 
             c.spawn(NodeBundle {
                 style: Style {
-                    flex_direction: FlexDirection::Row, 
+                    flex_direction: FlexDirection::Row,
                     ..default()
-                }, 
+                },
                 ..default()
-            }).with_children(|c| {
-                c.spawn((
-                    NodeBundle {
-                        style: Style {
-                            width: Val::Px(200.), 
-                            height: Val::Px(50.),
+            })
+            .with_children(|c| {
+                let text_field = c
+                    .spawn((
+                        NodeBundle {
+                            style: Style {
+                                width: Val::Px(200.),
+                                height: Val::Px(50.),
+                                ..default()
+                            },
                             ..default()
-                        }, 
-                        // background_color: Color::RED.into(), 
-                        ..default()
-                    }, 
-                    TextInputBundle::default()
-                        .with_text_style(TextStyle {
-                            font_size: 40., 
-                            color: Color::WHITE,
-                            ..default()
-                        })
-                        .with_inactive(true)
-                        .with_text_style(text_button_style(&font_res))
-                        .with_placeholder("Enter your Name", None)
-                ));
+                        },
+                        // TODO: Make inactive by default and focus when clicked on
+                        TextInputBundle::default()
+                            .with_text_style(TextStyle {
+                                font_size: 40.,
+                                color: Color::WHITE,
+                                ..default()
+                            })
+                            .with_text_style(text_button_style(&font_res))
+                            .with_placeholder(t!("enter_name"), None),
+                    ))
+                    .id();
 
                 c.spawn((
-                    TextButtonBundle::from_section("Submit", text_button_style(&font_res)), 
-                    SubmitButton, 
+                    TextButtonBundle::from_section(t!("submit"), text_button_style(&font_res)),
+                    SubmitButton { text_field },
                 ));
             });
             let thread_pool = IoTaskPool::get();
@@ -251,31 +255,43 @@ fn game_over_screen_setup(
         });
 }
 
-
 #[derive(Component)]
 pub struct CreatePlayerTask(Task<Result<Token, reqwest::Error>>);
 
 #[derive(Component)]
 pub struct SubmitScoreTask(Task<Result<(), reqwest::Error>>);
 
-
-
 fn submit_score(
-    submit_button: Query<&Interaction, (Changed<Interaction>, With<SubmitButton>)>,
+    submit_button: Query<(&Interaction, &SubmitButton), Changed<Interaction>>,
+    mut text_fields: Query<(&TextInputValue, &mut TextInputInactive)>,
     mut commands: Commands,
     api_manager: Res<ApiManager>,
 ) {
-    for interaction in &submit_button {
+    for (interaction, button) in &submit_button {
         if *interaction != Interaction::Pressed {
             continue;
         }
 
+        let Ok((text_field_value, mut inactive)) = text_fields.get_mut(button.text_field) else {
+            error!("No text field found for submit button");
+            continue;
+        };
+
+        let trimmed = text_field_value.0.trim();
+
+        if trimmed.is_empty() || trimmed.len() > 15 {
+            error!("Player name is empty");
+            // TODO: show error message
+            continue;
+        }
+
+        inactive.0 = true;
+
+        let player_name = trimmed.to_string();
         let task_pool = IoTaskPool::get();
         let api_manager = api_manager.clone();
         let task = task_pool.spawn(async move {
-            let player_name = "player".to_string();
             async_compat::Compat::new(api_manager.create_player(player_name)).await
-            
         });
         commands.spawn(CreatePlayerTask(task));
     }
@@ -306,7 +322,7 @@ fn poll_submit_score(
 fn poll_player_creation(
     mut commands: Commands,
     mut create_player_tasks: Query<(Entity, &mut CreatePlayerTask)>,
-    mut settings: ResMut<Settings>, 
+    mut settings: ResMut<Settings>,
     api_manager: Res<ApiManager>,
     score: Res<Score>,
 ) {
@@ -316,7 +332,7 @@ fn poll_player_creation(
         };
 
         commands.entity(entity).despawn();
-        
+
         let Ok(token) = result else {
             error!("Error creating player: {:?}", result);
             continue;
@@ -335,7 +351,6 @@ fn poll_player_creation(
         commands.spawn(SubmitScoreTask(task));
     }
 }
-
 
 fn restart_game(
     restart_button: Query<&Interaction, (Changed<Interaction>, With<RestartButton>)>,
@@ -391,13 +406,14 @@ impl Plugin for GameOverPlugin {
                     )
                         .run_if(game_running()),
                     (
-                        restart_game, 
-                        back_to_menu, 
-                        poll_task_status, 
+                        restart_game,
+                        back_to_menu,
+                        poll_task_status,
                         submit_score,
                         poll_player_creation,
                         poll_submit_score,
-                    ).run_if(game_over()),
+                    )
+                        .run_if(game_over()),
                 ),
             )
             .add_systems(OnEnter(AppState::GameOver), game_over_screen_setup)

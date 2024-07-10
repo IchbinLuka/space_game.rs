@@ -88,7 +88,7 @@ fn main() {
         ))
         .add_plugins((
             OutlinePlugin,
-            TextInputPlugin, 
+            TextInputPlugin,
             AutoGenerateOutlineNormalsPlugin,
             RapierPhysicsPlugin::<NoUserData>::default(),
             ObjPlugin,
