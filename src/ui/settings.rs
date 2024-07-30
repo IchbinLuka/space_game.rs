@@ -4,9 +4,9 @@ use bevy_round_ui::autosize::{RoundUiAutosizeMaterial, RoundUiAutosizeNodePaddin
 use crate::model::settings::{AntialiasingSetting, Settings, VSyncSetting};
 
 use super::{
-    button::{CheckBox, CheckBoxBundle, TextButtonBundle},
     fonts::FontsResource,
     theme::text_button_style,
+    widgets::{CheckBox, CheckBoxBundle, TextButtonBundle},
     UiRes,
 };
 

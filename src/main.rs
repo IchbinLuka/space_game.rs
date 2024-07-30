@@ -29,7 +29,7 @@ use postprocessing::PostprocessingPlugin;
 use states::StatesPlugin;
 
 use ui::UIPlugin;
-use utils::scene::ScenePlugin;
+use utils::{scene::ScenePlugin, UtilsPlugin};
 
 mod api_constants;
 mod components;
@@ -118,6 +118,7 @@ fn main() {
             PostprocessingPlugin,
             MaterialsPlugin,
             ModelPlugin,
+            UtilsPlugin,
         ))
         .insert_resource(DirectionalLightShadowMap { size: 4096 });
     cfg_if! {

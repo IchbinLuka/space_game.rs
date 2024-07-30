@@ -1,10 +1,10 @@
 use crate::{
     states::{game_running, AppState},
     ui::{
-        button::TextButtonBundle,
         fonts::FontsResource,
         settings::{SettingsButton, SettingsScreen},
         theme::text_button_style,
+        widgets::TextButtonBundle,
     },
 };
 use bevy::prelude::*;

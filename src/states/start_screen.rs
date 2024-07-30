@@ -16,14 +16,20 @@ use crate::{
     states::{in_start_menu, AppState},
     ui::{
         fonts::FontsResource,
+        leaderboard::AddLeaderboardExtension,
         minimap::MinimapAssets,
         settings::SettingsButton,
-        theme::{text_button_style, text_title_style, SURFACE_COLOR, SURFACE_COLOR_FOCUSED},
+        theme::{
+            text_body_style, text_button_style, text_title_style, SURFACE_COLOR,
+            SURFACE_COLOR_FOCUSED,
+        },
+        widgets::{CardBundle, TextButtonBundle},
+        UiRes,
     },
-    utils::{misc::AsCommand, sets::Set},
+    utils::{api::ApiManager, clipboard::Clipboard, misc::AsCommand, sets::Set},
 };
 
-use super::DespawnOnCleanup;
+use super::{DespawnOnCleanup, StartScreenState};
 
 #[derive(Component)]
 struct StartScreen;
@@ -31,93 +37,18 @@ struct StartScreen;
 #[derive(Component)]
 struct StartButton;
 
+#[derive(Component)]
+pub struct LeaderboardButton;
+
 const SPACE_STATION_POS: Vec3 = Vec3::new(0., 0., 150.);
 
 fn setup_start_screen(
-    font_res: Res<FontsResource>,
     mut commands: Commands,
     camera_assets: Res<CameraAssets>,
     settings: Res<Settings>,
     space_station_res: Res<SpaceStationRes>,
     minimap_res: Res<MinimapAssets>,
-    mut materials: ResMut<Assets<RoundUiMaterial>>,
 ) {
-    const MENU_ITEM_SIZE: Vec2 = Vec2::new(200., 50.);
-
-    let menu_resource = MenuItemResource {
-        hover_material: materials.add(RoundUiMaterial {
-            background_color: SURFACE_COLOR_FOCUSED,
-            border_radius: Vec4::splat(30.),
-            size: MENU_ITEM_SIZE,
-            ..default()
-        }),
-        normal_material: materials.add(RoundUiMaterial {
-            background_color: SURFACE_COLOR,
-            border_radius: Vec4::splat(30.),
-            size: MENU_ITEM_SIZE,
-            ..default()
-        }),
-    };
-
-    commands
-        .spawn((
-            DespawnOnCleanup,
-            StartScreen,
-            NodeBundle {
-                style: Style {
-                    width: Val::Percent(100.0),
-                    height: Val::Percent(100.0),
-                    display: Display::Flex,
-                    flex_direction: FlexDirection::Column,
-                    align_items: AlignItems::Center,
-                    justify_content: JustifyContent::SpaceAround,
-                    ..default()
-                },
-                ..default()
-            },
-        ))
-        .with_children(|c| {
-            c.spawn((
-                MaterialNodeBundle {
-                    style: Style {
-                        padding: UiRect::all(Val::Px(20.)),
-                        ..default()
-                    },
-                    material: materials.add(RoundUiMaterial {
-                        background_color: SURFACE_COLOR,
-                        border_radius: Vec4::splat(30.),
-                        ..default()
-                    }),
-                    ..default()
-                },
-                RoundUiAutosizeMaterial,
-            ))
-            .with_children(|c| {
-                c.spawn(TextBundle::from_section(
-                    "Space Game",
-                    text_title_style(&font_res),
-                ));
-            });
-
-            c.menu_item(&menu_resource)
-                .with_children(|c| {
-                    c.spawn(TextBundle::from_section(
-                        t!("settings"),
-                        text_button_style(&font_res),
-                    ));
-                })
-                .insert(SettingsButton);
-
-            c.menu_item(&menu_resource)
-                .with_children(|c| {
-                    c.spawn(TextBundle::from_section(
-                        t!("start_game"),
-                        text_button_style(&font_res),
-                    ));
-                })
-                .insert(StartButton);
-        });
-
     let camera_transform = Transform {
         // rotation: Quat::from_rotation_x(FRAC_P),
         translation: Vec3::new(0.0, 20.0, 200.0),
@@ -176,7 +107,104 @@ fn setup_start_screen(
         SPACE_STATION_POS,
         false,
     );
+}
 
+fn setup_startscreen_ui(
+    mut materials: ResMut<Assets<RoundUiMaterial>>,
+    font_res: Res<FontsResource>,
+    root: Query<Entity, With<StartScreen>>,
+    mut commands: Commands,
+) {
+    const MENU_ITEM_SIZE: Vec2 = Vec2::new(200., 50.);
+
+    let menu_resource = MenuItemResource {
+        hover_material: materials.add(RoundUiMaterial {
+            background_color: SURFACE_COLOR_FOCUSED,
+            border_radius: Vec4::splat(30.),
+            size: MENU_ITEM_SIZE,
+            ..default()
+        }),
+        normal_material: materials.add(RoundUiMaterial {
+            background_color: SURFACE_COLOR,
+            border_radius: Vec4::splat(30.),
+            size: MENU_ITEM_SIZE,
+            ..default()
+        }),
+    };
+
+    let root = if let Ok(root) = root.get_single() {
+        root
+    } else {
+        commands
+            .spawn((
+                DespawnOnCleanup,
+                StartScreen,
+                NodeBundle {
+                    style: Style {
+                        width: Val::Percent(100.0),
+                        height: Val::Percent(100.0),
+                        display: Display::Flex,
+                        flex_direction: FlexDirection::Column,
+                        align_items: AlignItems::Center,
+                        justify_content: JustifyContent::SpaceAround,
+                        ..default()
+                    },
+                    ..default()
+                },
+            ))
+            .id()
+    };
+
+    commands.entity(root).with_children(|c| {
+        c.spawn((
+            MaterialNodeBundle {
+                style: Style {
+                    padding: UiRect::all(Val::Px(20.)),
+                    ..default()
+                },
+                material: materials.add(RoundUiMaterial {
+                    background_color: SURFACE_COLOR,
+                    border_radius: Vec4::splat(30.),
+                    ..default()
+                }),
+                ..default()
+            },
+            RoundUiAutosizeMaterial,
+        ))
+        .with_children(|c| {
+            c.spawn(TextBundle::from_section(
+                "Space Game",
+                text_title_style(&font_res),
+            ));
+        });
+
+        c.menu_item(&menu_resource)
+            .with_children(|c| {
+                c.spawn(TextBundle::from_section(
+                    t!("leaderboard"),
+                    text_button_style(&font_res),
+                ));
+            })
+            .insert(LeaderboardButton);
+
+        c.menu_item(&menu_resource)
+            .with_children(|c| {
+                c.spawn(TextBundle::from_section(
+                    t!("settings"),
+                    text_button_style(&font_res),
+                ));
+            })
+            .insert(SettingsButton);
+
+        c.menu_item(&menu_resource)
+            .with_children(|c| {
+                c.spawn(TextBundle::from_section(
+                    t!("start_game"),
+                    text_button_style(&font_res),
+                ));
+            })
+            .insert(StartButton);
+    });
     commands.insert_resource(menu_resource);
 }
 
@@ -245,6 +273,108 @@ fn start_game(
     }
 }
 
+#[derive(Component)]
+struct CopyTokenButton;
+
+#[derive(Component)]
+struct BackButton;
+
+fn setup_leaderboard_screen(
+    mut commands: Commands,
+    api_manager: Res<ApiManager>,
+    font_res: Res<FontsResource>,
+    settings: Res<Settings>,
+    root_node: Query<Entity, With<StartScreen>>,
+    menu_res: Res<MenuItemResource>,
+    ui_res: Res<UiRes>,
+) {
+    let Ok(root_node) = root_node.get_single() else {
+        return;
+    };
+    commands.entity(root_node).with_children(|c| {
+        if let Some(token) = &settings.api_token {
+            c.spawn(CardBundle::new(&ui_res).with_style(Style {
+                flex_direction: FlexDirection::Row,
+                padding: UiRect::all(Val::Px(20.)),
+                align_items: AlignItems::Center,
+                ..default()
+            }))
+            .with_children(|c| {
+                c.spawn(TextBundle::from_section(
+                    token.0.clone(),
+                    text_body_style(&font_res),
+                ));
+                c.spawn((
+                    TextButtonBundle::from_section(t!("copy"), text_button_style(&font_res)),
+                    CopyTokenButton,
+                ));
+            });
+        }
+
+        c.spawn(CardBundle::new(&ui_res).with_style(Style {
+            width: Val::Px(400.),
+            flex_direction: FlexDirection::Column,
+            padding: UiRect::all(Val::Px(20.)),
+            ..default()
+        }))
+        .with_children(|c| c.add_leaderboard(0, 10, api_manager.clone(), &font_res));
+
+        c.menu_item(&menu_res)
+            .insert(BackButton)
+            .with_children(|c| {
+                c.spawn(TextBundle::from_section(
+                    t!("back"),
+                    text_button_style(&font_res),
+                ));
+            });
+    });
+}
+
+fn clear_screen(mut commands: Commands, start_screen: Query<Entity, With<StartScreen>>) {
+    let Ok(entity) = start_screen.get_single() else {
+        error!("No entity with StartScreen component exists");
+        return;
+    };
+
+    commands.entity(entity).despawn_descendants();
+}
+
+fn open_leaderboard(
+    mut next_state: ResMut<NextState<StartScreenState>>,
+    query: Query<&Interaction, (With<LeaderboardButton>, Changed<Interaction>)>,
+) {
+    for interaction in &query {
+        if *interaction == Interaction::Pressed {
+            next_state.set(StartScreenState::Leaderboard);
+        }
+    }
+}
+
+fn back_button(
+    mut next_state: ResMut<NextState<StartScreenState>>,
+    query: Query<&Interaction, (With<BackButton>, Changed<Interaction>)>,
+) {
+    for interaction in &query {
+        if *interaction == Interaction::Pressed {
+            next_state.set(StartScreenState::Menu);
+        }
+    }
+}
+
+fn copy_token(
+    mut clipboard: ResMut<Clipboard>,
+    settings: Res<Settings>,
+    query: Query<&Interaction, (With<CopyTokenButton>, Changed<Interaction>)>,
+) {
+    for interaction in &query {
+        if *interaction == Interaction::Pressed {
+            if let Some(token) = &settings.api_token {
+                clipboard.set_contents(token.0.clone());
+            }
+        }
+    }
+}
+
 pub struct StartScreenPlugin;
 
 impl Plugin for StartScreenPlugin {
@@ -253,12 +383,27 @@ impl Plugin for StartScreenPlugin {
             OnEnter(AppState::StartScreen),
             (
                 setup_start_screen.after(Set::CameraSkyboxInit),
-                // space_station_animation.after(setup_start_screen),
+                setup_startscreen_ui.after(clear_screen),
             ),
         )
         .add_systems(
+            OnExit(StartScreenState::Leaderboard),
+            (clear_screen, setup_startscreen_ui).chain(),
+        )
+        .add_systems(
+            OnEnter(StartScreenState::Leaderboard),
+            (clear_screen, setup_leaderboard_screen).chain(),
+        )
+        .add_systems(
             Update,
-            (start_game, menu_item_hover_effect).run_if(in_start_menu()),
+            (
+                start_game,
+                menu_item_hover_effect,
+                open_leaderboard,
+                back_button,
+                copy_token,
+            )
+                .run_if(in_start_menu()),
         );
     }
 }

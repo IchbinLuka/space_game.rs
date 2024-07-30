@@ -35,6 +35,14 @@ pub enum PausedState {
     Running,
 }
 
+#[derive(Clone, Eq, PartialEq, Debug, Hash, Default, States, Copy)]
+pub enum StartScreenState {
+    // TODO: Replace this with computed states once Bevy is updated
+    #[default]
+    Menu,
+    Leaderboard,
+}
+
 pub struct LoadingStateItem {
     pub loading_state: AppState,
     pub next_state: AppState,
@@ -126,6 +134,7 @@ impl Plugin for StatesPlugin {
 
         app.init_state::<AppState>()
             .init_state::<PausedState>()
+            .init_state::<StartScreenState>()
             .add_plugins((
                 pause::PausePlugin,
                 loading_screen::LoadingScreenPlugin,

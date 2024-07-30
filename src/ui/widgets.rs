@@ -1,6 +1,7 @@
 use bevy::prelude::*;
+use bevy_round_ui::{autosize::RoundUiAutosizeMaterial, prelude::RoundUiMaterial};
 
-use super::{theme::default_hover_effect, NodeHoverEffect, TextHoverEffect};
+use super::{theme::default_hover_effect, NodeHoverEffect, TextHoverEffect, UiRes};
 
 #[derive(Bundle)]
 pub struct TextButtonBundle {
@@ -100,9 +101,52 @@ fn check_box_update(
     }
 }
 
-pub struct ButtonPlugin;
+/*
 
-impl Plugin for ButtonPlugin {
+MaterialNodeBundle {
+    material: ui_res.card_background_material.clone(),
+    style: Style {
+        padding: UiRect::all(Val::Px(20.)),
+        flex_direction: FlexDirection::Column,
+        width: Val::Px(400.),
+        ..default()
+    },
+    ..default()
+},
+
+*/
+
+#[derive(Bundle)]
+pub struct CardBundle {
+    node: MaterialNodeBundle<RoundUiMaterial>,
+    auto_size: RoundUiAutosizeMaterial,
+}
+
+impl CardBundle {
+    pub fn new(ui_res: &UiRes) -> Self {
+        Self {
+            node: MaterialNodeBundle {
+                material: ui_res.card_background_material.clone(),
+                style: Style {
+                    padding: UiRect::all(Val::Px(20.)),
+                    flex_direction: FlexDirection::Column,
+                    ..default()
+                },
+                ..default()
+            },
+            auto_size: RoundUiAutosizeMaterial,
+        }
+    }
+
+    pub fn with_style(mut self, style: Style) -> Self {
+        self.node.style = style;
+        self
+    }
+}
+
+pub struct WidgetsPlugin;
+
+impl Plugin for WidgetsPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Update, check_box_update);
     }

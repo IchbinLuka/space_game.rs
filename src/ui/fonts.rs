@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_asset_loader::asset_collection::{AssetCollection, AssetCollectionApp};
 
-#[derive(Resource, AssetCollection)]
+#[derive(Resource, AssetCollection, Clone)]
 pub struct FontsResource {
     #[asset(path = "fonts/MouseMemoirs-Regular.ttf")]
     pub mouse_memoirs: Handle<Font>,

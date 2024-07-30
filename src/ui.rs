@@ -1,15 +1,16 @@
 use bevy::prelude::*;
 use bevy_round_ui::prelude::RoundUiMaterial;
 
-pub mod button;
 pub mod fonts;
 pub mod game_hud;
 pub mod game_over;
 pub mod health_bar_3d;
+pub mod leaderboard;
 pub mod minimap;
 pub mod settings;
 pub mod sprite_3d_renderer;
 pub mod theme;
+pub mod widgets;
 
 #[derive(Component, Default)]
 pub struct NodeHoverEffect {
@@ -102,9 +103,10 @@ impl Plugin for UIPlugin {
                 fonts::FontsPlugin,
                 health_bar_3d::HealthBar3DPlugin,
                 settings::SettingsPlugin,
-                button::ButtonPlugin,
+                widgets::WidgetsPlugin,
                 minimap::MinimapPlugin,
                 game_over::GameOverPlugin,
+                leaderboard::LeaderboardPlugin,
             ));
     }
 }

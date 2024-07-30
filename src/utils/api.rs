@@ -18,6 +18,12 @@ pub struct PlayerScore {
 #[derive(Deserialize, Serialize, Deref, DerefMut, Debug, Clone)]
 pub struct Token(pub String);
 
+impl From<Token> for String {
+    fn from(token: Token) -> Self {
+        token.0
+    }
+}
+
 fn get_url(path: &str) -> String {
     format!("{}/{}", API_URL, path)
 }
@@ -34,8 +40,12 @@ impl ApiManager {
         }
     }
 
-    pub async fn fetch_leaderboard(&self, score: u32) -> Result<Vec<PlayerScore>, reqwest::Error> {
-        let url = format!("{}/ranking_near_score/{}/3", API_URL, score);
+    pub async fn fetch_leaderboard(
+        &self,
+        score: u32,
+        num_players: u32,
+    ) -> Result<Vec<PlayerScore>, reqwest::Error> {
+        let url = format!("{}/ranking_near_score/{}/{}", API_URL, score, num_players);
         let response = self.client.get(url).send().await?.error_for_status()?;
         response.json::<Vec<PlayerScore>>().await
     }

@@ -11,13 +11,14 @@ use crate::model::settings::Settings;
 use crate::states::{
     game_over, game_running, reset_physics_speed, slow_down_physics, AppState, DespawnOnCleanup,
 };
-use crate::ui::button::TextButtonBundle;
 use crate::ui::fonts::FontsResource;
 use crate::ui::theme::{fullscreen_center_style, text_button_style, text_title_style};
-use crate::utils::api::{ApiManager, PlayerScore, Token};
+use crate::ui::widgets::TextButtonBundle;
+use crate::utils::api::{ApiManager, Token};
 
 use super::game_hud::Score;
-use super::theme::{text_body_style, text_title_style_small};
+use super::leaderboard::AddLeaderboardExtension;
+use super::theme::text_title_style_small;
 use super::UiRes;
 
 #[derive(Event)]
@@ -35,72 +36,6 @@ struct BackToMenuButton;
 #[derive(Component)]
 struct SubmitButton {
     text_field: Entity,
-}
-
-#[derive(Component)]
-enum Leaderboard {
-    Loading(Task<Result<Vec<PlayerScore>, reqwest::Error>>),
-    Loaded,
-    Error,
-}
-
-fn poll_task_status(
-    mut leader_boards: Query<(&mut Leaderboard, Entity)>,
-    mut commands: Commands,
-    font_res: Res<FontsResource>,
-) {
-    for (mut leaderboard, entity) in &mut leader_boards {
-        let Leaderboard::Loading(ref mut task) = *leaderboard else {
-            continue;
-        };
-        let Some(result) = block_on(future::poll_once(task)) else {
-            continue;
-        };
-
-        commands.entity(entity).despawn_descendants();
-
-        let Ok(scores) = result else {
-            commands.entity(entity).with_children(|c| {
-                c.spawn(TextBundle::from_section(
-                    "Error loading leaderboard",
-                    text_body_style(&font_res),
-                ));
-            });
-            *leaderboard = Leaderboard::Error;
-            continue;
-        };
-
-        commands.entity(entity).with_children(|c| {
-            for score in scores {
-                c.spawn(NodeBundle {
-                    style: Style {
-                        flex_direction: FlexDirection::Row,
-                        width: Val::Percent(100.),
-                        justify_content: JustifyContent::SpaceBetween,
-                        ..default()
-                    },
-                    ..default()
-                })
-                .with_children(|c| {
-                    c.spawn(TextBundle::from_section(
-                        format!("{}.", score.rank),
-                        text_body_style(&font_res),
-                    ));
-                    c.spawn(TextBundle::from_section(
-                        score.player_name,
-                        text_body_style(&font_res),
-                    ));
-                    c.spawn(TextBundle::from_section(
-                        score.score.to_string(),
-                        text_body_style(&font_res),
-                    ));
-                });
-            }
-        });
-
-        *leaderboard = Leaderboard::Loaded;
-        // TODO: Remove the loading text and display the leaderboard
-    }
 }
 
 fn game_over_events(
@@ -182,13 +117,7 @@ fn game_over_screen_setup(
                     SubmitButton { text_field },
                 ));
             });
-            let thread_pool = IoTaskPool::get();
             let score_value = score.value;
-            let api_manager = api_manager.clone();
-            let task: Task<Result<Vec<PlayerScore>, reqwest::Error>> =
-                thread_pool.spawn(async move {
-                    async_compat::Compat::new(api_manager.fetch_leaderboard(score_value)).await
-                });
 
             c.spawn((
                 MaterialNodeBundle {
@@ -209,24 +138,7 @@ fn game_over_screen_setup(
                     text_title_style_small(&font_res),
                 ));
 
-                c.spawn((
-                    NodeBundle {
-                        style: Style {
-                            flex_direction: FlexDirection::Column,
-                            align_items: AlignItems::Center,
-                            margin: UiRect::bottom(Val::Px(20.)),
-                            ..default()
-                        },
-                        ..default()
-                    },
-                    Leaderboard::Loading(task),
-                ))
-                .with_children(|c| {
-                    c.spawn(TextBundle::from_section(
-                        t!("loading"),
-                        text_body_style(&font_res),
-                    ));
-                });
+                c.add_leaderboard(score_value, 3, api_manager.clone(), &font_res);
 
                 c.spawn(NodeBundle {
                     style: Style {
@@ -408,7 +320,6 @@ impl Plugin for GameOverPlugin {
                     (
                         restart_game,
                         back_to_menu,
-                        poll_task_status,
                         submit_score,
                         poll_player_creation,
                         poll_submit_score,
