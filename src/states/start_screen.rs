@@ -1,10 +1,14 @@
 use std::f32::consts::FRAC_PI_4;
 
-use bevy::{ecs::system::EntityCommands, prelude::*};
+use bevy::{
+    ecs::system::{Command, EntityCommands, RunSystemOnce},
+    prelude::*,
+};
 use bevy_round_ui::{
     autosize::{RoundUiAutosizeMaterial, RoundUiAutosizeNode},
     prelude::RoundUiMaterial,
 };
+use bevy_simple_text_input::{TextInputBundle, TextInputInactive, TextInputValue};
 
 use crate::{
     entities::{
@@ -20,13 +24,18 @@ use crate::{
         minimap::MinimapAssets,
         settings::SettingsButton,
         theme::{
-            text_body_style, text_button_style, text_title_style, SURFACE_COLOR,
-            SURFACE_COLOR_FOCUSED,
+            text_body_style, text_button_small_style, text_button_style, text_title_style,
+            SURFACE_COLOR, SURFACE_COLOR_FOCUSED,
         },
-        widgets::{CardBundle, TextButtonBundle},
+        widgets::{CardBundle, FocusTextInputOnInteraction, TextButtonBundle, TextInputDisabled},
         UiRes,
     },
-    utils::{api::ApiManager, clipboard::Clipboard, misc::AsCommand, sets::Set},
+    utils::{
+        api::{ApiManager, Token},
+        clipboard::Clipboard,
+        misc::AsCommand,
+        sets::Set,
+    },
 };
 
 use super::{DespawnOnCleanup, StartScreenState};
@@ -279,6 +288,15 @@ struct CopyTokenButton;
 #[derive(Component)]
 struct BackButton;
 
+#[derive(Component)]
+struct EnterTokenInput;
+
+#[derive(Component)]
+struct SaveTokenButton;
+
+#[derive(Component)]
+struct ResetTokenButton;
+
 fn setup_leaderboard_screen(
     mut commands: Commands,
     api_manager: Res<ApiManager>,
@@ -292,24 +310,62 @@ fn setup_leaderboard_screen(
         return;
     };
     commands.entity(root_node).with_children(|c| {
-        if let Some(token) = &settings.api_token {
-            c.spawn(CardBundle::new(&ui_res).with_style(Style {
-                flex_direction: FlexDirection::Row,
-                padding: UiRect::all(Val::Px(20.)),
-                align_items: AlignItems::Center,
-                ..default()
-            }))
-            .with_children(|c| {
+        c.spawn(CardBundle::new(&ui_res).with_style(Style {
+            flex_direction: FlexDirection::Row,
+            width: Val::Px(600.),
+            padding: UiRect::all(Val::Px(20.)),
+            align_items: AlignItems::Center,
+            ..default()
+        }))
+        .with_children(|c| {
+            let body_style = text_body_style(&font_res);
+            if let Some(token) = &settings.api_token {
                 c.spawn(TextBundle::from_section(
                     token.0.clone(),
-                    text_body_style(&font_res),
+                    body_style.clone(),
+                ));
+                c.spawn(NodeBundle {
+                    style: Style {
+                        flex_grow: 1.,
+                        ..default()
+                    },
+                    ..default()
+                });
+                c.spawn((
+                    TextButtonBundle::from_section(t!("copy"), text_button_small_style(&font_res)),
+                    CopyTokenButton,
+                ))
+                .insert(Style {
+                    margin: UiRect::right(Val::Px(10.)),
+                    ..default()
+                });
+                c.spawn((
+                    TextButtonBundle::from_section(t!("reset"), text_button_small_style(&font_res)),
+                    ResetTokenButton,
+                ));
+            } else {
+                c.spawn((
+                    NodeBundle {
+                        style: Style {
+                            flex_grow: 1.,
+                            height: Val::Px(body_style.font_size),
+                            ..default()
+                        },
+                        ..default()
+                    },
+                    TextInputBundle::default()
+                        .with_placeholder(t!("enter_token"), Some(body_style.clone()))
+                        .with_text_style(body_style.clone())
+                        .with_inactive(true),
+                    EnterTokenInput,
+                    FocusTextInputOnInteraction,
                 ));
                 c.spawn((
-                    TextButtonBundle::from_section(t!("copy"), text_button_style(&font_res)),
-                    CopyTokenButton,
+                    TextButtonBundle::from_section(t!("save"), text_button_small_style(&font_res)),
+                    SaveTokenButton,
                 ));
-            });
-        }
+            }
+        });
 
         c.spawn(CardBundle::new(&ui_res).with_style(Style {
             width: Val::Px(400.),
@@ -375,6 +431,49 @@ fn copy_token(
     }
 }
 
+fn save_token(
+    mut text_fields: Query<
+        (&TextInputValue, &mut TextInputInactive, Entity),
+        With<EnterTokenInput>,
+    >,
+    mut settings: ResMut<Settings>,
+    save_button: Query<&Interaction, (With<SaveTokenButton>, Changed<Interaction>)>,
+    mut commands: Commands,
+) {
+    for interaction in &save_button {
+        if *interaction == Interaction::Pressed {
+            let Ok((value, mut inactive, entity)) = text_fields.get_single_mut() else {
+                return;
+            };
+            settings.api_token = Some(Token(value.0.clone()));
+            inactive.0 = true;
+            commands.entity(entity).insert(TextInputDisabled);
+            commands.add(RebuildScreen);
+        }
+    }
+}
+
+struct RebuildScreen;
+impl Command for RebuildScreen {
+    fn apply(self, world: &mut World) {
+        world.run_system_once(clear_screen);
+        world.run_system_once(setup_leaderboard_screen);
+    }
+}
+
+fn reset_token(
+    mut settings: ResMut<Settings>,
+    reset_button: Query<&Interaction, (With<ResetTokenButton>, Changed<Interaction>)>,
+    mut commands: Commands,
+) {
+    for interaction in &reset_button {
+        if *interaction == Interaction::Pressed {
+            settings.api_token = None;
+            commands.add(RebuildScreen);
+        }
+    }
+}
+
 pub struct StartScreenPlugin;
 
 impl Plugin for StartScreenPlugin {
@@ -402,6 +501,8 @@ impl Plugin for StartScreenPlugin {
                 open_leaderboard,
                 back_button,
                 copy_token,
+                save_token,
+                reset_token,
             )
                 .run_if(in_start_menu()),
         );

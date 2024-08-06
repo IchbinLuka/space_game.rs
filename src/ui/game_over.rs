@@ -19,6 +19,7 @@ use crate::utils::api::{ApiManager, Token};
 use super::game_hud::Score;
 use super::leaderboard::AddLeaderboardExtension;
 use super::theme::text_title_style_small;
+use super::widgets::FocusTextInputOnInteraction;
 use super::UiRes;
 
 #[derive(Event)]
@@ -100,7 +101,7 @@ fn game_over_screen_setup(
                             },
                             ..default()
                         },
-                        // TODO: Make inactive by default and focus when clicked on
+                        FocusTextInputOnInteraction,
                         TextInputBundle::default()
                             .with_text_style(TextStyle {
                                 font_size: 40.,
@@ -108,7 +109,8 @@ fn game_over_screen_setup(
                                 ..default()
                             })
                             .with_text_style(text_button_style(&font_res))
-                            .with_placeholder(t!("enter_name"), None),
+                            .with_placeholder(t!("enter_name"), None)
+                            .with_inactive(true),
                     ))
                     .id();
 

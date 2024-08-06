@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use bevy_round_ui::{autosize::RoundUiAutosizeMaterial, prelude::RoundUiMaterial};
+use bevy_simple_text_input::TextInputInactive;
 
 use super::{theme::default_hover_effect, NodeHoverEffect, TextHoverEffect, UiRes};
 
@@ -144,10 +145,32 @@ impl CardBundle {
     }
 }
 
+#[derive(Component)]
+pub struct FocusTextInputOnInteraction;
+
+#[derive(Component)]
+pub struct TextInputDisabled;
+
+fn focus_text_input_on_interaction(
+    mut text_fields: Query<
+        (&mut TextInputInactive, &Interaction),
+        (
+            With<FocusTextInputOnInteraction>,
+            Without<TextInputDisabled>,
+        ),
+    >,
+) {
+    for (mut inactive, interaction) in &mut text_fields {
+        if *interaction == Interaction::Pressed {
+            inactive.0 = false;
+        }
+    }
+}
+
 pub struct WidgetsPlugin;
 
 impl Plugin for WidgetsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, check_box_update);
+        app.add_systems(Update, (check_box_update, focus_text_input_on_interaction));
     }
 }

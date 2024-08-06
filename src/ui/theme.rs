@@ -28,6 +28,15 @@ pub fn text_button_style(res: &FontsResource) -> TextStyle {
 }
 
 #[inline(always)]
+pub fn text_button_small_style(res: &FontsResource) -> TextStyle {
+    TextStyle {
+        font_size: 40.,
+        color: Color::WHITE,
+        font: default_font(res),
+    }
+}
+
+#[inline(always)]
 pub fn text_title_style(res: &FontsResource) -> TextStyle {
     TextStyle {
         font_size: 100.,
