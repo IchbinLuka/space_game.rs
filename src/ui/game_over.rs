@@ -9,7 +9,7 @@ use space_game_common::ScoreEvent;
 
 use crate::components::health::Health;
 use crate::entities::space_station::SpaceStation;
-use crate::model::settings::Settings;
+use crate::model::settings::{Profile, Settings};
 use crate::states::{
     game_over, game_running, reset_physics_speed, slow_down_physics, AppState, DespawnOnCleanup,
 };
@@ -17,6 +17,7 @@ use crate::ui::fonts::FontsResource;
 use crate::ui::theme::{fullscreen_center_style, text_button_style, text_title_style};
 use crate::ui::widgets::TextButtonBundle;
 use crate::utils::api::{ApiManager, Token};
+use crate::utils::tasks::{poll_task, StartJob};
 
 use super::game_hud::Score;
 use super::leaderboard::{AddLeaderboardExtension, FetchLeaderboardRequest};
@@ -51,13 +52,13 @@ fn game_over_events(
 }
 
 fn submit_score_if_logged_in(mut commands: Commands, score: Res<Score>, settings: Res<Settings>) {
-    let Some(token) = settings.api_token.as_ref() else {
+    let Some(profile) = settings.profile.as_ref() else {
         return;
     };
 
     commands.add(SubmitScore {
         events: score.events.clone(),
-        token: token.clone(),
+        token: profile.token.clone(),
     });
 }
 
@@ -97,7 +98,7 @@ fn game_over_screen_setup(
                 )
             });
 
-            if settings.api_token.is_none() {
+            if settings.profile.is_none() {
                 c.spawn(NodeBundle {
                     style: Style {
                         flex_direction: FlexDirection::Row,
@@ -158,9 +159,9 @@ fn game_over_screen_setup(
                 ));
 
                 c.add_leaderboard(
-                    match &settings.api_token {
-                        Some(token) => FetchLeaderboardRequest::NearPlayer {
-                            token: token.clone(),
+                    match &settings.profile {
+                        Some(profile) => FetchLeaderboardRequest::NearPlayer {
+                            token: profile.token.clone(),
                         },
                         None => FetchLeaderboardRequest::NearScore { score: score_value },
                     },
@@ -197,23 +198,32 @@ fn game_over_screen_setup(
 }
 
 #[derive(Component)]
-pub struct CreatePlayerTask(Task<Result<Token, reqwest::Error>>);
+pub struct CreatePlayerTask(Task<Result<Profile, reqwest::Error>>);
 
 #[derive(Component)]
 pub struct SubmitScoreTask(Task<Result<(), reqwest::Error>>);
 
+#[derive(Debug)]
+enum SubmitScoreError {
+    PlayerCreationFailed,
+    ScoreSubmissionFailed,
+}
+
 fn submit_score(
-    submit_button: Query<(&Interaction, &SubmitButton), Changed<Interaction>>,
-    mut text_fields: Query<(&TextInputValue, &mut TextInputInactive)>,
+    submit_button: Query<(&Interaction, &SubmitButton, Entity), Changed<Interaction>>,
+    mut text_fields: Query<(&TextInputValue, &mut TextInputInactive, Entity)>,
     mut commands: Commands,
     api_manager: Res<ApiManager>,
+    score: Res<Score>,
 ) {
-    for (interaction, button) in &submit_button {
+    for (interaction, button, entity) in &submit_button {
         if *interaction != Interaction::Pressed {
             continue;
         }
 
-        let Ok((text_field_value, mut inactive)) = text_fields.get_mut(button.text_field) else {
+        let Ok((text_field_value, mut inactive, text_field)) =
+            text_fields.get_mut(button.text_field)
+        else {
             error!("No text field found for submit button");
             continue;
         };
@@ -229,12 +239,38 @@ fn submit_score(
         inactive.0 = true;
 
         let player_name = trimmed.to_string();
-        let task_pool = IoTaskPool::get();
         let api_manager = api_manager.clone();
-        let task = task_pool.spawn(async move {
-            async_compat::Compat::new(api_manager.create_player(player_name)).await
+
+        let score_events = score.events.clone();
+
+        commands.add(StartJob {
+            job: Box::pin(async move {
+                let Ok(profile) = api_manager.create_player(player_name).await else {
+                    error!("Error creating player");
+                    return Err(SubmitScoreError::PlayerCreationFailed);
+                };
+                api_manager
+                    .submit_score(&score_events, &profile.token)
+                    .await
+                    .map_err(|_| SubmitScoreError::ScoreSubmissionFailed)?;
+
+                Ok(profile)
+            }),
+            on_complete: |result, world: &mut World| {
+                let Ok(profile) = result else {
+                    error!("Could not submit score: {:?}", result.err().unwrap());
+                    return;
+                };
+
+                info!("Submitted score");
+
+                let mut settings = world.get_resource_mut::<Settings>().unwrap();
+                settings.profile = Some(profile);
+            },
         });
-        commands.spawn(CreatePlayerTask(task));
+
+        commands.entity(entity).despawn_recursive();
+        commands.entity(text_field).despawn_recursive()
     }
 }
 
@@ -273,17 +309,17 @@ fn poll_player_creation(
 
         commands.entity(entity).despawn();
 
-        let Ok(token) = result else {
+        let Ok(profile) = result else {
             error!("Error creating player: {:?}", result);
             continue;
         };
 
-        settings.api_token = Some(token.clone());
+        settings.profile = Some(profile.clone());
 
         // Now that we have a token, we can submit the score
         commands.add(SubmitScore {
             events: score.events.clone(),
-            token,
+            token: profile.token,
         });
     }
 }
@@ -368,6 +404,7 @@ impl Plugin for GameOverPlugin {
                         submit_score,
                         poll_player_creation,
                         poll_submit_score,
+                        poll_task::<Result<Profile, SubmitScoreError>>,
                     )
                         .run_if(game_over()),
                 ),

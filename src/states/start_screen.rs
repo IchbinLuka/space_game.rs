@@ -35,6 +35,7 @@ use crate::{
         clipboard::Clipboard,
         misc::AsCommand,
         sets::Set,
+        tasks::StartJob,
     },
 };
 
@@ -319,9 +320,9 @@ fn setup_leaderboard_screen(
         }))
         .with_children(|c| {
             let body_style = text_body_style(&font_res);
-            if let Some(token) = &settings.api_token {
+            if let Some(profile) = &settings.profile {
                 c.spawn(TextBundle::from_section(
-                    token.0.clone(),
+                    profile.token.0.clone(),
                     body_style.clone(),
                 ));
                 c.spawn(NodeBundle {
@@ -375,9 +376,9 @@ fn setup_leaderboard_screen(
         }))
         .with_children(|c| {
             c.add_leaderboard(
-                match &settings.api_token {
-                    Some(token) => FetchLeaderboardRequest::NearPlayer {
-                        token: token.clone(),
+                match &settings.profile {
+                    Some(profile) => FetchLeaderboardRequest::NearPlayer {
+                        token: profile.token.clone(),
                     },
                     None => FetchLeaderboardRequest::BestPlayers,
                 },
@@ -436,8 +437,8 @@ fn copy_token(
 ) {
     for interaction in &query {
         if *interaction == Interaction::Pressed {
-            if let Some(token) = &settings.api_token {
-                clipboard.set_contents(token.0.clone());
+            if let Some(profile) = &settings.profile {
+                clipboard.set_contents(profile.token.0.clone());
             }
         }
     }
@@ -448,19 +449,40 @@ fn save_token(
         (&TextInputValue, &mut TextInputInactive, Entity),
         With<EnterTokenInput>,
     >,
-    mut settings: ResMut<Settings>,
     save_button: Query<&Interaction, (With<SaveTokenButton>, Changed<Interaction>)>,
     mut commands: Commands,
+    api_manager: Res<ApiManager>,
 ) {
     for interaction in &save_button {
         if *interaction == Interaction::Pressed {
             let Ok((value, mut inactive, entity)) = text_fields.get_single_mut() else {
                 return;
             };
-            settings.api_token = Some(Token(value.0.clone()));
+            let token = Token(value.0.clone());
+
+            // settings.api_token = Some(Token(value.0.clone()));
+
+            let api_manager = api_manager.clone();
+
+            commands.add(StartJob {
+                job: Box::pin(async move { api_manager.get_profile(&token).await }),
+                on_complete: |result, world: &mut World| {
+                    let Ok(profile) = result else {
+                        error!("Could not fetch profile");
+                        return;
+                    };
+                    let mut settings = world
+                        .get_resource_mut::<Settings>()
+                        .expect("Settings resource does not exist");
+
+                    settings.profile = Some(profile);
+
+                    RebuildScreen.apply(world);
+                },
+            });
+
             inactive.0 = true;
             commands.entity(entity).insert(TextInputDisabled);
-            commands.add(RebuildScreen);
         }
     }
 }
@@ -480,7 +502,7 @@ fn reset_token(
 ) {
     for interaction in &reset_button {
         if *interaction == Interaction::Pressed {
-            settings.api_token = None;
+            settings.profile = None;
             commands.add(RebuildScreen);
         }
     }

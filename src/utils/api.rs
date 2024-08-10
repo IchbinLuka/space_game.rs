@@ -1,10 +1,10 @@
-use bevy::prelude::{Deref, DerefMut, Resource};
+use bevy::prelude::*;
 use include_crypt::{include_crypt, EncryptedFile};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use space_game_common::{ScoreEvent, ScoreSubmission};
 
-use crate::api_constants::API_URL;
+use crate::{api_constants::API_URL, model::settings::Profile};
 
 static KEY_FILE: EncryptedFile = include_crypt!(".key");
 
@@ -13,6 +13,13 @@ pub struct PlayerScore {
     pub score: u32,
     pub player_name: String,
     pub rank: u32,
+    pub id: u32,
+}
+
+#[derive(Deserialize)]
+struct SelfResponse {
+    id: u32,
+    player_name: String,
 }
 
 #[derive(Deserialize, Serialize, Deref, DerefMut, Debug, Clone)]
@@ -38,6 +45,23 @@ impl ApiManager {
         Self {
             client: reqwest::Client::new(),
         }
+    }
+
+    pub async fn get_profile(&self, token: &Token) -> Result<Profile, reqwest::Error> {
+        let url = get_url("self");
+        let response = self
+            .client
+            .get(url)
+            .header("Authorization", token.0.clone())
+            .send()
+            .await?
+            .error_for_status()?;
+        let parsed = response.json::<SelfResponse>().await?;
+        Ok(Profile {
+            id: parsed.id,
+            name: parsed.player_name,
+            token: token.clone(),
+        })
     }
 
     pub async fn fetch_best_players(
@@ -78,7 +102,7 @@ impl ApiManager {
         response.json::<Vec<PlayerScore>>().await
     }
 
-    pub async fn create_player(&self, player_name: String) -> Result<Token, reqwest::Error> {
+    pub async fn create_player(&self, player_name: String) -> Result<Profile, reqwest::Error> {
         let response = self
             .client
             .post(get_url("players"))
@@ -86,7 +110,8 @@ impl ApiManager {
             .send()
             .await?
             .error_for_status()?;
-        response.text().await.map(Token)
+        let token = response.text().await.map(Token)?;
+        self.get_profile(&token).await
     }
 
     pub async fn submit_score(

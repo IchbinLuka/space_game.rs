@@ -9,6 +9,7 @@ pub mod math;
 pub mod misc;
 pub mod scene;
 pub mod sets;
+pub mod tasks;
 
 pub struct UtilsPlugin;
 impl Plugin for UtilsPlugin {

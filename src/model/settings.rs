@@ -18,7 +18,7 @@ pub struct Settings {
     pub lang: String,
     pub antialiasing: AntialiasingSetting,
     pub vsync: VSyncSetting,
-    pub api_token: Option<Token>,
+    pub profile: Option<Profile>,
 }
 
 #[derive(Default, Clone, Copy, Serialize, Deserialize, Debug, PartialEq, Eq)]
@@ -26,6 +26,13 @@ pub enum AntialiasingSetting {
     Off,
     #[default]
     On,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Profile {
+    pub name: String,
+    pub id: u32,
+    pub token: Token,
 }
 
 #[derive(Debug, Serialize, Deserialize, Copy, Clone)]
@@ -88,7 +95,7 @@ impl Default for Settings {
             lang: "en".to_string(),
             antialiasing: default(),
             vsync: default(),
-            api_token: None,
+            profile: None,
         }
     }
 }
