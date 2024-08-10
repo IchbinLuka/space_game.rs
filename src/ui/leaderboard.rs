@@ -3,21 +3,42 @@ use bevy::{
     tasks::{block_on, futures_lite::future, IoTaskPool, Task},
 };
 
-use crate::utils::api::{ApiManager, PlayerScore};
+use crate::utils::api::{ApiManager, PlayerScore, Token};
 
 use super::{fonts::FontsResource, theme::text_body_style};
 
 #[derive(Component)]
 struct Leaderboard;
 
+pub enum FetchLeaderboardRequest {
+    NearScore { score: u32 },
+    NearPlayer { token: Token },
+    BestPlayers,
+}
+
 #[derive(Component)]
 pub struct FetchLeaderboardTask(Task<Result<Vec<PlayerScore>, reqwest::Error>>);
 impl FetchLeaderboardTask {
-    fn spawn(api_manager: ApiManager, score: u32, num_players: u32) -> Self {
+    fn spawn(api_manager: ApiManager, request: FetchLeaderboardRequest, num_players: u32) -> Self {
         let task_pool = IoTaskPool::get();
-        let task = task_pool.spawn(async move {
-            async_compat::Compat::new(api_manager.fetch_leaderboard(score, num_players)).await
-        });
+
+        let task = match request {
+            FetchLeaderboardRequest::NearScore { score } => task_pool.spawn(async move {
+                async_compat::Compat::new(
+                    api_manager.fetch_leaderboard_by_score(score, num_players),
+                )
+                .await
+            }),
+            FetchLeaderboardRequest::NearPlayer { token } => task_pool.spawn(async move {
+                async_compat::Compat::new(
+                    api_manager.fetch_leaderboard_by_player(&token, num_players),
+                )
+                .await
+            }),
+            FetchLeaderboardRequest::BestPlayers => task_pool.spawn(async move {
+                async_compat::Compat::new(api_manager.fetch_best_players(num_players)).await
+            }),
+        };
 
         Self(task)
     }
@@ -83,7 +104,7 @@ fn poll_leaderboard_status(
 pub trait AddLeaderboardExtension {
     fn add_leaderboard(
         &mut self,
-        focus_score: u32,
+        request: FetchLeaderboardRequest,
         count: u32,
         api_manager: ApiManager,
         font_res: &FontsResource,
@@ -93,12 +114,12 @@ pub trait AddLeaderboardExtension {
 impl AddLeaderboardExtension for ChildBuilder<'_> {
     fn add_leaderboard(
         &mut self,
-        focus_score: u32,
+        request: FetchLeaderboardRequest,
         count: u32,
         api_manager: ApiManager,
         font_res: &FontsResource,
     ) {
-        let fetch_players_task = FetchLeaderboardTask::spawn(api_manager, focus_score, count);
+        let fetch_players_task = FetchLeaderboardTask::spawn(api_manager, request, count);
         let font_res = font_res.clone();
 
         self.spawn((

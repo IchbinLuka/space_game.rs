@@ -20,7 +20,7 @@ use crate::{
     states::{in_start_menu, AppState},
     ui::{
         fonts::FontsResource,
-        leaderboard::AddLeaderboardExtension,
+        leaderboard::{AddLeaderboardExtension, FetchLeaderboardRequest},
         minimap::MinimapAssets,
         settings::SettingsButton,
         theme::{
@@ -373,7 +373,19 @@ fn setup_leaderboard_screen(
             padding: UiRect::all(Val::Px(20.)),
             ..default()
         }))
-        .with_children(|c| c.add_leaderboard(0, 10, api_manager.clone(), &font_res));
+        .with_children(|c| {
+            c.add_leaderboard(
+                match &settings.api_token {
+                    Some(token) => FetchLeaderboardRequest::NearPlayer {
+                        token: token.clone(),
+                    },
+                    None => FetchLeaderboardRequest::BestPlayers,
+                },
+                10,
+                api_manager.clone(),
+                &font_res,
+            )
+        });
 
         c.menu_item(&menu_res)
             .insert(BackButton)

@@ -40,13 +40,41 @@ impl ApiManager {
         }
     }
 
-    pub async fn fetch_leaderboard(
+    pub async fn fetch_best_players(
+        &self,
+        num_players: u32,
+    ) -> Result<Vec<PlayerScore>, reqwest::Error> {
+        let url = format!("{}/ranking?num={}", API_URL, num_players);
+        let response = self.client.get(url).send().await?.error_for_status()?;
+        response.json::<Vec<PlayerScore>>().await
+    }
+
+    pub async fn fetch_leaderboard_by_score(
         &self,
         score: u32,
         num_players: u32,
     ) -> Result<Vec<PlayerScore>, reqwest::Error> {
-        let url = format!("{}/ranking_near_score/{}/{}", API_URL, score, num_players);
+        let url = format!(
+            "{}/ranking_near_score?score={}&num={}",
+            API_URL, score, num_players
+        );
         let response = self.client.get(url).send().await?.error_for_status()?;
+        response.json::<Vec<PlayerScore>>().await
+    }
+
+    pub async fn fetch_leaderboard_by_player(
+        &self,
+        token: &Token,
+        num_players: u32,
+    ) -> Result<Vec<PlayerScore>, reqwest::Error> {
+        let url = format!("{}/ranking_near_self?num={}", API_URL, num_players);
+        let response = self
+            .client
+            .get(url)
+            .header("Authorization", token.as_str())
+            .send()
+            .await?
+            .error_for_status()?;
         response.json::<Vec<PlayerScore>>().await
     }
 

@@ -1,9 +1,11 @@
+use bevy::ecs::system::Command;
 use bevy::prelude::*;
 use bevy::tasks::IoTaskPool;
 use bevy::tasks::{block_on, futures_lite::future, Task};
 use bevy_rapier3d::plugin::RapierConfiguration;
 use bevy_round_ui::autosize::RoundUiAutosizeMaterial;
 use bevy_simple_text_input::{TextInputBundle, TextInputInactive, TextInputValue};
+use space_game_common::ScoreEvent;
 
 use crate::components::health::Health;
 use crate::entities::space_station::SpaceStation;
@@ -17,7 +19,7 @@ use crate::ui::widgets::TextButtonBundle;
 use crate::utils::api::{ApiManager, Token};
 
 use super::game_hud::Score;
-use super::leaderboard::AddLeaderboardExtension;
+use super::leaderboard::{AddLeaderboardExtension, FetchLeaderboardRequest};
 use super::theme::text_title_style_small;
 use super::widgets::FocusTextInputOnInteraction;
 use super::UiRes;
@@ -48,6 +50,17 @@ fn game_over_events(
     }
 }
 
+fn submit_score_if_logged_in(mut commands: Commands, score: Res<Score>, settings: Res<Settings>) {
+    let Some(token) = settings.api_token.as_ref() else {
+        return;
+    };
+
+    commands.add(SubmitScore {
+        events: score.events.clone(),
+        token: token.clone(),
+    });
+}
+
 fn game_over_screen_setup(
     mut commands: Commands,
     font_res: Res<FontsResource>,
@@ -55,6 +68,7 @@ fn game_over_screen_setup(
     score: Res<Score>,
     ui_res: Res<UiRes>,
     api_manager: Res<ApiManager>,
+    settings: Res<Settings>,
 ) {
     slow_down_physics(&mut rapier_config);
     commands
@@ -83,42 +97,45 @@ fn game_over_screen_setup(
                 )
             });
 
-            c.spawn(NodeBundle {
-                style: Style {
-                    flex_direction: FlexDirection::Row,
+            if settings.api_token.is_none() {
+                c.spawn(NodeBundle {
+                    style: Style {
+                        flex_direction: FlexDirection::Row,
+                        ..default()
+                    },
                     ..default()
-                },
-                ..default()
-            })
-            .with_children(|c| {
-                let text_field = c
-                    .spawn((
-                        NodeBundle {
-                            style: Style {
-                                width: Val::Px(200.),
-                                height: Val::Px(50.),
+                })
+                .with_children(|c| {
+                    let text_field = c
+                        .spawn((
+                            NodeBundle {
+                                style: Style {
+                                    width: Val::Px(200.),
+                                    height: Val::Px(50.),
+                                    ..default()
+                                },
                                 ..default()
                             },
-                            ..default()
-                        },
-                        FocusTextInputOnInteraction,
-                        TextInputBundle::default()
-                            .with_text_style(TextStyle {
-                                font_size: 40.,
-                                color: Color::WHITE,
-                                ..default()
-                            })
-                            .with_text_style(text_button_style(&font_res))
-                            .with_placeholder(t!("enter_name"), None)
-                            .with_inactive(true),
-                    ))
-                    .id();
+                            FocusTextInputOnInteraction,
+                            TextInputBundle::default()
+                                .with_text_style(TextStyle {
+                                    font_size: 40.,
+                                    color: Color::WHITE,
+                                    ..default()
+                                })
+                                .with_text_style(text_button_style(&font_res))
+                                .with_placeholder(t!("enter_name"), None)
+                                .with_inactive(true),
+                        ))
+                        .id();
 
-                c.spawn((
-                    TextButtonBundle::from_section(t!("submit"), text_button_style(&font_res)),
-                    SubmitButton { text_field },
-                ));
-            });
+                    c.spawn((
+                        TextButtonBundle::from_section(t!("submit"), text_button_style(&font_res)),
+                        SubmitButton { text_field },
+                    ));
+                });
+            }
+
             let score_value = score.value;
 
             c.spawn((
@@ -140,7 +157,17 @@ fn game_over_screen_setup(
                     text_title_style_small(&font_res),
                 ));
 
-                c.add_leaderboard(score_value, 3, api_manager.clone(), &font_res);
+                c.add_leaderboard(
+                    match &settings.api_token {
+                        Some(token) => FetchLeaderboardRequest::NearPlayer {
+                            token: token.clone(),
+                        },
+                        None => FetchLeaderboardRequest::NearScore { score: score_value },
+                    },
+                    3,
+                    api_manager.clone(),
+                    &font_res,
+                );
 
                 c.spawn(NodeBundle {
                     style: Style {
@@ -237,7 +264,6 @@ fn poll_player_creation(
     mut commands: Commands,
     mut create_player_tasks: Query<(Entity, &mut CreatePlayerTask)>,
     mut settings: ResMut<Settings>,
-    api_manager: Res<ApiManager>,
     score: Res<Score>,
 ) {
     for (entity, mut task) in &mut create_player_tasks {
@@ -255,14 +281,31 @@ fn poll_player_creation(
         settings.api_token = Some(token.clone());
 
         // Now that we have a token, we can submit the score
+        commands.add(SubmitScore {
+            events: score.events.clone(),
+            token,
+        });
+    }
+}
+
+struct SubmitScore {
+    events: Vec<ScoreEvent>,
+    token: Token,
+}
+
+impl Command for SubmitScore {
+    fn apply(self, world: &mut World) {
+        let api_manager = world
+            .get_resource::<ApiManager>()
+            .expect("ApiManager missing")
+            .clone();
+
         let task_pool = IoTaskPool::get();
-        let api_manager = api_manager.clone();
-        let events = score.events.clone();
         let task = task_pool.spawn(async move {
-            async_compat::Compat::new(api_manager.submit_score(&events, &token)).await
+            async_compat::Compat::new(api_manager.submit_score(&self.events, &self.token)).await
         });
 
-        commands.spawn(SubmitScoreTask(task));
+        world.spawn(SubmitScoreTask(task));
     }
 }
 
@@ -329,7 +372,10 @@ impl Plugin for GameOverPlugin {
                         .run_if(game_over()),
                 ),
             )
-            .add_systems(OnEnter(AppState::GameOver), game_over_screen_setup)
+            .add_systems(
+                OnEnter(AppState::GameOver),
+                (game_over_screen_setup, submit_score_if_logged_in),
+            )
             .add_event::<GameOverEvent>();
     }
 }
