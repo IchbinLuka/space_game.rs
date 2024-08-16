@@ -122,7 +122,7 @@ fn main_hud_setup(
                         value: t!("score", score = 0).to_string(),
                         style: TextStyle {
                             font_size: 60.0,
-                            font: font_resource.mouse_memoirs.clone(),
+                            font: font_resource.mouse_memoirs_regular.clone(),
                             ..default()
                         },
                     }],
@@ -159,7 +159,7 @@ fn main_hud_setup(
                     t!("auxiliary_drive", state = t!("state_off")),
                     TextStyle {
                         font_size: 60.0,
-                        font: font_resource.mouse_memoirs.clone(),
+                        font: font_resource.mouse_memoirs_regular.clone(),
                         ..default()
                     },
                 ),
@@ -472,7 +472,7 @@ fn score_events(
                         style: TextStyle {
                             font_size: 40.0,
                             color: Color::WHITE,
-                            font: font_resource.mouse_memoirs.clone(),
+                            font: font_resource.mouse_memoirs_regular.clone(),
                         },
                     }],
                     ..default()

@@ -1,11 +1,7 @@
-use bevy::ecs::system::Command;
 use bevy::prelude::*;
-use bevy::tasks::IoTaskPool;
-use bevy::tasks::{block_on, futures_lite::future, Task};
 use bevy_rapier3d::plugin::RapierConfiguration;
 use bevy_round_ui::autosize::RoundUiAutosizeMaterial;
 use bevy_simple_text_input::{TextInputBundle, TextInputInactive, TextInputValue};
-use space_game_common::ScoreEvent;
 
 use crate::components::health::Health;
 use crate::entities::space_station::SpaceStation;
@@ -16,7 +12,7 @@ use crate::states::{
 use crate::ui::fonts::FontsResource;
 use crate::ui::theme::{fullscreen_center_style, text_button_style, text_title_style};
 use crate::ui::widgets::TextButtonBundle;
-use crate::utils::api::{ApiManager, Token};
+use crate::utils::api::ApiManager;
 use crate::utils::tasks::{poll_task, StartJob};
 
 use super::game_hud::Score;
@@ -51,14 +47,34 @@ fn game_over_events(
     }
 }
 
-fn submit_score_if_logged_in(mut commands: Commands, score: Res<Score>, settings: Res<Settings>) {
+fn submit_score_if_logged_in(
+    mut commands: Commands,
+    score: Res<Score>,
+    settings: Res<Settings>,
+    api_manager: Res<ApiManager>,
+) {
     let Some(profile) = settings.profile.as_ref() else {
         return;
     };
 
-    commands.add(SubmitScore {
-        events: score.events.clone(),
-        token: profile.token.clone(),
+    let api_manager = api_manager.clone();
+    let profile = profile.clone();
+    let events = score.events.clone();
+
+    commands.add(StartJob {
+        job: Box::pin(async move {
+            api_manager
+                .submit_score(&events, &profile.token.clone())
+                .await
+        }),
+        on_complete: |result, _| match result {
+            Ok(_) => {
+                info!("Score submitted successfully");
+            }
+            Err(e) => {
+                error!("Failed to submit score: {:?}", e);
+            }
+        },
     });
 }
 
@@ -197,12 +213,6 @@ fn game_over_screen_setup(
         });
 }
 
-#[derive(Component)]
-pub struct CreatePlayerTask(Task<Result<Profile, reqwest::Error>>);
-
-#[derive(Component)]
-pub struct SubmitScoreTask(Task<Result<(), reqwest::Error>>);
-
 #[derive(Debug)]
 enum SubmitScoreError {
     PlayerCreationFailed,
@@ -274,77 +284,6 @@ fn submit_score(
     }
 }
 
-fn poll_submit_score(
-    mut commands: Commands,
-    mut submit_score_tasks: Query<(Entity, &mut SubmitScoreTask)>,
-) {
-    for (entity, mut task) in &mut submit_score_tasks {
-        let Some(result) = block_on(future::poll_once(&mut task.0)) else {
-            continue;
-        };
-
-        commands.entity(entity).despawn();
-
-        match result {
-            Ok(_) => {
-                info!("Score submitted successfully");
-            }
-            Err(e) => {
-                error!("Error submitting score: {:?}", e);
-            }
-        }
-    }
-}
-
-fn poll_player_creation(
-    mut commands: Commands,
-    mut create_player_tasks: Query<(Entity, &mut CreatePlayerTask)>,
-    mut settings: ResMut<Settings>,
-    score: Res<Score>,
-) {
-    for (entity, mut task) in &mut create_player_tasks {
-        let Some(result) = block_on(future::poll_once(&mut task.0)) else {
-            continue;
-        };
-
-        commands.entity(entity).despawn();
-
-        let Ok(profile) = result else {
-            error!("Error creating player: {:?}", result);
-            continue;
-        };
-
-        settings.profile = Some(profile.clone());
-
-        // Now that we have a token, we can submit the score
-        commands.add(SubmitScore {
-            events: score.events.clone(),
-            token: profile.token,
-        });
-    }
-}
-
-struct SubmitScore {
-    events: Vec<ScoreEvent>,
-    token: Token,
-}
-
-impl Command for SubmitScore {
-    fn apply(self, world: &mut World) {
-        let api_manager = world
-            .get_resource::<ApiManager>()
-            .expect("ApiManager missing")
-            .clone();
-
-        let task_pool = IoTaskPool::get();
-        let task = task_pool.spawn(async move {
-            async_compat::Compat::new(api_manager.submit_score(&self.events, &self.token)).await
-        });
-
-        world.spawn(SubmitScoreTask(task));
-    }
-}
-
 fn restart_game(
     restart_button: Query<&Interaction, (Changed<Interaction>, With<RestartButton>)>,
     mut next_state: ResMut<NextState<AppState>>,
@@ -402,8 +341,6 @@ impl Plugin for GameOverPlugin {
                         restart_game,
                         back_to_menu,
                         submit_score,
-                        poll_player_creation,
-                        poll_submit_score,
                         poll_task::<Result<Profile, SubmitScoreError>>,
                     )
                         .run_if(game_over()),

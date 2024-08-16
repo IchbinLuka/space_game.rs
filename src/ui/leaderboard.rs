@@ -10,6 +10,7 @@ use super::{fonts::FontsResource, theme::text_body_style};
 #[derive(Component)]
 struct Leaderboard;
 
+#[derive(Clone)]
 pub enum FetchLeaderboardRequest {
     NearScore { score: u32 },
     NearPlayer { token: Token },
@@ -17,30 +18,40 @@ pub enum FetchLeaderboardRequest {
 }
 
 #[derive(Component)]
-pub struct FetchLeaderboardTask(Task<Result<Vec<PlayerScore>, reqwest::Error>>);
+pub struct FetchLeaderboardTask {
+    task: Task<Result<Vec<PlayerScore>, reqwest::Error>>,
+    request: FetchLeaderboardRequest,
+}
+
 impl FetchLeaderboardTask {
     fn spawn(api_manager: ApiManager, request: FetchLeaderboardRequest, num_players: u32) -> Self {
         let task_pool = IoTaskPool::get();
 
-        let task = match request {
-            FetchLeaderboardRequest::NearScore { score } => task_pool.spawn(async move {
-                async_compat::Compat::new(
-                    api_manager.fetch_leaderboard_by_score(score, num_players),
-                )
-                .await
-            }),
-            FetchLeaderboardRequest::NearPlayer { token } => task_pool.spawn(async move {
-                async_compat::Compat::new(
-                    api_manager.fetch_leaderboard_by_player(&token, num_players),
-                )
-                .await
-            }),
+        let task = match &request {
+            FetchLeaderboardRequest::NearScore { score } => {
+                let score = *score;
+                task_pool.spawn(async move {
+                    async_compat::Compat::new(
+                        api_manager.fetch_leaderboard_by_score(score, num_players),
+                    )
+                    .await
+                })
+            }
+            FetchLeaderboardRequest::NearPlayer { token } => {
+                let token = token.clone();
+                task_pool.spawn(async move {
+                    async_compat::Compat::new(
+                        api_manager.fetch_leaderboard_by_player(&token, num_players),
+                    )
+                    .await
+                })
+            }
             FetchLeaderboardRequest::BestPlayers => task_pool.spawn(async move {
                 async_compat::Compat::new(api_manager.fetch_best_players(num_players)).await
             }),
         };
 
-        Self(task)
+        Self { task, request }
     }
 }
 
@@ -50,8 +61,8 @@ fn poll_leaderboard_status(
     font_res: Res<FontsResource>,
 ) {
     for (mut task, entity) in &mut leader_boards {
-        let FetchLeaderboardTask(ref mut task) = *task;
-        let Some(result) = block_on(future::poll_once(task)) else {
+        let FetchLeaderboardTask { task, request } = &mut *task;
+        let Some(ref mut result) = block_on(future::poll_once(task)) else {
             continue;
         };
 
@@ -68,6 +79,34 @@ fn poll_leaderboard_status(
                 ));
             });
             continue;
+        };
+
+        let scores = if let FetchLeaderboardRequest::NearScore { score } = request {
+            let mut new_scores: Vec<_> = scores
+                .iter()
+                .cloned()
+                .take_while(|v| v.score > *score)
+                .collect();
+            new_scores.push(PlayerScore {
+                score: *score,
+                player_name: t!("you").to_string(),
+                rank: (new_scores.len() + 1) as u32,
+                id: 0,
+            });
+            let iter = scores
+                .iter()
+                .skip_while(|v| v.score > *score)
+                .map(|v| PlayerScore {
+                    score: v.score,
+                    player_name: v.player_name.clone(),
+                    rank: v.rank + 1,
+                    id: v.id,
+                });
+            // Insert scores after the player's score
+            new_scores.extend(iter);
+            new_scores
+        } else {
+            scores.clone()
         };
 
         commands.entity(entity).with_children(|c| {
@@ -87,7 +126,7 @@ fn poll_leaderboard_status(
                         text_body_style(&font_res),
                     ));
                     c.spawn(TextBundle::from_section(
-                        score.player_name,
+                        score.player_name.clone(),
                         text_body_style(&font_res),
                     ));
                     c.spawn(TextBundle::from_section(

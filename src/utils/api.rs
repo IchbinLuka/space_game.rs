@@ -8,7 +8,7 @@ use crate::{api_constants::API_URL, model::settings::Profile};
 
 static KEY_FILE: EncryptedFile = include_crypt!(".key");
 
-#[derive(Deserialize, PartialEq)]
+#[derive(Deserialize, PartialEq, Clone)]
 pub struct PlayerScore {
     pub score: u32,
     pub player_name: String,

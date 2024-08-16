@@ -15,7 +15,7 @@ pub fn default_hover_effect() -> TextHoverEffect {
 
 #[inline(always)]
 pub fn default_font(res: &FontsResource) -> Handle<Font> {
-    res.mouse_memoirs.clone()
+    res.mouse_memoirs_regular.clone()
 }
 
 #[inline(always)]

@@ -367,26 +367,22 @@ fn setup_leaderboard_screen(
                 ));
             }
         });
-
+        let (request, num) = match &settings.profile {
+            Some(profile) => (
+                FetchLeaderboardRequest::NearPlayer {
+                    token: profile.token.clone(),
+                },
+                5,
+            ),
+            None => (FetchLeaderboardRequest::BestPlayers, 10),
+        };
         c.spawn(CardBundle::new(&ui_res).with_style(Style {
             width: Val::Px(400.),
             flex_direction: FlexDirection::Column,
             padding: UiRect::all(Val::Px(20.)),
             ..default()
         }))
-        .with_children(|c| {
-            c.add_leaderboard(
-                match &settings.profile {
-                    Some(profile) => FetchLeaderboardRequest::NearPlayer {
-                        token: profile.token.clone(),
-                    },
-                    None => FetchLeaderboardRequest::BestPlayers,
-                },
-                10,
-                api_manager.clone(),
-                &font_res,
-            )
-        });
+        .with_children(|c| c.add_leaderboard(request, num, api_manager.clone(), &font_res));
 
         c.menu_item(&menu_res)
             .insert(BackButton)
