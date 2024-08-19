@@ -3,7 +3,8 @@ use std::ops::Range;
 use std::time::Duration;
 
 use bevy::animation::RepeatAnimation;
-use bevy::ecs::system::{Command, EntityCommand, RunSystemOnce};
+use bevy::ecs::system::{EntityCommand, RunSystemOnce};
+use bevy::ecs::world::Command;
 use bevy::pbr::NotShadowReceiver;
 use bevy::prelude::*;
 use bevy::scene::SceneInstance;
@@ -152,8 +153,8 @@ fn cruiser_spawn_setup(
     if res.is_none() {
         commands.insert_resource(CruiserRes {
             exhaust_material: exhaust_materials.add(ExhaustMaterial {
-                inner_color: Color::hex("c0eff9").unwrap(),
-                outer_color: Color::hex("3ad8fc").unwrap(),
+                inner_color: Srgba::hex("c0eff9").unwrap().into(),
+                outer_color: Srgba::hex("3ad8fc").unwrap().into(),
                 ..default()
             }),
         });
@@ -371,15 +372,18 @@ fn finish_cruiser(
 fn cruiser_animation_start(
     query: Query<&AnimationRoot, (With<Cruiser>, Added<AnimationRoot>)>,
     mut animation_players: Query<&mut AnimationPlayer>,
-    cruiser_assets: Res<CruiserAssets>,
+    assets: Res<CruiserAssets>,
+    mut animation_graphs: ResMut<Assets<AnimationGraph>>,
+    mut commands: Commands,
 ) {
     for root in &query {
         for entity in &root.player_entites {
             let Ok(mut player) = animation_players.get_mut(*entity) else {
                 continue;
             };
-            player.play(cruiser_assets.cruiser_animation.clone());
-            player.set_repeat(RepeatAnimation::Never);
+            let (graph, animation_index) = AnimationGraph::from_clip(assets.cruiser_animation.clone());
+            player.play(animation_index).set_repeat(RepeatAnimation::Never);
+            commands.entity(entity.clone()).insert(animation_graphs.add(graph));
         }
     }
 }
@@ -394,7 +398,7 @@ fn cruiser_animations(
             let Ok(player) = animation_players.get(*player) else {
                 continue;
             };
-            if player.is_finished() {
+            if player.all_finished() {
                 commands.entity(entity).remove::<AnimationRoot>();
                 commands.add(FinishCruiser { cruiser: entity });
             }
@@ -440,7 +444,7 @@ fn cruiser_scene_setup(
                         DespawnOnCleanup,
                         MaterialMeshBundle {
                             material: toon_materials.add(ToonMaterial {
-                                color: Color::hex("2ae0ed").unwrap(),
+                                color: Srgba::hex("2ae0ed").unwrap().into(),
                                 ..default()
                             }),
                             mesh: meshes.add(Cylinder {
@@ -620,6 +624,7 @@ fn cruiser_movement(mut cruisers: Query<(&mut Velocity, &mut Cruiser)>, time: Re
         }
     }
 }
+
 
 pub struct CruiserPLugin;
 

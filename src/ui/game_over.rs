@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use bevy_rapier3d::plugin::RapierConfiguration;
-use bevy_round_ui::autosize::RoundUiAutosizeMaterial;
 use bevy_simple_text_input::{TextInputBundle, TextInputInactive, TextInputValue};
 
 use crate::components::health::Health;
@@ -18,8 +17,8 @@ use crate::utils::tasks::{poll_task, StartJob};
 use super::game_hud::Score;
 use super::leaderboard::{AddLeaderboardExtension, FetchLeaderboardRequest};
 use super::theme::text_title_style_small;
+use super::ui_card;
 use super::widgets::FocusTextInputOnInteraction;
-use super::UiRes;
 
 #[derive(Event)]
 pub struct GameOverEvent;
@@ -83,7 +82,6 @@ fn game_over_screen_setup(
     font_res: Res<FontsResource>,
     mut rapier_config: ResMut<RapierConfiguration>,
     score: Res<Score>,
-    ui_res: Res<UiRes>,
     api_manager: Res<ApiManager>,
     settings: Res<Settings>,
 ) {
@@ -155,19 +153,15 @@ fn game_over_screen_setup(
 
             let score_value = score.value;
 
-            c.spawn((
-                MaterialNodeBundle {
-                    material: ui_res.card_background_material.clone(),
+            c.spawn(NodeBundle {
                     style: Style {
                         padding: UiRect::all(Val::Px(20.)),
                         flex_direction: FlexDirection::Column,
                         width: Val::Px(400.),
                         ..default()
                     },
-                    ..default()
-                },
-                RoundUiAutosizeMaterial,
-            ))
+                    ..ui_card()
+                })
             .with_children(|c| {
                 c.spawn(TextBundle::from_section(
                     t!("leaderboard"),

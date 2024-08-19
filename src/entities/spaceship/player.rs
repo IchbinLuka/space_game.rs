@@ -277,7 +277,7 @@ fn player_trail_setup(
 ) {
     let material = materials.add(StandardMaterial {
         base_color: Color::WHITE,
-        emissive: Color::WHITE,
+        emissive: Color::WHITE.into(),
         double_sided: true,
         ..default()
     });
@@ -403,7 +403,7 @@ fn player_line_setup(
 ) {
     let material = materials.add(StandardMaterial {
         base_color: Color::WHITE,
-        emissive: Color::WHITE,
+        emissive: Color::WHITE.into(),
         double_sided: true,
         ..default()
     });
@@ -552,7 +552,7 @@ fn return_to_mission_warning_spawn(
                         justify_content: JustifyContent::Center,
                         ..default()
                     },
-                    background_color: Color::rgba(0., 0., 0., 0.3).into(),
+                    background_color: Color::srgba(0., 0., 0., 0.3).into(),
                     ..default()
                 },
                 ReturnToMissionWarning {
@@ -679,8 +679,8 @@ impl Plugin for PlayerPlugin {
                     }
                     Some(BlinkMaterial {
                         period: 1.0,
-                        color_1: Color::rgb(1.0, 0.0, 0.0),
-                        color_2: Color::rgb(0.5, 0.0, 0.0),
+                        color_1: Color::srgb(1.0, 0.0, 0.0),
+                        color_2: Color::srgb(0.5, 0.0, 0.0),
                     })
                 })),
                 ReplaceMaterialPlugin::<PlayerTurret, _>::new(replace_with_toon_materials(

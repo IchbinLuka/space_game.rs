@@ -1,4 +1,4 @@
-use bevy::{ecs::system::Command, prelude::*};
+use bevy::{ecs::world::Command, prelude::*};
 use bevy_rapier3d::{
     dynamics::Velocity,
     geometry::{CollisionGroups, Group},

@@ -1,4 +1,3 @@
-use bevy::animation::RepeatAnimation;
 use bevy::prelude::*;
 use bevy_asset_loader::asset_collection::AssetCollection;
 use bevy_mod_outline::{OutlineBundle, OutlineVolume};
@@ -52,7 +51,10 @@ pub fn spawn_space_station(
     minimap_res: &MinimapAssets,
     position: Vec3,
     with_health_bar: bool,
+    
 ) {
+
+
     let space_station = commands
         .spawn((
             SceneBundle {
@@ -111,14 +113,17 @@ fn space_station_animation(
     space_station: Query<&AnimationRoot, (With<SpaceStation>, Added<AnimationRoot>)>,
     mut animation_players: Query<&mut AnimationPlayer>,
     space_station_res: Res<SpaceStationRes>,
+    mut graphs: ResMut<Assets<AnimationGraph>>,
+    mut commands: Commands,  
 ) {
     for animation_root in &space_station {
         for entity in &animation_root.player_entites {
             let Ok(mut player) = animation_players.get_mut(*entity) else {
                 continue;
             };
-            player.play(space_station_res.animation.clone());
-            player.set_repeat(RepeatAnimation::Forever);
+            let (graph, animation_index) = AnimationGraph::from_clip(space_station_res.animation.clone());
+            player.play(animation_index);
+            commands.entity(entity.clone()).insert(graphs.add(graph));
         }
     }
 }

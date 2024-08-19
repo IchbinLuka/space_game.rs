@@ -1,9 +1,9 @@
 use bevy::{
-    prelude::*,
-    render::{
+    color::palettes::css, prelude::*, render::{
         render_asset::RenderAssets,
         render_resource::{AsBindGroup, AsBindGroupShaderType, ShaderRef, ShaderType},
-    },
+        texture::GpuImage,
+    }
 };
 use bevy_asset_loader::asset_collection::{AssetCollection, AssetCollectionApp};
 
@@ -33,8 +33,8 @@ impl ExhaustMaterial {
 impl Default for ExhaustMaterial {
     fn default() -> Self {
         Self {
-            inner_color: Color::ORANGE,
-            outer_color: Color::ORANGE_RED,
+            inner_color: css::ORANGE.into(),
+            outer_color: css::ORANGE_RED.into(),
             threshold_offset: 0.3,
             speed: 1.0,
             noise_texture: Default::default(),
@@ -46,18 +46,18 @@ impl Default for ExhaustMaterial {
 pub struct ExhaustMaterialUniform {
     threshold_offset: f32,
     speed: f32,
-    inner_color: Color,
-    outer_color: Color,
+    inner_color: LinearRgba,
+    outer_color: LinearRgba,
 }
 
 impl AsBindGroupShaderType<ExhaustMaterialUniform> for ExhaustMaterial {
     fn as_bind_group_shader_type(
         &self,
-        _images: &RenderAssets<bevy::prelude::Image>,
+        _images: &RenderAssets<GpuImage>,
     ) -> ExhaustMaterialUniform {
         ExhaustMaterialUniform {
-            inner_color: self.inner_color,
-            outer_color: self.outer_color,
+            inner_color: self.inner_color.into(),
+            outer_color: self.outer_color.into(),
             threshold_offset: self.threshold_offset,
             speed: self.speed,
         }

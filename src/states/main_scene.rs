@@ -39,7 +39,7 @@ fn main_scene_setup(mut commands: Commands, settings: Res<Settings>, font_res: R
         DirectionalLightBundle {
             directional_light: DirectionalLight {
                 illuminance: 10000.0,
-                color: Color::hex("ffffff").unwrap(),
+                color: Color::WHITE,
                 shadows_enabled: settings.shadows_enabled,
                 ..default()
             },

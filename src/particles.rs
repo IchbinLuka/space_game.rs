@@ -1,8 +1,7 @@
 use std::f32::consts::FRAC_PI_2;
 
 use bevy::{
-    prelude::*,
-    render::render_resource::{AsBindGroup, ShaderRef},
+    color::palettes::css, prelude::*, render::render_resource::{AsBindGroup, ShaderRef}
 };
 
 use crate::states::AppState;
@@ -12,14 +11,20 @@ pub mod fire_particles;
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
 pub struct ParticleMaterial {
     #[uniform(0)]
-    pub color: Color,
+    pub color: LinearRgba,
+}
+
+impl ParticleMaterial {
+    pub fn new(color: Color) -> Self {
+        Self {
+            color: color.into(),
+        }
+    }
 }
 
 impl Default for ParticleMaterial {
     fn default() -> Self {
-        Self {
-            color: Color::BLACK,
-        }
+        Self::new(css::BLACK.into())
     }
 }
 
@@ -40,7 +45,7 @@ fn particle_test_scene_setup(
 ) {
     let mesh = meshes.add(Rectangle::new(5.0, 5.0));
     let material = materials.add(ParticleMaterial {
-        color: Color::GREEN,
+        color: css::GREEN.into(),
     });
     commands.spawn(MaterialMeshBundle {
         material,
@@ -61,7 +66,7 @@ fn init_camera(mut commands: Commands) {
             ..default()
         }),
         camera: Camera {
-            clear_color: ClearColorConfig::Custom(Color::MIDNIGHT_BLUE),
+            clear_color: ClearColorConfig::Custom(css::MIDNIGHT_BLUE.into()),
             ..default()
         },
         ..default()

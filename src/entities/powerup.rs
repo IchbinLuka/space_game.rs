@@ -1,7 +1,7 @@
 use std::{f32::consts::FRAC_PI_2, time::Duration};
 
 use bevy::{
-    ecs::system::Command,
+    ecs::world::Command,
     pbr::{NotShadowCaster, NotShadowReceiver},
     prelude::*,
     render::render_resource::Face,

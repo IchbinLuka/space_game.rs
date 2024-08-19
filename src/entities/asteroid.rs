@@ -235,14 +235,14 @@ fn asteroid_setup(
     mut commands: Commands,
 ) {
     let material = standard_materials.add(ToonMaterial {
-        color: Color::hex("665F64").unwrap(),
+        color: Srgba::hex("665F64").unwrap().into(),
         filter_scale: 2.,
         normal_threshold: 1.2,
         ..default()
     });
 
     let particle_material: Handle<ParticleMaterial> = particle_materials.add(ParticleMaterial {
-        color: Color::hex("665F64").unwrap(),
+        color: Srgba::hex("665F64").unwrap().into(),
     });
 
     let particle_mesh = meshes.add(Rectangle::new(0.2, 0.2));

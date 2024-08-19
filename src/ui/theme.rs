@@ -1,15 +1,15 @@
-use bevy::prelude::*;
+use bevy::{color::palettes::css, prelude::*};
 
 use super::{fonts::FontsResource, TextHoverEffect};
 
-pub const SURFACE_COLOR: Color = Color::rgb(0., 0., 0.);
-pub const SURFACE_COLOR_FOCUSED: Color = Color::rgb(0.1, 0.1, 0.1);
+pub const SURFACE_COLOR: Color = Color::srgb(0., 0., 0.);
+pub const SURFACE_COLOR_FOCUSED: Color = Color::srgb(0.1, 0.1, 0.1);
 
 #[inline(always)]
 pub fn default_hover_effect() -> TextHoverEffect {
     TextHoverEffect {
-        normal_color: Color::WHITE,
-        hover_color: Color::GRAY,
+        normal_color: css::WHITE.into(),
+        hover_color: css::GREY.into(),
     }
 }
 

@@ -13,11 +13,9 @@ use bevy::{
     prelude::*,
     window::PresentMode,
 };
-use bevy_kira_audio::AudioPlugin;
 use bevy_mod_outline::{AutoGenerateOutlineNormalsPlugin, OutlinePlugin};
 use bevy_obj::ObjPlugin;
 use bevy_rapier3d::prelude::*;
-use bevy_round_ui::prelude::RoundUiPlugin;
 use bevy_simple_text_input::TextInputPlugin;
 use cfg_if::cfg_if;
 use components::ComponentsPlugin;
@@ -67,9 +65,9 @@ const LOG_LEVEL: log::Level = log::Level::ERROR;
 
 fn main() {
     let mut app = App::new();
-    app.insert_resource(AssetMetaCheck::Never)
+    app
         .insert_resource(Msaa::Off)
-        .add_plugins((
+        .add_plugins(
             DefaultPlugins
                 .set(LogPlugin {
                     level: LOG_LEVEL,
@@ -83,9 +81,12 @@ fn main() {
                         ..default()
                     }),
                     ..default()
+                })
+                .set(AssetPlugin {
+                    meta_check: AssetMetaCheck::Never,
+                    ..default()
                 }),
-            AudioPlugin,
-        ))
+        )
         .add_plugins((
             OutlinePlugin,
             TextInputPlugin,
@@ -105,7 +106,6 @@ fn main() {
                 bevy_screen_diagnostics::ScreenFrameDiagnosticsPlugin,
                 bevy_screen_diagnostics::ScreenEntityDiagnosticsPlugin,
             ),
-            RoundUiPlugin,
         ))
         .add_systems(Startup, setup_physics)
         .add_plugins((

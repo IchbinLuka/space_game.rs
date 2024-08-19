@@ -1,12 +1,11 @@
 use std::f32::consts::FRAC_PI_4;
 
 use bevy::{
-    ecs::system::{Command, EntityCommands, RunSystemOnce},
+    ecs::{
+        system::{EntityCommands, RunSystemOnce},
+        world::Command,
+    },
     prelude::*,
-};
-use bevy_round_ui::{
-    autosize::{RoundUiAutosizeMaterial, RoundUiAutosizeNode},
-    prelude::RoundUiMaterial,
 };
 use bevy_simple_text_input::{TextInputBundle, TextInputInactive, TextInputValue};
 
@@ -19,16 +18,10 @@ use crate::{
     model::settings::Settings,
     states::{in_start_menu, AppState},
     ui::{
-        fonts::FontsResource,
-        leaderboard::{AddLeaderboardExtension, FetchLeaderboardRequest},
-        minimap::MinimapAssets,
-        settings::SettingsButton,
-        theme::{
+        fonts::FontsResource, leaderboard::{AddLeaderboardExtension, FetchLeaderboardRequest}, minimap::MinimapAssets, settings::SettingsButton, theme::{
             text_body_style, text_button_small_style, text_button_style, text_title_style,
             SURFACE_COLOR, SURFACE_COLOR_FOCUSED,
-        },
-        widgets::{CardBundle, FocusTextInputOnInteraction, TextButtonBundle, TextInputDisabled},
-        UiRes,
+        }, ui_card, widgets::{FocusTextInputOnInteraction, TextButtonBundle, TextInputDisabled}
     },
     utils::{
         api::{ApiManager, Token},
@@ -81,7 +74,7 @@ fn setup_start_screen(
         DirectionalLightBundle {
             directional_light: DirectionalLight {
                 illuminance: 10000.0,
-                color: Color::hex("ffffff").unwrap(),
+                color: Color::WHITE,
                 shadows_enabled: settings.shadows_enabled,
                 ..default()
             },
@@ -92,17 +85,17 @@ fn setup_start_screen(
 
     for config in [
         PlanetSpawnConfig {
-            color: Color::hex("ffffff").unwrap(),
+            color: Color::WHITE,
             size: 30.0,
             pos: Vec3::new(-60.0, -10.0, 100.0),
         },
         PlanetSpawnConfig {
-            color: Color::hex("11ff22").unwrap(),
+            color: Srgba::hex("11ff22").unwrap().into(),
             size: 25.0,
             pos: Vec3::new(90.0, -20.0, 30.0),
         },
         PlanetSpawnConfig {
-            color: Color::hex("3300ff").unwrap(),
+            color: Srgba::hex("3300ff").unwrap().into(),
             size: 50.0,
             pos: Vec3::new(0.0, -20.0, 0.0),
         },
@@ -120,27 +113,10 @@ fn setup_start_screen(
 }
 
 fn setup_startscreen_ui(
-    mut materials: ResMut<Assets<RoundUiMaterial>>,
     font_res: Res<FontsResource>,
     root: Query<Entity, With<StartScreen>>,
     mut commands: Commands,
 ) {
-    const MENU_ITEM_SIZE: Vec2 = Vec2::new(200., 50.);
-
-    let menu_resource = MenuItemResource {
-        hover_material: materials.add(RoundUiMaterial {
-            background_color: SURFACE_COLOR_FOCUSED,
-            border_radius: Vec4::splat(30.),
-            size: MENU_ITEM_SIZE,
-            ..default()
-        }),
-        normal_material: materials.add(RoundUiMaterial {
-            background_color: SURFACE_COLOR,
-            border_radius: Vec4::splat(30.),
-            size: MENU_ITEM_SIZE,
-            ..default()
-        }),
-    };
 
     let root = if let Ok(root) = root.get_single() {
         root
@@ -167,19 +143,15 @@ fn setup_startscreen_ui(
 
     commands.entity(root).with_children(|c| {
         c.spawn((
-            MaterialNodeBundle {
+            NodeBundle {
                 style: Style {
                     padding: UiRect::all(Val::Px(20.)),
                     ..default()
                 },
-                material: materials.add(RoundUiMaterial {
-                    background_color: SURFACE_COLOR,
-                    border_radius: Vec4::splat(30.),
-                    ..default()
-                }),
+                background_color: SURFACE_COLOR.into(), 
+                border_radius: BorderRadius::all(Val::Px(30.)), 
                 ..default()
-            },
-            RoundUiAutosizeMaterial,
+            }, 
         ))
         .with_children(|c| {
             c.spawn(TextBundle::from_section(
@@ -188,7 +160,7 @@ fn setup_startscreen_ui(
             ));
         });
 
-        c.menu_item(&menu_resource)
+        c.menu_item()
             .with_children(|c| {
                 c.spawn(TextBundle::from_section(
                     t!("leaderboard"),
@@ -197,7 +169,7 @@ fn setup_startscreen_ui(
             })
             .insert(LeaderboardButton);
 
-        c.menu_item(&menu_resource)
+        c.menu_item()
             .with_children(|c| {
                 c.spawn(TextBundle::from_section(
                     t!("settings"),
@@ -206,7 +178,7 @@ fn setup_startscreen_ui(
             })
             .insert(SettingsButton);
 
-        c.menu_item(&menu_resource)
+        c.menu_item()
             .with_children(|c| {
                 c.spawn(TextBundle::from_section(
                     t!("start_game"),
@@ -215,32 +187,32 @@ fn setup_startscreen_ui(
             })
             .insert(StartButton);
     });
-    commands.insert_resource(menu_resource);
 }
 
 #[derive(Component)]
 struct MenuItem;
 
 trait ChildBuilderExtension {
-    fn menu_item<'w>(&'w mut self, materials: &MenuItemResource) -> EntityCommands<'w>;
+    fn menu_item<'w>(&'w mut self) -> EntityCommands<'w>;
 }
 
 impl ChildBuilderExtension for ChildBuilder<'_> {
-    fn menu_item<'w>(&'w mut self, materials: &MenuItemResource) -> EntityCommands<'w> {
+    fn menu_item<'w>(&'w mut self) -> EntityCommands<'w> {
         self.spawn((
             MenuItem,
-            MaterialNodeBundle {
+            NodeBundle {
                 style: Style {
                     display: Display::Flex,
                     flex_direction: FlexDirection::Row,
                     align_items: AlignItems::Center,
                     justify_content: JustifyContent::SpaceAround,
+                    padding: UiRect::all(Val::Px(10.)),
                     ..default()
                 },
-                material: materials.normal_material.clone(),
+                border_radius: BorderRadius::all(Val::Px(20.)),
+                background_color: SURFACE_COLOR.into(),
                 ..default()
-            },
-            RoundUiAutosizeNode,
+            }, 
             Interaction::default(),
         ))
     }
@@ -248,29 +220,23 @@ impl ChildBuilderExtension for ChildBuilder<'_> {
 
 fn menu_item_hover_effect(
     mut query: Query<
-        (&Interaction, &mut Handle<RoundUiMaterial>),
+        (&Interaction, &mut BackgroundColor),
         (With<MenuItem>, Changed<Interaction>),
-    >,
-    menu_item_res: Res<MenuItemResource>,
+    >
 ) {
     for (interaction, mut material) in &mut query {
         match *interaction {
             Interaction::Hovered => {
-                *material = menu_item_res.hover_material.clone();
+                *material = SURFACE_COLOR_FOCUSED.into();
             }
             Interaction::None => {
-                *material = menu_item_res.normal_material.clone();
+                *material = SURFACE_COLOR.into();
             }
             _ => {}
         }
     }
 }
 
-#[derive(Resource)]
-struct MenuItemResource {
-    hover_material: Handle<RoundUiMaterial>,
-    normal_material: Handle<RoundUiMaterial>,
-}
 
 fn start_game(
     start_button: Query<&Interaction, (With<StartButton>, Changed<Interaction>)>,
@@ -304,20 +270,21 @@ fn setup_leaderboard_screen(
     font_res: Res<FontsResource>,
     settings: Res<Settings>,
     root_node: Query<Entity, With<StartScreen>>,
-    menu_res: Res<MenuItemResource>,
-    ui_res: Res<UiRes>,
 ) {
     let Ok(root_node) = root_node.get_single() else {
         return;
     };
     commands.entity(root_node).with_children(|c| {
-        c.spawn(CardBundle::new(&ui_res).with_style(Style {
-            flex_direction: FlexDirection::Row,
-            width: Val::Px(600.),
-            padding: UiRect::all(Val::Px(20.)),
-            align_items: AlignItems::Center,
-            ..default()
-        }))
+        c.spawn(NodeBundle {
+            style: Style {
+                flex_direction: FlexDirection::Row,
+                width: Val::Px(600.),
+                padding: UiRect::all(Val::Px(20.)),
+                align_items: AlignItems::Center,
+                ..default()
+            }, 
+            ..ui_card()
+        })
         .with_children(|c| {
             let body_style = text_body_style(&font_res);
             if let Some(profile) = &settings.profile {
@@ -376,15 +343,18 @@ fn setup_leaderboard_screen(
             ),
             None => (FetchLeaderboardRequest::BestPlayers, 10),
         };
-        c.spawn(CardBundle::new(&ui_res).with_style(Style {
-            width: Val::Px(400.),
-            flex_direction: FlexDirection::Column,
-            padding: UiRect::all(Val::Px(20.)),
-            ..default()
-        }))
+        c.spawn(NodeBundle {
+            style: Style {
+                width: Val::Px(400.),
+                flex_direction: FlexDirection::Column,
+                padding: UiRect::all(Val::Px(20.)),
+                ..default()
+            }, 
+            ..ui_card()
+        })
         .with_children(|c| c.add_leaderboard(request, num, api_manager.clone(), &font_res));
 
-        c.menu_item(&menu_res)
+        c.menu_item()
             .insert(BackButton)
             .with_children(|c| {
                 c.spawn(TextBundle::from_section(
@@ -425,6 +395,8 @@ fn back_button(
         }
     }
 }
+
+// TODO: Add option to paste token from clipboard
 
 fn copy_token(
     mut clipboard: ResMut<Clipboard>,

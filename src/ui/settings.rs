@@ -1,13 +1,9 @@
-use bevy::{ecs::system::Command, prelude::*, ui::FocusPolicy, window::PrimaryWindow};
-use bevy_round_ui::autosize::{RoundUiAutosizeMaterial, RoundUiAutosizeNodePadding};
+use bevy::{ecs::world::Command, prelude::*, ui::FocusPolicy, window::PrimaryWindow};
 
 use crate::model::settings::{AntialiasingSetting, Settings, VSyncSetting};
 
 use super::{
-    fonts::FontsResource,
-    theme::text_button_style,
-    widgets::{CheckBox, CheckBoxBundle, TextButtonBundle},
-    UiRes,
+    fonts::FontsResource, theme::text_button_style, ui_card, widgets::{CheckBox, CheckBoxBundle, TextButtonBundle}
 };
 
 #[derive(Component)]
@@ -61,14 +57,8 @@ impl Command for OpenSettings {
             return;
         };
 
-        let Some(settings_res) = world.get_resource::<UiRes>() else {
-            error!("SettingsRes not found.");
-            return;
-        };
 
         let settings = settings.clone();
-
-        let background_material = settings_res.card_background_material.clone();
 
         let style = text_button_style(font_res);
 
@@ -93,20 +83,17 @@ impl Command for OpenSettings {
                 },
             ))
             .with_children(|c| {
-                c.spawn((
-                    MaterialNodeBundle {
-                        material: background_material,
+                c.spawn(NodeBundle {
                         style: Style {
-                            padding: UiRect::all(Val::Px(10.)),
+                            height: Val::Px(330.),
+                            padding: UiRect::all(Val::Px(15.)),
+                            position_type: PositionType::Relative, 
                             flex_direction: FlexDirection::Column,
                             align_items: AlignItems::Center,
                             ..default()
                         },
-                        ..default()
-                    },
-                    RoundUiAutosizeNodePadding,
-                    RoundUiAutosizeMaterial,
-                ))
+                        ..ui_card()
+                    })
                 .with_children(|c| {
                     c.settings_item(false, |c| {
                         c.spawn(TextBundle::from_section(t!("shadows"), style.clone()));
@@ -190,7 +177,7 @@ impl Command for OpenSettings {
 fn restart_required_text_style() -> TextStyle {
     TextStyle {
         font_size: 30.,
-        color: Color::rgb(0.7, 0.7, 0.7),
+        color: Color::srgb(0.7, 0.7, 0.7),
         ..default()
     }
 }

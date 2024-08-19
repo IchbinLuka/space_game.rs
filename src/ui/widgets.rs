@@ -1,8 +1,7 @@
-use bevy::prelude::*;
-use bevy_round_ui::{autosize::RoundUiAutosizeMaterial, prelude::RoundUiMaterial};
+use bevy::{color::palettes::css, prelude::*};
 use bevy_simple_text_input::TextInputInactive;
 
-use super::{theme::default_hover_effect, NodeHoverEffect, TextHoverEffect, UiRes};
+use super::{theme::default_hover_effect, NodeHoverEffect, TextHoverEffect};
 
 #[derive(Bundle)]
 pub struct TextButtonBundle {
@@ -47,9 +46,9 @@ impl CheckBox {
                 Color::NONE
             },
             hover_color: if self.state {
-                Color::WHITE.with_a(0.7)
+                Color::WHITE.with_alpha(0.7)
             } else {
-                Color::GRAY.with_a(0.5)
+                css::GRAY.with_alpha(0.5).into()
             },
         }
     }
@@ -102,48 +101,7 @@ fn check_box_update(
     }
 }
 
-/*
 
-MaterialNodeBundle {
-    material: ui_res.card_background_material.clone(),
-    style: Style {
-        padding: UiRect::all(Val::Px(20.)),
-        flex_direction: FlexDirection::Column,
-        width: Val::Px(400.),
-        ..default()
-    },
-    ..default()
-},
-
-*/
-
-#[derive(Bundle)]
-pub struct CardBundle {
-    node: MaterialNodeBundle<RoundUiMaterial>,
-    auto_size: RoundUiAutosizeMaterial,
-}
-
-impl CardBundle {
-    pub fn new(ui_res: &UiRes) -> Self {
-        Self {
-            node: MaterialNodeBundle {
-                material: ui_res.card_background_material.clone(),
-                style: Style {
-                    padding: UiRect::all(Val::Px(20.)),
-                    flex_direction: FlexDirection::Column,
-                    ..default()
-                },
-                ..default()
-            },
-            auto_size: RoundUiAutosizeMaterial,
-        }
-    }
-
-    pub fn with_style(mut self, style: Style) -> Self {
-        self.node.style = style;
-        self
-    }
-}
 
 #[derive(Component)]
 pub struct FocusTextInputOnInteraction;

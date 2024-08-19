@@ -1,4 +1,4 @@
-use bevy::{pbr::StandardMaterial, render::color::Color, utils::default};
+use bevy::{color::Color, pbr::StandardMaterial, utils::default};
 use bevy_mod_outline::OutlineVolume;
 
 #[inline(always)]

@@ -63,7 +63,7 @@ fn toon_outline(position: vec3<f32>, world_pos: vec3<f32>, sample_index: u32) ->
 
     let view_space_dir = world_pos - view.world_position;
 
-    let view_normal = view.view_proj * vec4<f32>(normal0, 0.0);
+    let view_normal = view.clip_from_world * vec4<f32>(normal0, 0.0);
 
 
     let n_dot_v = 1.0 - dot(normal0, -1.0 * normalize(view_space_dir));

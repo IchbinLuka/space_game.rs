@@ -1,4 +1,4 @@
-use bevy::{ecs::system::Command, prelude::*, render::view::RenderLayers, sprite::Anchor};
+use bevy::{color::palettes::css, ecs::world::Command, prelude::*, render::view::RenderLayers, sprite::Anchor};
 
 use crate::{
     components::health::Health,
@@ -71,7 +71,7 @@ impl Command for SpawnHealthBar {
                     },
                     SpriteBundle {
                         sprite: Sprite {
-                            color: Color::RED,
+                            color: css::RED.into(),
                             custom_size: Some(Vec2::new(
                                 HEALTH_BAR_CONTENT_WIDTH,
                                 HEALTH_BAR_HEIGHT - HEALTH_BAR_PADDING * 2.,
@@ -92,7 +92,7 @@ impl Command for SpawnHealthBar {
                         },
                         SpriteBundle {
                             sprite: Sprite {
-                                color: Color::hex("2ae0ed80").unwrap(),
+                                color: Srgba::hex("2ae0ed80").unwrap().into(),
                                 custom_size: Some(Vec2::new(HEALTH_BAR_WIDTH, HEALTH_BAR_HEIGHT)),
                                 anchor: Anchor::CenterLeft,
                                 ..default()

@@ -40,7 +40,7 @@ fn on_pause(
                     padding: UiRect::all(Val::Px(50.)),
                     ..default()
                 },
-                background_color: Color::rgba(0., 0., 0., 0.5).into(),
+                background_color: Color::srgba(0., 0., 0., 0.5).into(),
                 ..default()
             },
         ))

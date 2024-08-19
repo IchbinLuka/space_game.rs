@@ -6,10 +6,8 @@ pub mod start_screen;
 
 use bevy::app::{App, Plugin};
 use bevy::ecs::component::Component;
-use bevy::ecs::schedule::common_conditions::in_state;
-use bevy::ecs::schedule::{Condition, OnEnter, States};
 use bevy::ecs::system::ReadOnlySystem;
-use bevy::prelude::{Res, State};
+use bevy::prelude::*;
 use bevy_asset_loader::loading_state::{LoadingState, LoadingStateAppExt};
 use bevy_rapier3d::plugin::{RapierConfiguration, TimestepMode};
 use iyes_progress::ProgressPlugin;

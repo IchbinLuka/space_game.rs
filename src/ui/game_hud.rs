@@ -1,16 +1,9 @@
 use bevy::{
-    ecs::system::Command,
-    prelude::*,
-    render::{mesh::PrimitiveTopology, render_asset::RenderAssetUsages, view::RenderLayers},
-    sprite::{Anchor, MaterialMesh2dBundle},
+    color::palettes::css, ecs::world::Command, prelude::*, render::{mesh::PrimitiveTopology, render_asset::RenderAssetUsages, view::RenderLayers}, sprite::{Anchor, MaterialMesh2dBundle}
 };
 use bevy_asset_loader::{
     asset_collection::AssetCollection,
     loading_state::{config::ConfigureLoadingState, LoadingState, LoadingStateAppExt},
-};
-use bevy_round_ui::{
-    autosize::RoundUiAutosizeMaterial,
-    prelude::{RoundUiBorder, RoundUiMaterial},
 };
 use space_game_common as common;
 
@@ -69,7 +62,6 @@ fn spawn_inventory_item<C: Component>(
                         height: Val::Px(40.0),
                         ..default()
                     },
-                    background_color: Color::WHITE.into(),
                     ..default()
                 },
                 UiImage::new(icon),
@@ -90,7 +82,6 @@ const PADDING: f32 = 5.;
 fn main_hud_setup(
     mut commands: Commands,
     font_resource: Res<FontsResource>,
-    mut materials: ResMut<Assets<RoundUiMaterial>>,
     ui_assets: Res<UiAssets>,
 ) {
     let root = commands
@@ -165,7 +156,6 @@ fn main_hud_setup(
                 ),
                 ..default()
             },
-            RoundUiAutosizeMaterial,
             AuxiliaryDriveUI,
         ))
         .id();
@@ -199,38 +189,29 @@ fn main_hud_setup(
         .add_child(turret_counter);
 
     let health_bar = commands
-        .spawn((MaterialNodeBundle {
-            style: Style {
-                width: Val::Px(PANEL_WIDTH),
-                height: Val::Px(PANEL_HEIGHT),
-                padding: UiRect::all(Val::Px(PADDING)),
+        .spawn(NodeBundle {
+                style: Style {
+                    width: Val::Px(PANEL_WIDTH),
+                    height: Val::Px(PANEL_HEIGHT),
+                    padding: UiRect::all(Val::Px(PADDING)),
+                    ..default()
+                },
+                border_radius: BorderRadius::all(Val::Px(PANEL_HEIGHT / 2.)), 
+                background_color: Color::BLACK.into(),
                 ..default()
-            },
-            material: materials.add(RoundUiMaterial {
-                background_color: Color::BLACK,
-                border_radius: RoundUiBorder::all(PANEL_HEIGHT / 2.).into(),
-                size: Vec2::new(PANEL_WIDTH, PANEL_HEIGHT),
-                ..default()
-            }),
-            ..default()
-        },))
+            })
         .with_children(|p| {
             p.spawn((
-                MaterialNodeBundle {
-                    material: materials.add(RoundUiMaterial {
-                        background_color: Color::hex("#ef4d34").unwrap(),
-                        border_radius: RoundUiBorder::all((PANEL_HEIGHT - PADDING * 2.) / 2.)
-                            .into(),
-                        ..default()
-                    }),
+                NodeBundle {
                     style: Style {
                         width: Val::Percent(100.),
                         height: Val::Percent(100.),
                         ..default()
                     },
+                    background_color: Srgba::hex("#ef4d34").unwrap().into(),
+                    border_radius: BorderRadius::all(Val::Px((PANEL_HEIGHT - PADDING * 2.) / 2.)), 
                     ..default()
-                },
-                RoundUiAutosizeMaterial,
+                }, 
                 HealthBarContent,
             ));
         })
@@ -362,7 +343,7 @@ fn setup_enemy_indicator(
 
     let mesh = meshes.add(mesh);
 
-    let material = materials.add(Color::RED);
+    let material = materials.add(Into::<Color>::into(css::RED));
 
     commands.insert_resource(EnemyIndicatorRes { mesh, material });
 }

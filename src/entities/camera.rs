@@ -21,7 +21,7 @@ use super::spaceship::player::Player;
 #[derive(Component)]
 pub struct MainCamera;
 
-pub const RENDER_LAYER_2D: u8 = 1;
+pub const RENDER_LAYER_2D: usize = 1;
 
 fn camera_follow_system(
     mut camera_query: Query<&mut Transform, (With<MainCamera>, Without<Player>)>,

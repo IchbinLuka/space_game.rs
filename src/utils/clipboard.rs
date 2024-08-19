@@ -6,6 +6,7 @@ pub struct Clipboard {
     context: ClipboardContext,
 }
 
+#[allow(dead_code)]
 impl Clipboard {
     pub fn get_contents(&mut self) -> Option<String> {
         self.context.get_contents().ok()

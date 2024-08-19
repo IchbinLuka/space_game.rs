@@ -1,7 +1,7 @@
 use std::{future::Future, pin::Pin};
 
 use bevy::{
-    ecs::system::Command,
+    ecs::world::Command,
     prelude::*,
     tasks::{block_on, futures_lite::future, IoTaskPool, Task},
 };

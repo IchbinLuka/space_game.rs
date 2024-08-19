@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use bevy_round_ui::prelude::RoundUiMaterial;
 
 pub mod fonts;
 pub mod game_hud;
@@ -73,26 +72,21 @@ fn hover_effect_text(
     }
 }
 
-fn ui_setup(mut commands: Commands, mut materials: ResMut<Assets<RoundUiMaterial>>) {
-    commands.insert_resource(UiRes {
-        card_background_material: materials.add(RoundUiMaterial {
-            background_color: Color::rgb(0., 0., 0.),
-            border_radius: Vec4::splat(30.),
-            ..default()
-        }),
-    })
+pub fn ui_card() -> NodeBundle {
+    NodeBundle {
+        border_radius: BorderRadius::all(Val::Px(15.)), 
+        background_color: Color::BLACK.into(), 
+        ..default()
+    }
 }
 
-#[derive(Resource)]
-pub struct UiRes {
-    pub card_background_material: Handle<RoundUiMaterial>,
-}
+
 
 pub struct UIPlugin;
 
 impl Plugin for UIPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, ui_setup)
+        app
             .add_systems(
                 Update,
                 (hover_effect_node, hover_effect_text, hover_effect_cursor),

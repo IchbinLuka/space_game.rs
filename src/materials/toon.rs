@@ -1,8 +1,10 @@
 use bevy::{
     prelude::*,
     render::{
+        mesh::MeshVertexBufferLayoutRef,
         render_asset::RenderAssets,
         render_resource::{AsBindGroup, AsBindGroupShaderType, Face, ShaderRef, ShaderType},
+        texture::GpuImage,
     },
     scene::SceneInstance,
 };
@@ -23,9 +25,9 @@ pub struct PlanetMaterial {
 }
 
 impl AsBindGroupShaderType<ToonMaterialUniform> for PlanetMaterial {
-    fn as_bind_group_shader_type(&self, _images: &RenderAssets<Image>) -> ToonMaterialUniform {
+    fn as_bind_group_shader_type(&self, _images: &RenderAssets<GpuImage>) -> ToonMaterialUniform {
         ToonMaterialUniform {
-            color: self.color,
+            color: self.color.into(),
             use_texture: 1,
             filter_scale: 5.,
             ..default()
@@ -71,11 +73,11 @@ struct ToonMaterialUniform {
     depth_normal_threshold_scale: f32,
     depth_normal_threshold: f32,
     use_texture: u32,
-    color: Color,
+    color: LinearRgba,
 }
 
 impl AsBindGroupShaderType<ToonMaterialUniform> for ToonMaterial {
-    fn as_bind_group_shader_type(&self, _images: &RenderAssets<Image>) -> ToonMaterialUniform {
+    fn as_bind_group_shader_type(&self, _images: &RenderAssets<GpuImage>) -> ToonMaterialUniform {
         ToonMaterialUniform {
             filter_scale: self.filter_scale,
             depth_threshold: self.depth_threshold,
@@ -83,7 +85,7 @@ impl AsBindGroupShaderType<ToonMaterialUniform> for ToonMaterial {
             depth_normal_threshold_scale: self.depth_normal_threshold_scale,
             depth_normal_threshold: self.depth_normal_threshold,
             use_texture: if self.texture.is_some() { 1 } else { 0 },
-            color: self.color,
+            color: self.color.into(),
         }
     }
 }
@@ -120,7 +122,7 @@ impl Default for ToonMaterialUniform {
             depth_normal_threshold_scale: DEFAULT_DEPTH_NORMAL_THRESHOLD_SCALE,
             depth_normal_threshold: DEFAULT_DEPTH_NORMAL_THRESHOLD,
             use_texture: 0,
-            color: DEFAULT_COLOR,
+            color: DEFAULT_COLOR.into(),
         }
     }
 }
@@ -148,7 +150,7 @@ impl Material for ToonMaterial {
     fn specialize(
         _pipeline: &bevy::pbr::MaterialPipeline<Self>,
         descriptor: &mut bevy::render::render_resource::RenderPipelineDescriptor,
-        _layout: &bevy::render::mesh::MeshVertexBufferLayout,
+        _layout: &MeshVertexBufferLayoutRef,
         key: bevy::pbr::MaterialPipelineKey<Self>,
     ) -> Result<(), bevy::render::render_resource::SpecializedMeshPipelineError> {
         let fragment = descriptor.fragment.as_mut().unwrap();
