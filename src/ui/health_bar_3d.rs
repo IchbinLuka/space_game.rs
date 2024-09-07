@@ -1,4 +1,7 @@
-use bevy::{color::palettes::css, ecs::world::Command, prelude::*, render::view::RenderLayers, sprite::Anchor};
+use bevy::{
+    color::palettes::css, ecs::world::Command, prelude::*, render::view::RenderLayers,
+    sprite::Anchor,
+};
 
 use crate::{
     components::health::Health,

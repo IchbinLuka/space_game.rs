@@ -40,6 +40,19 @@ pub struct ApiManager {
     client: reqwest::Client,
 }
 
+#[derive(Debug, Clone)]
+pub enum ApiError {
+    NotAuthenticated,
+    NetworkError(String),
+    InvalidResponse(String),
+}
+
+impl From<reqwest::Error> for ApiError {
+    fn from(error: reqwest::Error) -> Self {
+        ApiError::NetworkError(error.to_string())
+    }
+}
+
 impl ApiManager {
     pub fn new() -> Self {
         Self {
@@ -47,7 +60,7 @@ impl ApiManager {
         }
     }
 
-    pub async fn get_profile(&self, token: &Token) -> Result<Profile, reqwest::Error> {
+    pub async fn get_profile(&self, token: &Token) -> Result<Profile, ApiError> {
         let url = get_url("self");
         let response = self
             .client
@@ -55,8 +68,12 @@ impl ApiManager {
             .header("Authorization", token.0.clone())
             .send()
             .await?
-            .error_for_status()?;
-        let parsed = response.json::<SelfResponse>().await?;
+            .error_for_status()
+            .map_err(|_| ApiError::NotAuthenticated)?;
+        let parsed = response
+            .json::<SelfResponse>()
+            .await
+            .map_err(|e| ApiError::InvalidResponse(e.to_string()))?;
         Ok(Profile {
             id: parsed.id,
             name: parsed.player_name,
@@ -102,7 +119,7 @@ impl ApiManager {
         response.json::<Vec<PlayerScore>>().await
     }
 
-    pub async fn create_player(&self, player_name: String) -> Result<Profile, reqwest::Error> {
+    pub async fn create_player(&self, player_name: String) -> Result<Profile, ApiError> {
         let response = self
             .client
             .post(get_url("players"))

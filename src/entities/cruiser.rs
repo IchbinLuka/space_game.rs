@@ -381,9 +381,14 @@ fn cruiser_animation_start(
             let Ok(mut player) = animation_players.get_mut(*entity) else {
                 continue;
             };
-            let (graph, animation_index) = AnimationGraph::from_clip(assets.cruiser_animation.clone());
-            player.play(animation_index).set_repeat(RepeatAnimation::Never);
-            commands.entity(entity.clone()).insert(animation_graphs.add(graph));
+            let (graph, animation_index) =
+                AnimationGraph::from_clip(assets.cruiser_animation.clone());
+            player
+                .play(animation_index)
+                .set_repeat(RepeatAnimation::Never);
+            commands
+                .entity(entity.clone())
+                .insert(animation_graphs.add(graph));
         }
     }
 }
@@ -624,7 +629,6 @@ fn cruiser_movement(mut cruisers: Query<(&mut Velocity, &mut Cruiser)>, time: Re
         }
     }
 }
-
 
 pub struct CruiserPLugin;
 

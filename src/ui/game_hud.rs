@@ -1,5 +1,9 @@
 use bevy::{
-    color::palettes::css, ecs::world::Command, prelude::*, render::{mesh::PrimitiveTopology, render_asset::RenderAssetUsages, view::RenderLayers}, sprite::{Anchor, MaterialMesh2dBundle}
+    color::palettes::css,
+    ecs::world::Command,
+    prelude::*,
+    render::{mesh::PrimitiveTopology, render_asset::RenderAssetUsages, view::RenderLayers},
+    sprite::{Anchor, MaterialMesh2dBundle},
 };
 use bevy_asset_loader::{
     asset_collection::AssetCollection,
@@ -190,16 +194,16 @@ fn main_hud_setup(
 
     let health_bar = commands
         .spawn(NodeBundle {
-                style: Style {
-                    width: Val::Px(PANEL_WIDTH),
-                    height: Val::Px(PANEL_HEIGHT),
-                    padding: UiRect::all(Val::Px(PADDING)),
-                    ..default()
-                },
-                border_radius: BorderRadius::all(Val::Px(PANEL_HEIGHT / 2.)), 
-                background_color: Color::BLACK.into(),
+            style: Style {
+                width: Val::Px(PANEL_WIDTH),
+                height: Val::Px(PANEL_HEIGHT),
+                padding: UiRect::all(Val::Px(PADDING)),
                 ..default()
-            })
+            },
+            border_radius: BorderRadius::all(Val::Px(PANEL_HEIGHT / 2.)),
+            background_color: Color::BLACK.into(),
+            ..default()
+        })
         .with_children(|p| {
             p.spawn((
                 NodeBundle {
@@ -209,9 +213,9 @@ fn main_hud_setup(
                         ..default()
                     },
                     background_color: Srgba::hex("#ef4d34").unwrap().into(),
-                    border_radius: BorderRadius::all(Val::Px((PANEL_HEIGHT - PADDING * 2.) / 2.)), 
+                    border_radius: BorderRadius::all(Val::Px((PANEL_HEIGHT - PADDING * 2.) / 2.)),
                     ..default()
-                }, 
+                },
                 HealthBarContent,
             ));
         })

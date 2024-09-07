@@ -3,7 +3,10 @@ use bevy::{ecs::world::Command, prelude::*, ui::FocusPolicy, window::PrimaryWind
 use crate::model::settings::{AntialiasingSetting, Settings, VSyncSetting};
 
 use super::{
-    fonts::FontsResource, theme::text_button_style, ui_card, widgets::{CheckBox, CheckBoxBundle, TextButtonBundle}
+    fonts::FontsResource,
+    theme::text_button_style,
+    ui_card,
+    widgets::{CheckBox, CheckBoxBundle, TextButtonBundle},
 };
 
 #[derive(Component)]
@@ -57,7 +60,6 @@ impl Command for OpenSettings {
             return;
         };
 
-
         let settings = settings.clone();
 
         let style = text_button_style(font_res);
@@ -84,16 +86,16 @@ impl Command for OpenSettings {
             ))
             .with_children(|c| {
                 c.spawn(NodeBundle {
-                        style: Style {
-                            height: Val::Px(330.),
-                            padding: UiRect::all(Val::Px(15.)),
-                            position_type: PositionType::Relative, 
-                            flex_direction: FlexDirection::Column,
-                            align_items: AlignItems::Center,
-                            ..default()
-                        },
-                        ..ui_card()
-                    })
+                    style: Style {
+                        height: Val::Px(330.),
+                        padding: UiRect::all(Val::Px(15.)),
+                        position_type: PositionType::Relative,
+                        flex_direction: FlexDirection::Column,
+                        align_items: AlignItems::Center,
+                        ..default()
+                    },
+                    ..ui_card()
+                })
                 .with_children(|c| {
                     c.settings_item(false, |c| {
                         c.spawn(TextBundle::from_section(t!("shadows"), style.clone()));

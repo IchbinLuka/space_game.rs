@@ -1,9 +1,11 @@
 use bevy::{
-    color::palettes::css, prelude::*, render::{
+    color::palettes::css,
+    prelude::*,
+    render::{
         render_asset::RenderAssets,
         render_resource::{AsBindGroup, AsBindGroupShaderType, ShaderRef, ShaderType},
         texture::GpuImage,
-    }
+    },
 };
 use bevy_asset_loader::asset_collection::{AssetCollection, AssetCollectionApp};
 

@@ -1,6 +1,9 @@
 use core::fmt;
 use std::fmt::Display;
-use std::{fs, io};
+use std::io;
+
+#[cfg(not(target_family = "wasm"))]
+use std::fs;
 
 use bevy::prelude::*;
 use bevy::window::{PresentMode, PrimaryWindow};

@@ -18,17 +18,23 @@ use crate::{
     model::settings::Settings,
     states::{in_start_menu, AppState},
     ui::{
-        fonts::FontsResource, leaderboard::{AddLeaderboardExtension, FetchLeaderboardRequest}, minimap::MinimapAssets, settings::SettingsButton, theme::{
+        fonts::FontsResource,
+        leaderboard::{AddLeaderboardExtension, FetchLeaderboardRequest},
+        minimap::MinimapAssets,
+        settings::SettingsButton,
+        theme::{
             text_body_style, text_button_small_style, text_button_style, text_title_style,
             SURFACE_COLOR, SURFACE_COLOR_FOCUSED,
-        }, ui_card, widgets::{FocusTextInputOnInteraction, TextButtonBundle, TextInputDisabled}
+        },
+        ui_card,
+        widgets::{FocusTextInputOnInteraction, TextButtonBundle, TextInputDisabled},
     },
     utils::{
         api::{ApiManager, Token},
-        clipboard::Clipboard,
+        clipboard::{Clipboard, ClipboardManager},
         misc::AsCommand,
         sets::Set,
-        tasks::StartJob,
+        tasks::TaskComponent,
     },
 };
 
@@ -117,7 +123,6 @@ fn setup_startscreen_ui(
     root: Query<Entity, With<StartScreen>>,
     mut commands: Commands,
 ) {
-
     let root = if let Ok(root) = root.get_single() {
         root
     } else {
@@ -142,23 +147,21 @@ fn setup_startscreen_ui(
     };
 
     commands.entity(root).with_children(|c| {
-        c.spawn((
-            NodeBundle {
-                style: Style {
-                    padding: UiRect::all(Val::Px(20.)),
-                    ..default()
-                },
-                background_color: SURFACE_COLOR.into(), 
-                border_radius: BorderRadius::all(Val::Px(30.)), 
+        c.spawn((NodeBundle {
+            style: Style {
+                padding: UiRect::all(Val::Px(20.)),
                 ..default()
-            }, 
-        ))
-        .with_children(|c| {
-            c.spawn(TextBundle::from_section(
-                "Space Game",
-                text_title_style(&font_res),
-            ));
-        });
+            },
+            background_color: SURFACE_COLOR.into(),
+            border_radius: BorderRadius::all(Val::Px(30.)),
+            ..default()
+        },))
+            .with_children(|c| {
+                c.spawn(TextBundle::from_section(
+                    "Space Game",
+                    text_title_style(&font_res),
+                ));
+            });
 
         c.menu_item()
             .with_children(|c| {
@@ -212,17 +215,14 @@ impl ChildBuilderExtension for ChildBuilder<'_> {
                 border_radius: BorderRadius::all(Val::Px(20.)),
                 background_color: SURFACE_COLOR.into(),
                 ..default()
-            }, 
+            },
             Interaction::default(),
         ))
     }
 }
 
 fn menu_item_hover_effect(
-    mut query: Query<
-        (&Interaction, &mut BackgroundColor),
-        (With<MenuItem>, Changed<Interaction>),
-    >
+    mut query: Query<(&Interaction, &mut BackgroundColor), (With<MenuItem>, Changed<Interaction>)>,
 ) {
     for (interaction, mut material) in &mut query {
         match *interaction {
@@ -236,7 +236,6 @@ fn menu_item_hover_effect(
         }
     }
 }
-
 
 fn start_game(
     start_button: Query<&Interaction, (With<StartButton>, Changed<Interaction>)>,
@@ -282,7 +281,7 @@ fn setup_leaderboard_screen(
                 padding: UiRect::all(Val::Px(20.)),
                 align_items: AlignItems::Center,
                 ..default()
-            }, 
+            },
             ..ui_card()
         })
         .with_children(|c| {
@@ -349,19 +348,17 @@ fn setup_leaderboard_screen(
                 flex_direction: FlexDirection::Column,
                 padding: UiRect::all(Val::Px(20.)),
                 ..default()
-            }, 
+            },
             ..ui_card()
         })
         .with_children(|c| c.add_leaderboard(request, num, api_manager.clone(), &font_res));
 
-        c.menu_item()
-            .insert(BackButton)
-            .with_children(|c| {
-                c.spawn(TextBundle::from_section(
-                    t!("back"),
-                    text_button_style(&font_res),
-                ));
-            });
+        c.menu_item().insert(BackButton).with_children(|c| {
+            c.spawn(TextBundle::from_section(
+                t!("back"),
+                text_button_style(&font_res),
+            ));
+        });
     });
 }
 
@@ -432,13 +429,17 @@ fn save_token(
 
             let api_manager = api_manager.clone();
 
-            commands.add(StartJob {
-                job: Box::pin(async move { api_manager.get_profile(&token).await }),
-                on_complete: |result, world: &mut World| {
-                    let Ok(profile) = result else {
-                        error!("Could not fetch profile");
-                        return;
+            commands.spawn(TaskComponent::new(
+                async move { api_manager.get_profile(&token).await },
+                |result, world| {
+                    let profile = match result {
+                        Ok(profile) => profile,
+                        Err(e) => {
+                            error!("Could not fetch profile: {:?}", e);
+                            return;
+                        }
                     };
+
                     let mut settings = world
                         .get_resource_mut::<Settings>()
                         .expect("Settings resource does not exist");
@@ -447,7 +448,7 @@ fn save_token(
 
                     RebuildScreen.apply(world);
                 },
-            });
+            ));
 
             inactive.0 = true;
             commands.entity(entity).insert(TextInputDisabled);

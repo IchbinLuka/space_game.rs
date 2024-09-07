@@ -65,8 +65,7 @@ const LOG_LEVEL: log::Level = log::Level::ERROR;
 
 fn main() {
     let mut app = App::new();
-    app
-        .insert_resource(Msaa::Off)
+    app.insert_resource(Msaa::Off)
         .add_plugins(
             DefaultPlugins
                 .set(LogPlugin {

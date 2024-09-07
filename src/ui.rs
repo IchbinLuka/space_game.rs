@@ -74,33 +74,29 @@ fn hover_effect_text(
 
 pub fn ui_card() -> NodeBundle {
     NodeBundle {
-        border_radius: BorderRadius::all(Val::Px(15.)), 
-        background_color: Color::BLACK.into(), 
+        border_radius: BorderRadius::all(Val::Px(15.)),
+        background_color: Color::BLACK.into(),
         ..default()
     }
 }
-
-
 
 pub struct UIPlugin;
 
 impl Plugin for UIPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_systems(
-                Update,
-                (hover_effect_node, hover_effect_text, hover_effect_cursor),
-            )
-            .add_plugins((
-                game_hud::GameHudPlugin,
-                sprite_3d_renderer::Sprite3DRendererPlugin,
-                fonts::FontsPlugin,
-                health_bar_3d::HealthBar3DPlugin,
-                settings::SettingsPlugin,
-                widgets::WidgetsPlugin,
-                minimap::MinimapPlugin,
-                game_over::GameOverPlugin,
-                leaderboard::LeaderboardPlugin,
-            ));
+        app.add_systems(
+            Update,
+            (hover_effect_node, hover_effect_text, hover_effect_cursor),
+        )
+        .add_plugins((
+            game_hud::GameHudPlugin,
+            sprite_3d_renderer::Sprite3DRendererPlugin,
+            fonts::FontsPlugin,
+            health_bar_3d::HealthBar3DPlugin,
+            settings::SettingsPlugin,
+            widgets::WidgetsPlugin,
+            minimap::MinimapPlugin,
+            game_over::GameOverPlugin,
+        ));
     }
 }

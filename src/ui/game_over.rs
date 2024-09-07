@@ -4,7 +4,7 @@ use bevy_simple_text_input::{TextInputBundle, TextInputInactive, TextInputValue}
 
 use crate::components::health::Health;
 use crate::entities::space_station::SpaceStation;
-use crate::model::settings::{Profile, Settings};
+use crate::model::settings::Settings;
 use crate::states::{
     game_over, game_running, reset_physics_speed, slow_down_physics, AppState, DespawnOnCleanup,
 };
@@ -12,7 +12,7 @@ use crate::ui::fonts::FontsResource;
 use crate::ui::theme::{fullscreen_center_style, text_button_style, text_title_style};
 use crate::ui::widgets::TextButtonBundle;
 use crate::utils::api::ApiManager;
-use crate::utils::tasks::{poll_task, StartJob};
+use crate::utils::tasks::TaskComponent;
 
 use super::game_hud::Score;
 use super::leaderboard::{AddLeaderboardExtension, FetchLeaderboardRequest};
@@ -59,14 +59,9 @@ fn submit_score_if_logged_in(
     let api_manager = api_manager.clone();
     let profile = profile.clone();
     let events = score.events.clone();
-
-    commands.add(StartJob {
-        job: Box::pin(async move {
-            api_manager
-                .submit_score(&events, &profile.token.clone())
-                .await
-        }),
-        on_complete: |result, _| match result {
+    commands.spawn(TaskComponent::new(
+        async move { api_manager.submit_score(&events, &profile.token).await },
+        |result, _| match result {
             Ok(_) => {
                 info!("Score submitted successfully");
             }
@@ -74,7 +69,7 @@ fn submit_score_if_logged_in(
                 error!("Failed to submit score: {:?}", e);
             }
         },
-    });
+    ));
 }
 
 fn game_over_screen_setup(
@@ -154,14 +149,14 @@ fn game_over_screen_setup(
             let score_value = score.value;
 
             c.spawn(NodeBundle {
-                    style: Style {
-                        padding: UiRect::all(Val::Px(20.)),
-                        flex_direction: FlexDirection::Column,
-                        width: Val::Px(400.),
-                        ..default()
-                    },
-                    ..ui_card()
-                })
+                style: Style {
+                    padding: UiRect::all(Val::Px(20.)),
+                    flex_direction: FlexDirection::Column,
+                    width: Val::Px(400.),
+                    ..default()
+                },
+                ..ui_card()
+            })
             .with_children(|c| {
                 c.spawn(TextBundle::from_section(
                     t!("leaderboard"),
@@ -247,8 +242,8 @@ fn submit_score(
 
         let score_events = score.events.clone();
 
-        commands.add(StartJob {
-            job: Box::pin(async move {
+        commands.spawn(TaskComponent::new(
+            async move {
                 let Ok(profile) = api_manager.create_player(player_name).await else {
                     error!("Error creating player");
                     return Err(SubmitScoreError::PlayerCreationFailed);
@@ -259,8 +254,8 @@ fn submit_score(
                     .map_err(|_| SubmitScoreError::ScoreSubmissionFailed)?;
 
                 Ok(profile)
-            }),
-            on_complete: |result, world: &mut World| {
+            },
+            |result, world: &mut World| {
                 let Ok(profile) = result else {
                     error!("Could not submit score: {:?}", result.err().unwrap());
                     return;
@@ -271,7 +266,7 @@ fn submit_score(
                 let mut settings = world.get_resource_mut::<Settings>().unwrap();
                 settings.profile = Some(profile);
             },
-        });
+        ));
 
         commands.entity(entity).despawn_recursive();
         commands.entity(text_field).despawn_recursive()
@@ -331,13 +326,7 @@ impl Plugin for GameOverPlugin {
                         trigger_game_over,
                     )
                         .run_if(game_running()),
-                    (
-                        restart_game,
-                        back_to_menu,
-                        submit_score,
-                        poll_task::<Result<Profile, SubmitScoreError>>,
-                    )
-                        .run_if(game_over()),
+                    (restart_game, back_to_menu, submit_score).run_if(game_over()),
                 ),
             )
             .add_systems(

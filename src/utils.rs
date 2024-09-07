@@ -14,6 +14,7 @@ pub mod tasks;
 pub struct UtilsPlugin;
 impl Plugin for UtilsPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.init_resource::<clipboard::Clipboard>();
+        app.add_plugins(tasks::TaskPlugin)
+            .init_resource::<clipboard::Clipboard>();
     }
 }

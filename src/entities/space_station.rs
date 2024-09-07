@@ -51,10 +51,7 @@ pub fn spawn_space_station(
     minimap_res: &MinimapAssets,
     position: Vec3,
     with_health_bar: bool,
-    
 ) {
-
-
     let space_station = commands
         .spawn((
             SceneBundle {
@@ -114,15 +111,16 @@ fn space_station_animation(
     mut animation_players: Query<&mut AnimationPlayer>,
     space_station_res: Res<SpaceStationRes>,
     mut graphs: ResMut<Assets<AnimationGraph>>,
-    mut commands: Commands,  
+    mut commands: Commands,
 ) {
     for animation_root in &space_station {
         for entity in &animation_root.player_entites {
             let Ok(mut player) = animation_players.get_mut(*entity) else {
                 continue;
             };
-            let (graph, animation_index) = AnimationGraph::from_clip(space_station_res.animation.clone());
-            player.play(animation_index);
+            let (graph, animation_index) =
+                AnimationGraph::from_clip(space_station_res.animation.clone());
+            player.play(animation_index).repeat();
             commands.entity(entity.clone()).insert(graphs.add(graph));
         }
     }

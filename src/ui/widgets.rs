@@ -101,8 +101,6 @@ fn check_box_update(
     }
 }
 
-
-
 #[derive(Component)]
 pub struct FocusTextInputOnInteraction;
 

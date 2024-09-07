@@ -1,7 +1,9 @@
 use std::f32::consts::FRAC_PI_2;
 
 use bevy::{
-    color::palettes::css, prelude::*, render::render_resource::{AsBindGroup, ShaderRef}
+    color::palettes::css,
+    prelude::*,
+    render::render_resource::{AsBindGroup, ShaderRef},
 };
 
 use crate::states::AppState;

@@ -1,8 +1,8 @@
+#[cfg(not(target_family = "wasm"))]
+use bevy::core_pipeline::prepass::{DepthPrepass, NormalPrepass};
+
 use bevy::{
-    core_pipeline::{
-        prepass::{DepthPrepass, NormalPrepass},
-        Skybox,
-    },
+    core_pipeline::Skybox,
     prelude::*,
     render::{
         render_resource::{TextureViewDescriptor, TextureViewDimension},
