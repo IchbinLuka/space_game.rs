@@ -1,10 +1,6 @@
-use std::{future::Future, pin::Pin};
+use std::future::Future;
 
-use bevy::{
-    ecs::world::{Command, CommandQueue},
-    prelude::*,
-    tasks::IoTaskPool,
-};
+use bevy::{ecs::world::CommandQueue, prelude::*, tasks::IoTaskPool};
 use cfg_if::cfg_if;
 
 // TODO: This should get easier when using the newer bevy version
@@ -16,7 +12,8 @@ pub struct TaskComponent {
 
 impl TaskComponent {
     pub fn new<T>(
-        future: impl Future<Output = T> + 'static,
+        #[cfg(not(target_family = "wasm"))] future: impl Future<Output = T> + 'static + Send,
+        #[cfg(target_family = "wasm")] future: impl Future<Output = T> + 'static,
         on_complete: impl FnOnce(T, &mut World) + Send + 'static,
     ) -> TaskComponent
     where
@@ -24,7 +21,7 @@ impl TaskComponent {
     {
         let task_pool = IoTaskPool::get();
         let (tx, rx) = crossbeam_channel::bounded(1);
-        task_pool.spawn(async move {
+        let _ = task_pool.spawn(async move {
             cfg_if! {
                 if #[cfg(not(target_family = "wasm"))] {
                     let future = async_compat::Compat::new(future);
@@ -48,31 +45,6 @@ fn poll_task(mut commands: Commands, query: Query<(Entity, &TaskComponent)>) {
 
         commands.append(queue);
         commands.entity(entity).despawn();
-    }
-}
-
-pub struct StartJob<T>
-where
-    T: Send + 'static,
-{
-    pub job: Pin<Box<dyn Future<Output = T> + Send + 'static>>,
-    pub on_complete: fn(T, &mut World),
-}
-
-impl<T> Command for StartJob<T>
-where
-    T: Send + 'static,
-{
-    fn apply(self, world: &mut World) {
-        let task_pool = IoTaskPool::get();
-        let (tx, rx) = crossbeam_channel::bounded(1);
-        task_pool.spawn(async move {
-            let result = async_compat::Compat::new(self.job).await;
-            let mut command_queue = CommandQueue::default();
-            command_queue.push(move |world: &mut World| (self.on_complete)(result, world));
-            tx.send(command_queue).unwrap();
-        });
-        world.spawn(TaskComponent { receiver: rx });
     }
 }
 

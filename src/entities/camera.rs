@@ -140,6 +140,7 @@ impl Plugin for CameraComponentPlugin {
         app.add_collection_to_loading_states::<CameraAssets>(&[
             AppState::MainSceneLoading,
             AppState::StartScreenLoading,
+            AppState::TestSceneLoading,
         ])
         .add_systems(
             OnEnter(AppState::StartScreen),
@@ -147,6 +148,10 @@ impl Plugin for CameraComponentPlugin {
         )
         .add_systems(
             OnEnter(AppState::MainScene),
+            setup_skybox_texture.in_set(Set::CameraSkyboxInit),
+        )
+        .add_systems(
+            OnEnter(AppState::TestScene),
             setup_skybox_texture.in_set(Set::CameraSkyboxInit),
         )
         .add_systems(ON_GAME_STARTED, camera_setup)

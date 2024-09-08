@@ -1,6 +1,8 @@
 use std::{f32::consts::FRAC_PI_2, time::Duration};
 
-use bevy::prelude::*;
+use bevy::{
+    app::FixedMain, prelude::*, render::RenderSet,
+};
 use bevy_asset_loader::{
     asset_collection::AssetCollection,
     loading_state::{
@@ -17,7 +19,7 @@ use crate::{
     components::{colliders::VelocityColliderBundle, despawn_after::DespawnTimer},
     entities::bullet::BulletType,
     particles::ParticleMaterial,
-    states::{game_running, AppState, DespawnOnCleanup, ON_GAME_STARTED},
+    states::{game_running, AppState, DespawnOnCleanup},
     ui::game_hud::ScoreGameEvent,
     utils::{
         collisions::BULLET_COLLISION_GROUP, materials::default_outline,
@@ -26,7 +28,11 @@ use crate::{
     ToonMaterial,
 };
 
-use super::{bullet::Bullet, explosion::ExplosionEvent, spaceship::player::Player};
+use super::{
+    bullet::Bullet,
+    explosion::ExplosionEvent,
+    spaceship::player::Player,
+};
 
 #[derive(Component)]
 pub struct Asteroid;
@@ -254,24 +260,37 @@ fn asteroid_setup(
     });
 }
 
+
 pub struct AsteroidPlugin;
 
 impl Plugin for AsteroidPlugin {
     fn build(&self, app: &mut App) {
-        app.configure_loading_state(
-            LoadingStateConfig::new(AppState::MainSceneLoading).load_collection::<AsteroidAssets>(),
-        )
-        .add_systems(ON_GAME_STARTED, asteroid_setup)
-        .add_systems(
-            Update,
-            (
-                asteroid_collisions
-                    .in_set(Set::ExplosionEvents)
-                    .in_set(Set::ScoreEvents),
-                spawn_asteroid_field,
-                despawn_asteroid_field,
+        app
+            .configure_loading_state(
+                LoadingStateConfig::new(AppState::StartScreenLoading)
+                    .load_collection::<AsteroidAssets>(),
             )
-                .run_if(game_running()),
+            .add_systems(Startup, asteroid_setup)
+            .add_systems(
+                Update,
+                (
+                    asteroid_collisions
+                        .in_set(Set::ExplosionEvents)
+                        .in_set(Set::ScoreEvents),
+                    despawn_asteroid_field,
+                )
+                    .run_if(game_running()),
+            );
+        
+        // TODO: For some reason this sometimes crashes on wasm (https://github.com/IchbinLuka/space_game.rs/issues/9)
+        #[cfg(not(target_arch = "wasm32"))]
+        app.add_systems(
+            FixedMain,
+            spawn_asteroid_field
+                .after(RenderSet::PrepareResources)
+                .run_if(
+                    game_running(),
+                ),
         );
     }
 }

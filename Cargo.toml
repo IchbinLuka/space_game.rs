@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bevy = { version = "0.14.1", features = ["jpeg", "mp3"] }
+bevy = { version = "0.14.2", features = ["jpeg", "mp3"] }
 bevy_asset_loader = { version = "0.21.0", features = ["progress_tracking"] }
 # bevy_kira_audio = { version = "0.19.0", features = ["wav", "mp3"]}
 bevy_audio = "0.14.1"
@@ -69,7 +69,7 @@ strip = "debuginfo"
 runner = "wasm-server-runner"
 
 [target.wasm32-unknown-unknown.dependencies]
-bevy = { version = "0.14.1", features = ["jpeg", "mp3"] }
+bevy = { version = "0.14.2", features = ["jpeg", "mp3"] }
 bevy_rapier3d = { version = "0.27.0", features = [
     "debug-render-3d",
     "wasm-bindgen",

@@ -23,6 +23,7 @@ pub enum AppState {
     MainScene,
     GameOver,
     ParticleTestScene,
+    TestSceneLoading,
     TestScene,
 }
 
@@ -55,6 +56,10 @@ impl AppState {
         LoadingStateItem {
             loading_state: AppState::StartScreenLoading,
             next_state: AppState::StartScreen,
+        },
+        LoadingStateItem {
+            loading_state: AppState::TestSceneLoading,
+            next_state: AppState::TestScene,
         },
     ];
 }
