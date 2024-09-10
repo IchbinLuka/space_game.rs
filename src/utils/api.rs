@@ -41,6 +41,7 @@ pub struct ApiManager {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum ApiError {
     NotAuthenticated,
     NetworkError(String),

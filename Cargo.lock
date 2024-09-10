@@ -6116,6 +6116,7 @@ dependencies = [
  "serde_json",
  "space_game_common",
  "wasm-bindgen",
+ "wasm-bindgen-futures",
  "web-sys",
 ]
 

@@ -8,6 +8,7 @@ use bevy::{
     prelude::*,
 };
 use bevy_simple_text_input::{TextInputBundle, TextInputInactive, TextInputValue};
+use cfg_if::cfg_if;
 
 use crate::{
     entities::{
@@ -15,7 +16,7 @@ use crate::{
         planet::{spawn_planet, PlanetSpawnConfig},
         space_station::{spawn_space_station, SpaceStationRes},
     },
-    model::settings::Settings,
+    model::settings::{Profile, Settings},
     states::{in_start_menu, AppState},
     ui::{
         fonts::FontsResource,
@@ -30,8 +31,8 @@ use crate::{
         widgets::{FocusTextInputOnInteraction, TextButtonBundle, TextInputDisabled},
     },
     utils::{
-        api::{ApiManager, Token},
-        clipboard::{Clipboard, ClipboardManager},
+        api::{ApiError, ApiManager, Token},
+        clipboard::Clipboard,
         misc::AsCommand,
         sets::Set,
         tasks::TaskComponent,
@@ -196,11 +197,11 @@ fn setup_startscreen_ui(
 struct MenuItem;
 
 trait ChildBuilderExtension {
-    fn menu_item<'w>(&'w mut self) -> EntityCommands<'w>;
+    fn menu_item(&mut self) -> EntityCommands;
 }
 
 impl ChildBuilderExtension for ChildBuilder<'_> {
-    fn menu_item<'w>(&'w mut self) -> EntityCommands<'w> {
+    fn menu_item(&mut self) -> EntityCommands {
         self.spawn((
             MenuItem,
             NodeBundle {
@@ -262,6 +263,9 @@ struct SaveTokenButton;
 
 #[derive(Component)]
 struct ResetTokenButton;
+
+#[derive(Component)]
+struct PasteTokenButton;
 
 fn setup_leaderboard_screen(
     mut commands: Commands,
@@ -331,6 +335,14 @@ fn setup_leaderboard_screen(
                     TextButtonBundle::from_section(t!("save"), text_button_small_style(&font_res)),
                     SaveTokenButton,
                 ));
+                c.spawn((
+                    TextButtonBundle::from_section(t!("paste"), text_button_small_style(&font_res)),
+                    PasteTokenButton,
+                ))
+                .insert(Style {
+                    margin: UiRect::left(Val::Px(10.)),
+                    ..default()
+                });
             }
         });
         let (request, num) = match &settings.profile {
@@ -429,29 +441,75 @@ fn save_token(
 
             let api_manager = api_manager.clone();
 
-            commands.spawn(TaskComponent::new(
-                async move { api_manager.get_profile(&token).await },
-                |result, world| {
-                    let profile = match result {
-                        Ok(profile) => profile,
-                        Err(e) => {
-                            error!("Could not fetch profile: {:?}", e);
-                            return;
-                        }
-                    };
-
-                    let mut settings = world
-                        .get_resource_mut::<Settings>()
-                        .expect("Settings resource does not exist");
-
-                    settings.profile = Some(profile);
-
-                    RebuildScreen.apply(world);
-                },
-            ));
+            spawn_update_token_task(token, api_manager, &mut commands);
 
             inactive.0 = true;
             commands.entity(entity).insert(TextInputDisabled);
+        }
+    }
+}
+
+fn spawn_update_token_task(token: Token, api_manager: ApiManager, commands: &mut Commands) {
+    commands.spawn(TaskComponent::new(
+        async move { api_manager.get_profile(&token).await },
+        on_profile_loaded,
+    ));
+}
+
+fn on_profile_loaded(result: Result<Profile, ApiError>, world: &mut World) {
+    let profile = match result {
+        Ok(profile) => profile,
+        Err(e) => {
+            error!("Could not fetch profile: {:?}", e);
+            return;
+        }
+    };
+
+    let mut settings = world
+        .get_resource_mut::<Settings>()
+        .expect("Settings resource does not exist");
+
+    settings.profile = Some(profile);
+
+    RebuildScreen.apply(world);
+}
+
+fn paste_token(
+    button: Query<&Interaction, (With<PasteTokenButton>, Changed<Interaction>)>,
+    mut commands: Commands,
+    mut clipboard: ResMut<Clipboard>,
+    api_manager: Res<ApiManager>,
+) {
+    for interaction in &button {
+        if *interaction == Interaction::Pressed {
+            let api_manager = api_manager.clone();
+            cfg_if! {
+                if #[cfg(target_family = "wasm")] {
+                    let mut clipboard = clipboard.clone();
+                    commands.spawn(TaskComponent::new(
+                        async move {
+                            let token = clipboard.get_contents().await;
+
+                            match token {
+                                Some(token_text) => {
+                                    let token = Token(token_text.clone());
+                                    Some(api_manager.get_profile(&token).await)
+                                }
+                                None => None
+                            }
+                        },
+                        move |result, world| {
+                            if let Some(result) = result {
+                                on_profile_loaded(result, world);
+                            }
+                        },
+                    ));
+                } else {
+                    let Some(token_text) = clipboard.get_contents() else { continue; };
+                    let token = Token(token_text.clone());
+                    spawn_update_token_task(token, api_manager, &mut commands);
+                }
+            }
         }
     }
 }
@@ -506,6 +564,7 @@ impl Plugin for StartScreenPlugin {
                 copy_token,
                 save_token,
                 reset_token,
+                paste_token,
             )
                 .run_if(in_start_menu()),
         );

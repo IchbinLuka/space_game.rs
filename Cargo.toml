@@ -69,6 +69,7 @@ strip = "debuginfo"
 runner = "wasm-server-runner"
 
 [target.wasm32-unknown-unknown.dependencies]
+wasm-bindgen-futures = "0.4.43"
 bevy = { version = "0.14.2", features = ["jpeg", "mp3"] }
 bevy_rapier3d = { version = "0.27.0", features = [
     "debug-render-3d",

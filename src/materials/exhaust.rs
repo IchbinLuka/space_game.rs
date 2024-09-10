@@ -7,7 +7,12 @@ use bevy::{
         texture::GpuImage,
     },
 };
-use bevy_asset_loader::asset_collection::{AssetCollection, AssetCollectionApp};
+use bevy_asset_loader::{
+    asset_collection::AssetCollection,
+    loading_state::{config::ConfigureLoadingState, LoadingState, LoadingStateAppExt},
+};
+
+use crate::states::{AppState, ON_GAME_STARTED};
 
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
 #[uniform(0, ExhaustMaterialUniform)]
@@ -39,7 +44,7 @@ impl Default for ExhaustMaterial {
             outer_color: css::ORANGE_RED.into(),
             threshold_offset: 0.3,
             speed: 1.0,
-            noise_texture: Default::default(),
+            noise_texture: NOISE_TEXTURE.clone(),
         }
     }
 }
@@ -76,13 +81,6 @@ impl Material for ExhaustMaterial {
     }
 }
 
-fn inject_noise_texture(mut materials: ResMut<Assets<ExhaustMaterial>>, res: Res<ExhaustRes>) {
-    let inner = materials.bypass_change_detection();
-    for (_, material) in inner.iter_mut() {
-        material.noise_texture = res.noise_texture.clone();
-    }
-}
-
 #[derive(Resource, AssetCollection)]
 pub struct ExhaustRes {
     #[asset(path = "textures/noise.png")]
@@ -91,14 +89,23 @@ pub struct ExhaustRes {
     pub mesh: Handle<Mesh>,
 }
 
+const NOISE_TEXTURE: Handle<Image> = Handle::weak_from_u128(28412094821138288454);
+
+fn setup_exhaust_material(mut images: ResMut<Assets<Image>>, mut res: ResMut<ExhaustRes>) {
+    let noise_texture = images
+        .remove(&res.noise_texture.clone())
+        .expect("Noise texture has not been loaded");
+    images.insert(&NOISE_TEXTURE, noise_texture);
+    res.noise_texture = NOISE_TEXTURE.clone();
+}
+
 pub struct ExhaustPlugin;
 impl Plugin for ExhaustPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(MaterialPlugin::<ExhaustMaterial>::default())
-            .init_collection::<ExhaustRes>()
-            .add_systems(
-                Update,
-                inject_noise_texture.run_if(resource_changed::<Assets<ExhaustMaterial>>),
-            );
+            .add_loading_state(
+                LoadingState::new(AppState::MainSceneLoading).load_collection::<ExhaustRes>(),
+            )
+            .add_systems(ON_GAME_STARTED, setup_exhaust_material);
     }
 }

@@ -121,7 +121,7 @@ fn space_station_animation(
             let (graph, animation_index) =
                 AnimationGraph::from_clip(space_station_res.animation.clone());
             player.play(animation_index).repeat();
-            commands.entity(entity.clone()).insert(graphs.add(graph));
+            commands.entity(*entity).insert(graphs.add(graph));
         }
     }
 }

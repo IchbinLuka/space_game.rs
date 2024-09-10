@@ -386,9 +386,7 @@ fn cruiser_animation_start(
             player
                 .play(animation_index)
                 .set_repeat(RepeatAnimation::Never);
-            commands
-                .entity(entity.clone())
-                .insert(animation_graphs.add(graph));
+            commands.entity(*entity).insert(animation_graphs.add(graph));
         }
     }
 }

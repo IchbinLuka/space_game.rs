@@ -51,9 +51,9 @@ fn on_leaderboard_loaded(
             .take_while(|v| v.score > score)
             .collect();
         new_scores.push(PlayerScore {
-            score: score,
+            score,
             player_name: t!("you").to_string(),
-            rank: (new_scores.len() + 1) as u32,
+            rank: new_scores.last().map_or(0, |p| p.rank) + 1,
             id: 0,
         });
         let iter = scores
@@ -146,6 +146,7 @@ impl AddLeaderboardExtension for ChildBuilder<'_> {
 
         self.spawn(TaskComponent::new(
             async move {
+                info!("Loading leaderboard");
                 match request {
                     FetchLeaderboardRequest::NearScore { score } => {
                         api_manager.fetch_leaderboard_by_score(score, count).await
@@ -159,6 +160,7 @@ impl AddLeaderboardExtension for ChildBuilder<'_> {
                 }
             },
             move |result, world| {
+                info!("Leaderboard loaded");
                 on_leaderboard_loaded(leaderboard, request_clone, result, world);
             },
         ));
