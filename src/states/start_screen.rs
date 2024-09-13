@@ -119,6 +119,7 @@ fn setup_start_screen(
     );
 }
 
+
 fn setup_startscreen_ui(
     font_res: Res<FontsResource>,
     root: Query<Entity, With<StartScreen>>,
@@ -277,73 +278,111 @@ fn setup_leaderboard_screen(
     let Ok(root_node) = root_node.get_single() else {
         return;
     };
+
+    let body_style = text_body_style(&font_res);
+
     commands.entity(root_node).with_children(|c| {
         c.spawn(NodeBundle {
             style: Style {
-                flex_direction: FlexDirection::Row,
-                width: Val::Px(600.),
+                flex_direction: FlexDirection::Column,
+                width: Val::Px(650.),
                 padding: UiRect::all(Val::Px(20.)),
-                align_items: AlignItems::Center,
+                align_items: AlignItems::Start,
                 ..default()
             },
             ..ui_card()
         })
         .with_children(|c| {
-            let body_style = text_body_style(&font_res);
             if let Some(profile) = &settings.profile {
                 c.spawn(TextBundle::from_section(
-                    profile.token.0.clone(),
-                    body_style.clone(),
+                    t!("logged_in_as", name = profile.name),
+                    text_button_small_style(&font_res),
                 ));
-                c.spawn(NodeBundle {
-                    style: Style {
-                        flex_grow: 1.,
-                        ..default()
-                    },
+            }
+            c.spawn(NodeBundle {
+                style: Style {
+                    flex_direction: FlexDirection::Row,
+                    align_items: AlignItems::Center,
+                    width: Val::Percent(100.),
                     ..default()
-                });
-                c.spawn((
-                    TextButtonBundle::from_section(t!("copy"), text_button_small_style(&font_res)),
-                    CopyTokenButton,
-                ))
-                .insert(Style {
-                    margin: UiRect::right(Val::Px(10.)),
-                    ..default()
-                });
-                c.spawn((
-                    TextButtonBundle::from_section(t!("reset"), text_button_small_style(&font_res)),
-                    ResetTokenButton,
-                ));
-            } else {
-                c.spawn((
-                    NodeBundle {
+                },
+                ..default()
+            })
+            .with_children(|c| {
+                if let Some(profile) = &settings.profile {
+                    c.spawn(TextBundle {
+                        style: Style {
+                            margin: UiRect::right(Val::Px(5.)), 
+                            ..default()
+                        }, 
+                        ..TextBundle::from_section("Token: ", body_style.clone())
+                    });
+                    c.spawn(TextBundle::from_section(
+                        profile.token.0.clone(),
+                        body_style.clone(),
+                    ));
+                    c.spawn(NodeBundle {
                         style: Style {
                             flex_grow: 1.,
-                            height: Val::Px(body_style.font_size),
                             ..default()
                         },
                         ..default()
-                    },
-                    TextInputBundle::default()
-                        .with_placeholder(t!("enter_token"), Some(body_style.clone()))
-                        .with_text_style(body_style.clone())
-                        .with_inactive(true),
-                    EnterTokenInput,
-                    FocusTextInputOnInteraction,
-                ));
-                c.spawn((
-                    TextButtonBundle::from_section(t!("save"), text_button_small_style(&font_res)),
-                    SaveTokenButton,
-                ));
-                c.spawn((
-                    TextButtonBundle::from_section(t!("paste"), text_button_small_style(&font_res)),
-                    PasteTokenButton,
-                ))
-                .insert(Style {
-                    margin: UiRect::left(Val::Px(10.)),
-                    ..default()
-                });
-            }
+                    });
+                    c.spawn((
+                        TextButtonBundle::from_section(
+                            t!("copy"),
+                            text_button_small_style(&font_res),
+                        ),
+                        CopyTokenButton,
+                    ))
+                    .insert(Style {
+                        margin: UiRect::right(Val::Px(10.)),
+                        ..default()
+                    });
+                    c.spawn((
+                        TextButtonBundle::from_section(
+                            t!("reset"),
+                            text_button_small_style(&font_res),
+                        ),
+                        ResetTokenButton,
+                    ));
+                } else {
+                    c.spawn((
+                        NodeBundle {
+                            style: Style {
+                                flex_grow: 1.,
+                                height: Val::Px(body_style.font_size),
+                                ..default()
+                            },
+                            ..default()
+                        },
+                        TextInputBundle::default()
+                            .with_placeholder(t!("enter_token"), Some(body_style.clone()))
+                            .with_text_style(body_style.clone())
+                            .with_inactive(true),
+                        EnterTokenInput,
+                        FocusTextInputOnInteraction,
+                    ));
+                    c.spawn((
+                        TextButtonBundle::from_section(
+                            t!("save"),
+                            text_button_small_style(&font_res),
+                        ),
+                        SaveTokenButton,
+                    ));
+                    c.spawn((
+                        TextButtonBundle::from_section(
+                            t!("paste"),
+                            text_button_small_style(&font_res),
+                        ),
+                        PasteTokenButton,
+                    ))
+                    .insert(Style {
+                        margin: UiRect::left(Val::Px(10.)),
+                        ..default()
+                    });
+                }
+            });
         });
         let (request, num) = match &settings.profile {
             Some(profile) => (
