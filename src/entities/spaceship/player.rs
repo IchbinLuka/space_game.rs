@@ -21,7 +21,7 @@ use crate::{
         planet::Planet,
         powerup::PowerUpAssets,
     },
-    materials::{blink::BlinkMaterial, toon::ToonMaterial},
+    materials::{blink::BlinkMaterial, exhaust, toon::ToonMaterial},
     states::{game_running, AppState, DespawnOnCleanup, ON_GAME_STARTED},
     ui::{
         fonts::FontsResource,
@@ -115,6 +115,24 @@ fn spawn_player(
     commands.insert_resource(PlayerInventory::default());
 }
 
+pub struct ExhaustCooldown(pub Timer);
+impl Default for ExhaustCooldown {
+    fn default() -> Self {
+        Self(Timer::from_seconds(0.5, TimerMode::Repeating))
+    }
+}
+impl ExhaustCooldown {
+    fn tick(&mut self, time: &Time) {
+        if !self.0.finished() {
+            self.0.tick(time.delta());
+        }
+    }
+    
+    fn can_spawn_particle(&self) -> bool {
+        self.0.finished()
+    }
+}
+
 fn player_input(
     timer: Res<Time>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
@@ -123,14 +141,18 @@ fn player_input(
     mut inventory: ResMut<PlayerInventory>,
     mut commands: Commands,
     powerup_assets: Res<PowerUpAssets>,
+    mut exhaust_cooldown: Local<ExhaustCooldown>, 
 ) {
+    exhaust_cooldown.tick(&timer);
     for (mut velocity, mut transform, entity, mut spaceship) in &mut query {
         if keyboard_input.any_pressed([KeyCode::ArrowUp, KeyCode::KeyW]) {
             velocity.linvel += transform.forward().normalize() * timer.delta_seconds() * 60.0;
-            particle_spawn.send(ParticleSpawnEvent {
-                entity,
-                direction: None,
-            });
+            if exhaust_cooldown.can_spawn_particle() {
+                particle_spawn.send(ParticleSpawnEvent {
+                    entity,
+                    direction: None,
+                });
+            }
         }
 
         if keyboard_input.any_pressed([
