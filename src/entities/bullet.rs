@@ -56,7 +56,7 @@ fn bullet_setup(
     let bullet_mesh = meshes.add(Cuboid::from_corners(BULLET_CORNER_1, BULLET_CORNER_2));
     let bullet_material = materials.add(StandardMaterial {
         base_color: Color::WHITE,
-        emissive: Color::WHITE,
+        emissive: Color::WHITE.into(),
         unlit: true,
         diffuse_transmission: 1.0,
         ..default()
@@ -99,7 +99,11 @@ fn bullet_spawn(
             },
             OutlineBundle {
                 outline: OutlineVolume {
-                    colour: Color::RED,
+                    colour: if event.bullet_type == BulletType::Player {
+                        Srgba::hex("59ccf9").unwrap().into()
+                    } else {
+                        Srgba::RED.into()
+                    },
                     width: 2.0,
                     visible: true,
                 },

@@ -24,10 +24,10 @@ fn setup_fire_particles(
     let mesh = meshes.add(Rectangle::new(0.4, 0.4));
 
     let colors = [
-        Color::hex("ef8904").unwrap(),
-        Color::hex("f2600c").unwrap(),
-        Color::hex("e06411").unwrap(),
-        Color::hex("e89404").unwrap(),
+        Srgba::hex("ef8904").unwrap().into(),
+        Srgba::hex("f2600c").unwrap().into(),
+        Srgba::hex("e06411").unwrap().into(),
+        Srgba::hex("e89404").unwrap().into(),
     ];
 
     let materials = colors

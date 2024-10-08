@@ -1,4 +1,4 @@
-use bevy::app::Plugin;
+use bevy::{app::Plugin, prelude::Component};
 
 pub mod asteroid;
 pub mod bullet;
@@ -9,6 +9,10 @@ pub mod planet;
 pub mod powerup;
 pub mod space_station;
 pub mod spaceship;
+pub mod turret;
+
+#[derive(Component)]
+pub struct Enemy;
 
 pub struct EntitiesPlugin;
 
@@ -24,6 +28,7 @@ impl Plugin for EntitiesPlugin {
             cruiser::CruiserPLugin,
             space_station::SpaceStationPlugin,
             powerup::PowerupPlugin,
+            turret::TurretPlugin,
         ));
     }
 }

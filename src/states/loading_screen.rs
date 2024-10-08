@@ -39,7 +39,7 @@ fn loading_screen_setup(mut commands: Commands, font_res: Res<FontsResource>) {
                 TextStyle {
                     font_size: 100.0,
                     color: Color::WHITE,
-                    font: font_res.mouse_memoirs.clone(),
+                    font: font_res.mouse_memoirs_regular.clone(),
                 },
             ));
 

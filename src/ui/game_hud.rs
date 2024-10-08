@@ -1,13 +1,15 @@
 use bevy::{
-    ecs::system::Command,
+    color::palettes::css,
+    ecs::world::Command,
     prelude::*,
     render::{mesh::PrimitiveTopology, render_asset::RenderAssetUsages, view::RenderLayers},
     sprite::{Anchor, MaterialMesh2dBundle},
 };
-use bevy_round_ui::{
-    autosize::RoundUiAutosizeMaterial,
-    prelude::{RoundUiBorder, RoundUiMaterial},
+use bevy_asset_loader::{
+    asset_collection::AssetCollection,
+    loading_state::{config::ConfigureLoadingState, LoadingState, LoadingStateAppExt},
 };
+use space_game_common as common;
 
 use crate::{
     components::health::Health,
@@ -15,11 +17,11 @@ use crate::{
         camera::RENDER_LAYER_2D,
         spaceship::{
             bot::Bot,
-            player::{Player, PlayerRespawnTimer},
+            player::{Player, PlayerInventory, PlayerRespawnTimer},
             IsPlayer, Spaceship,
         },
     },
-    states::{game_running, AppState, DespawnOnCleanup, ON_GAME_STARTED},
+    states::{game_running, main_scene::GameTime, AppState, DespawnOnCleanup, ON_GAME_STARTED},
     utils::{misc::cleanup_system, sets::Set},
 };
 
@@ -29,12 +31,62 @@ use super::{fonts::FontsResource, theme::text_body_style};
 pub struct HudRootNode;
 
 #[derive(Component)]
+pub struct BombCounter;
+
+#[derive(Component)]
+pub struct TurretCounter;
+
+#[derive(Component)]
 struct HealthBarContent;
+
+fn spawn_inventory_item<C: Component>(
+    commands: &mut Commands,
+    icon: Handle<Image>,
+    font_res: &FontsResource,
+    marker: C,
+) -> Entity {
+    commands
+        .spawn((NodeBundle {
+            style: Style {
+                flex_direction: FlexDirection::Row,
+                align_items: AlignItems::Center,
+                padding: UiRect {
+                    right: Val::Px(20.0),
+                    ..UiRect::all(Val::Px(PADDING))
+                },
+                ..default()
+            },
+            ..default()
+        },))
+        .with_children(|c| {
+            c.spawn((
+                NodeBundle {
+                    style: Style {
+                        width: Val::Px(40.0),
+                        height: Val::Px(40.0),
+                        ..default()
+                    },
+                    ..default()
+                },
+                UiImage::new(icon),
+            ));
+
+            c.spawn((
+                TextBundle::from_section("", text_body_style(font_res)),
+                marker,
+            ));
+        })
+        .id()
+}
+
+const PANEL_WIDTH: f32 = 400.;
+const PANEL_HEIGHT: f32 = 40.;
+const PADDING: f32 = 5.;
 
 fn main_hud_setup(
     mut commands: Commands,
     font_resource: Res<FontsResource>,
-    mut materials: ResMut<Assets<RoundUiMaterial>>,
+    ui_assets: Res<UiAssets>,
 ) {
     let root = commands
         .spawn((
@@ -55,7 +107,7 @@ fn main_hud_setup(
         ))
         .id();
 
-    commands.insert_resource(Score(0));
+    commands.insert_resource(Score::new());
 
     let score = commands
         .spawn((
@@ -65,7 +117,7 @@ fn main_hud_setup(
                         value: t!("score", score = 0).to_string(),
                         style: TextStyle {
                             font_size: 60.0,
-                            font: font_resource.mouse_memoirs.clone(),
+                            font: font_resource.mouse_memoirs_regular.clone(),
                             ..default()
                         },
                     }],
@@ -102,63 +154,92 @@ fn main_hud_setup(
                     t!("auxiliary_drive", state = t!("state_off")),
                     TextStyle {
                         font_size: 60.0,
-                        font: font_resource.mouse_memoirs.clone(),
+                        font: font_resource.mouse_memoirs_regular.clone(),
                         ..default()
                     },
                 ),
                 ..default()
             },
-            RoundUiAutosizeMaterial,
             AuxiliaryDriveUI,
         ))
         .id();
 
-    const PANEL_WIDTH: f32 = 400.;
-    const PANEL_HEIGHT: f32 = 40.;
-    const PADDING: f32 = 5.;
+    let inventory = commands
+        .spawn(NodeBundle {
+            style: Style {
+                flex_direction: FlexDirection::Row,
+                ..default()
+            },
+            ..default()
+        })
+        .id();
+
+    let bomb_counter = spawn_inventory_item(
+        &mut commands,
+        ui_assets.bomb_icon.clone(),
+        &font_resource,
+        BombCounter,
+    );
+    let turret_counter = spawn_inventory_item(
+        &mut commands,
+        ui_assets.turret_icon.clone(),
+        &font_resource,
+        TurretCounter,
+    );
+
+    commands
+        .entity(inventory)
+        .add_child(bomb_counter)
+        .add_child(turret_counter);
 
     let health_bar = commands
-        .spawn((MaterialNodeBundle {
+        .spawn(NodeBundle {
             style: Style {
                 width: Val::Px(PANEL_WIDTH),
                 height: Val::Px(PANEL_HEIGHT),
                 padding: UiRect::all(Val::Px(PADDING)),
                 ..default()
             },
-            material: materials.add(RoundUiMaterial {
-                background_color: Color::BLACK,
-                border_radius: RoundUiBorder::all(PANEL_HEIGHT / 2.).into(),
-                size: Vec2::new(PANEL_WIDTH, PANEL_HEIGHT),
-                ..default()
-            }),
+            border_radius: BorderRadius::all(Val::Px(PANEL_HEIGHT / 2.)),
+            background_color: Color::BLACK.into(),
             ..default()
-        },))
+        })
         .with_children(|p| {
             p.spawn((
-                MaterialNodeBundle {
-                    material: materials.add(RoundUiMaterial {
-                        background_color: Color::hex("#ef4d34").unwrap(),
-                        border_radius: RoundUiBorder::all((PANEL_HEIGHT - PADDING * 2.) / 2.)
-                            .into(),
-                        ..default()
-                    }),
+                NodeBundle {
                     style: Style {
                         width: Val::Percent(100.),
                         height: Val::Percent(100.),
                         ..default()
                     },
+                    background_color: Srgba::hex("#ef4d34").unwrap().into(),
+                    border_radius: BorderRadius::all(Val::Px((PANEL_HEIGHT - PADDING * 2.) / 2.)),
                     ..default()
                 },
-                RoundUiAutosizeMaterial,
                 HealthBarContent,
             ));
         })
         .id();
 
+    let bottom_left = commands
+        .spawn(NodeBundle {
+            style: Style {
+                flex_direction: FlexDirection::Column,
+                ..default()
+            },
+            ..default()
+        })
+        .id();
+
+    commands
+        .entity(bottom_left)
+        .add_child(inventory)
+        .add_child(health_bar);
+
     commands
         .entity(bottom_section)
-        .add_child(auxiliary_drive_status)
-        .add_child(health_bar);
+        .add_child(bottom_left)
+        .add_child(auxiliary_drive_status);
 }
 
 fn health_bar_update(
@@ -170,6 +251,20 @@ fn health_bar_update(
     };
     for mut style in &mut health_bar_query {
         style.width = Val::Percent(player_health.health / player_health.max_health * 100.);
+    }
+}
+
+fn inventory_update(
+    player_inventory: Res<PlayerInventory>,
+    mut bomb_counter: Query<&mut Text, (With<BombCounter>, Without<TurretCounter>)>,
+    mut turret_counter: Query<&mut Text, (With<TurretCounter>, Without<BombCounter>)>,
+) {
+    // TODO: simply this
+    for mut text in &mut bomb_counter {
+        text.sections[0].value = format!("x{}", player_inventory.bombs);
+    }
+    for mut text in &mut turret_counter {
+        text.sections[0].value = format!("x{}", player_inventory.turrets);
     }
 }
 
@@ -252,7 +347,7 @@ fn setup_enemy_indicator(
 
     let mesh = meshes.add(mesh);
 
-    let material = materials.add(Color::RED);
+    let material = materials.add(Into::<Color>::into(css::RED));
 
     commands.insert_resource(EnemyIndicatorRes { mesh, material });
 }
@@ -285,29 +380,43 @@ fn auxiliary_drive_update(
     }
 }
 
-#[derive(Resource, Deref, DerefMut)]
-pub struct Score(pub u32);
+#[derive(Resource)]
+pub struct Score {
+    pub value: u32,
+    pub events: Vec<common::ScoreEvent>,
+}
 
-#[derive(Event)]
-pub struct ScoreEvent {
-    pub score: u32,
+impl Score {
+    pub fn new() -> Self {
+        Self {
+            value: 0,
+            events: Vec::new(),
+        }
+    }
+}
+
+#[derive(Event, Clone)]
+pub struct ScoreGameEvent {
     pub world_pos: Vec3,
+    pub enemy: common::EnemyType,
 }
 
 #[derive(Component)]
 pub struct ScoreElement {
-    pub score: u32,
+    pub event: common::ScoreEvent,
 }
 
 #[derive(Component)]
 pub struct ScoreCounter;
 
 fn score_events(
-    mut score_events: EventReader<ScoreEvent>,
+    mut score_events: EventReader<ScoreGameEvent>,
     mut commands: Commands,
     camera_query: Query<(&GlobalTransform, &Camera), With<Camera3d>>,
     window: Query<&Window>,
     font_resource: Res<FontsResource>,
+    mut score: ResMut<Score>,
+    time: Res<GameTime>,
 ) {
     let Ok((transform, camera)) = camera_query.get_single() else {
         return;
@@ -319,6 +428,16 @@ fn score_events(
     let screen_size = Vec2::new(window.width(), window.height());
 
     for event in score_events.read() {
+        let score_event = common::ScoreEvent {
+            time: time.elapsed_secs(),
+            enemy: event.enemy,
+            pos: (event.world_pos.x, event.world_pos.z),
+        };
+
+        let score_count = score_event.get_score();
+
+        score.events.push(score_event.clone());
+
         let Some(screen_pos) = camera.world_to_viewport(transform, event.world_pos) else {
             warn!("Could not get viewport position for node");
             continue;
@@ -334,11 +453,11 @@ fn score_events(
             Text2dBundle {
                 text: Text {
                     sections: vec![TextSection {
-                        value: format!("+{}", event.score),
+                        value: format!("+{}", score_count),
                         style: TextStyle {
                             font_size: 40.0,
                             color: Color::WHITE,
-                            font: font_resource.mouse_memoirs.clone(),
+                            font: font_resource.mouse_memoirs_regular.clone(),
                         },
                     }],
                     ..default()
@@ -347,7 +466,7 @@ fn score_events(
                 transform: Transform::from_translation(pos.extend(0.)),
                 ..default()
             },
-            ScoreElement { score: event.score },
+            ScoreElement { event: score_event },
             RenderLayers::layer(RENDER_LAYER_2D),
         ));
     }
@@ -372,7 +491,7 @@ fn score_element_update(
         let delta = counter_location - transform.translation.xy();
 
         if delta.length() < 20.0 {
-            score.0 += score_element.score;
+            score.value += score_element.event.get_score();
             commands.entity(entity).despawn_recursive();
             continue;
         }
@@ -392,7 +511,7 @@ fn score_update(mut score_query: Query<&mut Text, With<ScoreCounter>>, score: Re
         return;
     }
     for mut text in &mut score_query {
-        text.sections[0].value = t!("score", score = score.0).to_string();
+        text.sections[0].value = t!("score", score = score.value).to_string();
     }
 }
 
@@ -447,11 +566,19 @@ fn respawn_ui_update(
     }
 }
 
+#[derive(AssetCollection, Resource)]
+pub struct UiAssets {
+    #[asset(path = "textures/bomb_icon.png")]
+    bomb_icon: Handle<Image>,
+    #[asset(path = "textures/turret_icon.png")]
+    turret_icon: Handle<Image>,
+}
+
 pub struct GameHudPlugin;
 
 impl Plugin for GameHudPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<ScoreEvent>()
+        app.add_event::<ScoreGameEvent>()
             .add_systems(
                 OnExit(AppState::MainScene),
                 (
@@ -461,6 +588,10 @@ impl Plugin for GameHudPlugin {
             )
             .add_systems(Startup, setup_enemy_indicator)
             .add_systems(ON_GAME_STARTED, (main_hud_setup,))
+            .add_loading_state(
+                LoadingState::new(AppState::MainSceneLoading).load_collection::<UiAssets>(),
+            )
+            .add_systems(OnEnter(AppState::GameOver), cleanup_system::<HudRootNode>)
             .add_systems(
                 Update,
                 (
@@ -470,6 +601,7 @@ impl Plugin for GameHudPlugin {
                     score_events.in_set(Set::ScoreEvents),
                     score_element_update,
                     score_update,
+                    inventory_update.run_if(resource_changed::<PlayerInventory>),
                     respawn_ui_setup.run_if(resource_added::<PlayerRespawnTimer>),
                     cleanup_system::<RespawnTimerUIParent>
                         .run_if(resource_removed::<PlayerRespawnTimer>()),

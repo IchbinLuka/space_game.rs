@@ -1,4 +1,5 @@
-use bevy::prelude::*;
+use bevy::{color::palettes::css, prelude::*};
+use bevy_simple_text_input::TextInputInactive;
 
 use super::{theme::default_hover_effect, NodeHoverEffect, TextHoverEffect};
 
@@ -45,9 +46,9 @@ impl CheckBox {
                 Color::NONE
             },
             hover_color: if self.state {
-                Color::WHITE.with_a(0.7)
+                Color::WHITE.with_alpha(0.7)
             } else {
-                Color::GRAY.with_a(0.5)
+                css::GRAY.with_alpha(0.5).into()
             },
         }
     }
@@ -100,10 +101,32 @@ fn check_box_update(
     }
 }
 
-pub struct ButtonPlugin;
+#[derive(Component)]
+pub struct FocusTextInputOnInteraction;
 
-impl Plugin for ButtonPlugin {
+#[derive(Component)]
+pub struct TextInputDisabled;
+
+fn focus_text_input_on_interaction(
+    mut text_fields: Query<
+        (&mut TextInputInactive, &Interaction),
+        (
+            With<FocusTextInputOnInteraction>,
+            Without<TextInputDisabled>,
+        ),
+    >,
+) {
+    for (mut inactive, interaction) in &mut text_fields {
+        if *interaction == Interaction::Pressed {
+            inactive.0 = false;
+        }
+    }
+}
+
+pub struct WidgetsPlugin;
+
+impl Plugin for WidgetsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, check_box_update);
+        app.add_systems(Update, (check_box_update, focus_text_input_on_interaction));
     }
 }

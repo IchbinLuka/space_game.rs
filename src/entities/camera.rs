@@ -1,8 +1,8 @@
+#[cfg(not(target_family = "wasm"))]
+use bevy::core_pipeline::prepass::{DepthPrepass, NormalPrepass};
+
 use bevy::{
-    core_pipeline::{
-        prepass::{DepthPrepass, NormalPrepass},
-        Skybox,
-    },
+    core_pipeline::Skybox,
     prelude::*,
     render::{
         render_resource::{TextureViewDescriptor, TextureViewDimension},
@@ -21,7 +21,7 @@ use super::spaceship::player::Player;
 #[derive(Component)]
 pub struct MainCamera;
 
-pub const RENDER_LAYER_2D: u8 = 1;
+pub const RENDER_LAYER_2D: usize = 1;
 
 fn camera_follow_system(
     mut camera_query: Query<&mut Transform, (With<MainCamera>, Without<Player>)>,
@@ -140,6 +140,7 @@ impl Plugin for CameraComponentPlugin {
         app.add_collection_to_loading_states::<CameraAssets>(&[
             AppState::MainSceneLoading,
             AppState::StartScreenLoading,
+            AppState::TestSceneLoading,
         ])
         .add_systems(
             OnEnter(AppState::StartScreen),
@@ -147,6 +148,10 @@ impl Plugin for CameraComponentPlugin {
         )
         .add_systems(
             OnEnter(AppState::MainScene),
+            setup_skybox_texture.in_set(Set::CameraSkyboxInit),
+        )
+        .add_systems(
+            OnEnter(AppState::TestScene),
             setup_skybox_texture.in_set(Set::CameraSkyboxInit),
         )
         .add_systems(ON_GAME_STARTED, camera_setup)

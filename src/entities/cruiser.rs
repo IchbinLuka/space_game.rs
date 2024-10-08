@@ -3,7 +3,8 @@ use std::ops::Range;
 use std::time::Duration;
 
 use bevy::animation::RepeatAnimation;
-use bevy::ecs::system::{Command, EntityCommand, RunSystemOnce};
+use bevy::ecs::system::{EntityCommand, RunSystemOnce};
+use bevy::ecs::world::Command;
 use bevy::pbr::NotShadowReceiver;
 use bevy::prelude::*;
 use bevy::scene::SceneInstance;
@@ -12,19 +13,19 @@ use bevy_asset_loader::{asset_collection::AssetCollection, loading_state::Loadin
 use bevy_mod_outline::OutlineBundle;
 use bevy_rapier3d::prelude::*;
 use rand::Rng;
+use space_game_common::EnemyType;
 
 use crate::components::health::HasShield;
 use crate::components::{
-    colliders::VelocityColliderBundle,
-    despawn_after::DespawnTimer,
-    health::{DespawnOnDeath, Health},
+    colliders::VelocityColliderBundle, despawn_after::DespawnTimer, health::Health,
 };
 use crate::entities::spaceship::bot::SpawnSquad;
 use crate::materials::exhaust::{ExhaustMaterial, ExhaustRes};
 use crate::materials::shield::{ShieldBundle, ShieldMaterial};
 use crate::materials::toon::{replace_with_toon_materials, ToonMaterial};
+use crate::states::main_scene::GameTime;
 use crate::states::{game_running, AppState, DespawnOnCleanup, ON_GAME_STARTED};
-use crate::ui::game_hud::{ScoreEvent, SpawnEnemyIndicator};
+use crate::ui::game_hud::{ScoreGameEvent, SpawnEnemyIndicator};
 use crate::ui::health_bar_3d::SpawnHealthBar;
 use crate::ui::minimap::{MinimapAssets, ShowOnMinimap};
 use crate::utils::collisions::CRUISER_COLLISION_GROUP;
@@ -34,22 +35,21 @@ use crate::utils::misc::{AsCommand, CollidingEntitiesExtension, Comparef32};
 use crate::utils::scene::{AnimationRoot, ReplaceMaterialPlugin};
 use crate::utils::sets::Set;
 
-use super::bullet::{Bullet, BulletSpawnEvent, BulletTarget, BulletType};
+use super::bullet::{Bullet, BulletTarget, BulletType};
 use super::explosion::ExplosionEvent;
 use super::planet::Planet;
 use super::space_station::SpaceStation;
 use super::spaceship::bot::EnemyTarget;
-use super::spaceship::player::Player;
 use super::spaceship::{IsBot, SpaceshipCollisions};
+use super::turret::Turret;
+use super::Enemy;
 
 const CRUISER_HITBOX_SIZE: Vec3 = Vec3::new(3.5, 3., 13.);
 const CRUISER_SPEED: f32 = 2.0;
 const COLLISION_GROUPS: CollisionGroups = CollisionGroups::new(CRUISER_COLLISION_GROUP, Group::ALL);
 
 // Turret contants
-const TURRET_TURN_SPEED: f32 = 1.0;
 const TURRET_ROTATION_BOUNDS: (f32, f32) = (-1., 1.);
-const TURRET_SHOOT_RANGE: f32 = 150.;
 
 #[derive(Component)]
 pub struct Cruiser {
@@ -118,63 +118,7 @@ impl EntityCommand for ActivateShield {
 }
 
 #[derive(Component)]
-struct CruiserTurret {
-    shoot_timer: Timer,
-    base_orientation: Vec3,
-}
-
-fn cruiser_turret_shoot(
-    mut cruiser_turrets: Query<
-        (&GlobalTransform, &mut Transform, &mut CruiserTurret),
-        Without<Player>,
-    >,
-    target: Query<&Transform, (With<EnemyTarget>, Without<CruiserTurret>)>,
-    time: Res<Time>,
-    mut bullet_events: EventWriter<BulletSpawnEvent>,
-) {
-    for (global_transform, mut transform, mut turret) in &mut cruiser_turrets {
-        let global = global_transform.compute_transform();
-
-        let Some(nearest_transform) = target.iter().min_by_key(|t| {
-            let direction = t.translation - global.translation;
-            direction.length_squared() as i32
-        }) else {
-            continue;
-        };
-
-        turret.shoot_timer.tick(time.delta());
-
-        let global_translation = global_transform.compute_transform();
-        let direction = nearest_transform.translation - global_translation.translation;
-
-        if direction.length_squared() > TURRET_SHOOT_RANGE.powi(2) {
-            continue;
-        }
-
-        let (min, max) = TURRET_ROTATION_BOUNDS;
-
-        let angle = direction.angle_between(turret.base_orientation);
-
-        if angle < min || angle > max {
-            continue;
-        }
-
-        let turn_sign = global_translation.forward().cross(direction).y.signum();
-
-        transform.rotate_y(turn_sign * TURRET_TURN_SPEED * time.delta_seconds());
-
-        if !turret.shoot_timer.just_finished() {
-            continue;
-        }
-
-        bullet_events.send(BulletSpawnEvent {
-            bullet_type: BulletType::Bot,
-            entity_velocity: Velocity::zero(), //  cruiser_velocity.clone(),
-            position: global_translation,
-            direction,
-        });
-    }
-}
+pub struct CruiserTurret;
 
 const CRUISER_SPAWN_COOLDOWN: f32 = 30.0;
 
@@ -185,7 +129,12 @@ fn spawn_cruisers(
     mut spawn_cruiser_events: EventWriter<SpawnCruiserEvent>,
     mut last_cruiser_spawn: ResMut<CruiserSpawnTimer>,
     time: Res<Time>,
+    game_time: Res<GameTime>,
 ) {
+    last_cruiser_spawn.set_duration(Duration::from_secs_f32(f32::max(
+        30.0 - 5.0 / 60.0 * game_time.elapsed_secs(),
+        5.0,
+    )));
     last_cruiser_spawn.tick(time.delta());
     if last_cruiser_spawn.just_finished() {
         spawn_cruiser_events.send(SpawnCruiserEvent);
@@ -204,8 +153,8 @@ fn cruiser_spawn_setup(
     if res.is_none() {
         commands.insert_resource(CruiserRes {
             exhaust_material: exhaust_materials.add(ExhaustMaterial {
-                inner_color: Color::hex("c0eff9").unwrap(),
-                outer_color: Color::hex("3ad8fc").unwrap(),
+                inner_color: Srgba::hex("c0eff9").unwrap().into(),
+                outer_color: Srgba::hex("3ad8fc").unwrap().into(),
                 ..default()
             }),
         });
@@ -348,12 +297,12 @@ fn spawn_cruiser(
             outline: default_outline(),
             ..default()
         },
-        DespawnOnDeath,
         Health::new(100.0),
         SpaceshipCollisions {
             collision_damage: 5.0,
             ..default()
         },
+        Enemy,
         DespawnOnCleanup,
         COLLISION_GROUPS,
         ShowOnMinimap {
@@ -423,15 +372,21 @@ fn finish_cruiser(
 fn cruiser_animation_start(
     query: Query<&AnimationRoot, (With<Cruiser>, Added<AnimationRoot>)>,
     mut animation_players: Query<&mut AnimationPlayer>,
-    cruiser_assets: Res<CruiserAssets>,
+    assets: Res<CruiserAssets>,
+    mut animation_graphs: ResMut<Assets<AnimationGraph>>,
+    mut commands: Commands,
 ) {
     for root in &query {
         for entity in &root.player_entites {
             let Ok(mut player) = animation_players.get_mut(*entity) else {
                 continue;
             };
-            player.play(cruiser_assets.cruiser_animation.clone());
-            player.set_repeat(RepeatAnimation::Never);
+            let (graph, animation_index) =
+                AnimationGraph::from_clip(assets.cruiser_animation.clone());
+            player
+                .play(animation_index)
+                .set_repeat(RepeatAnimation::Never);
+            commands.entity(*entity).insert(animation_graphs.add(graph));
         }
     }
 }
@@ -446,7 +401,7 @@ fn cruiser_animations(
             let Ok(player) = animation_players.get(*player) else {
                 continue;
             };
-            if player.is_finished() {
+            if player.all_finished() {
                 commands.entity(entity).remove::<AnimationRoot>();
                 commands.add(FinishCruiser { cruiser: entity });
             }
@@ -492,7 +447,7 @@ fn cruiser_scene_setup(
                         DespawnOnCleanup,
                         MaterialMeshBundle {
                             material: toon_materials.add(ToonMaterial {
-                                color: Color::hex("2ae0ed").unwrap(),
+                                color: Srgba::hex("2ae0ed").unwrap().into(),
                                 ..default()
                             }),
                             mesh: meshes.add(Cylinder {
@@ -530,13 +485,18 @@ fn cruiser_scene_setup(
 
                 commands.entity(entity).add_child(trail).add_child(exhaust);
             } else if name.starts_with("turret_bone") {
-                let mut shoot_timer = Timer::from_seconds(1.0, TimerMode::Repeating);
-                shoot_timer.tick(Duration::from_millis(rng.gen_range(0..500)));
+                let mut bullet_timer = Timer::from_seconds(1.0, TimerMode::Repeating);
+                bullet_timer.tick(Duration::from_millis(rng.gen_range(0..500)));
 
-                commands.entity(entity).insert(CruiserTurret {
-                    shoot_timer,
-                    base_orientation: *global_transform.compute_transform().forward(),
-                });
+                commands.entity(entity).insert((
+                    Turret {
+                        bullet_timer,
+                        base_orientation: *global_transform.compute_transform().forward(),
+                        bullet_type: BulletType::Bot,
+                        rotation_bounds: TURRET_ROTATION_BOUNDS,
+                    },
+                    CruiserTurret,
+                ));
             }
         }
     }
@@ -571,35 +531,38 @@ fn cruiser_shield_regenerate(
 }
 
 fn cruiser_death(
-    query: Query<(&Health, &Transform), (With<Cruiser>, Changed<Health>)>,
+    query: Query<(&Health, &Transform, Entity), (With<Cruiser>, Changed<Health>)>,
     mut explosion_events: EventWriter<ExplosionEvent>,
-    mut score_events: EventWriter<ScoreEvent>,
+    mut score_events: EventWriter<ScoreGameEvent>,
+    mut commands: Commands,
 ) {
-    for (health, transform) in &query {
-        if health.is_dead() {
-            let forward = transform.forward();
-            explosion_events.send_batch([
-                ExplosionEvent {
-                    position: transform.translation,
-                    radius: 10.,
-                    ..default()
-                },
-                ExplosionEvent {
-                    position: transform.translation + forward * 7.,
-                    radius: 10.,
-                    ..default()
-                },
-                ExplosionEvent {
-                    position: transform.translation - forward * 7.,
-                    radius: 10.,
-                    ..default()
-                },
-            ]);
-            score_events.send(ScoreEvent {
-                score: 500,
-                world_pos: transform.translation,
-            });
+    for (health, transform, entity) in &query {
+        if !health.is_dead() {
+            continue;
         }
+        let forward = transform.forward();
+        explosion_events.send_batch([
+            ExplosionEvent {
+                position: transform.translation,
+                radius: 10.,
+                ..default()
+            },
+            ExplosionEvent {
+                position: transform.translation + forward * 7.,
+                radius: 10.,
+                ..default()
+            },
+            ExplosionEvent {
+                position: transform.translation - forward * 7.,
+                radius: 10.,
+                ..default()
+            },
+        ]);
+        score_events.send(ScoreGameEvent {
+            enemy: EnemyType::Cruiser,
+            world_pos: transform.translation,
+        });
+        commands.entity(entity).despawn_recursive();
     }
 }
 
@@ -689,7 +652,6 @@ impl Plugin for CruiserPLugin {
                 cruiser_animation_start,
                 cruiser_animations,
                 cruiser_trail_update,
-                cruiser_turret_shoot,
                 cruiser_movement,
                 spawn_cruiser_events,
                 spawn_cruisers,

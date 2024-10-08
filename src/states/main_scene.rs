@@ -1,6 +1,6 @@
 use std::{f32::consts::FRAC_PI_4, time::Duration};
 
-use bevy::prelude::*;
+use bevy::{prelude::*, time::Stopwatch};
 
 use crate::{
     components::despawn_after::DespawnTimer,
@@ -8,9 +8,23 @@ use crate::{
     ui::{fonts::FontsResource, theme::text_body_style},
 };
 
-use super::{DespawnOnCleanup, ON_GAME_STARTED};
+use super::{game_running, DespawnOnCleanup, ON_GAME_STARTED};
+
+#[derive(Resource, Deref, DerefMut)]
+pub struct GameTime(pub Stopwatch);
+impl GameTime {
+    fn new() -> Self {
+        Self(Stopwatch::new())
+    }
+}
+
+fn game_time(mut game_time: ResMut<GameTime>, time: Res<Time>) {
+    game_time.tick(time.delta());
+}
 
 fn main_scene_setup(mut commands: Commands, settings: Res<Settings>, font_res: Res<FontsResource>) {
+    commands.insert_resource(GameTime::new());
+
     commands.insert_resource(AmbientLight {
         color: Color::WHITE,
         brightness: 0.5,
@@ -25,7 +39,7 @@ fn main_scene_setup(mut commands: Commands, settings: Res<Settings>, font_res: R
         DirectionalLightBundle {
             directional_light: DirectionalLight {
                 illuminance: 10000.0,
-                color: Color::hex("ffffff").unwrap(),
+                color: Color::WHITE,
                 shadows_enabled: settings.shadows_enabled,
                 ..default()
             },
@@ -69,6 +83,7 @@ fn main_scene_setup(mut commands: Commands, settings: Res<Settings>, font_res: R
 pub struct MainScenePlugin;
 impl Plugin for MainScenePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(ON_GAME_STARTED, main_scene_setup);
+        app.add_systems(Update, game_time.run_if(game_running()))
+            .add_systems(ON_GAME_STARTED, main_scene_setup);
     }
 }

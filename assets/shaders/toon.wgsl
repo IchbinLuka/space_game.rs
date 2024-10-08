@@ -55,10 +55,10 @@ fn shadow_multiplier(in: PbrInput) -> f32 {
     }
 
     let view_z = dot(vec4<f32>(
-        view.inverse_view[0].z,
-        view.inverse_view[1].z,
-        view.inverse_view[2].z,
-        view.inverse_view[3].z
+        view.view_from_world[0].z,
+        view.view_from_world[1].z,
+        view.view_from_world[2].z,
+        view.view_from_world[3].z
     ), in.world_position);
     let cluster_index = fragment_cluster_index(in.frag_coord.xy, view_z, in.is_orthographic);
     let offset_and_counts = unpack_offset_and_counts(cluster_index);

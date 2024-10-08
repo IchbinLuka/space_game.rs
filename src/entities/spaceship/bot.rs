@@ -1,11 +1,10 @@
-use std::cmp::Ordering;
-
-use bevy::{ecs::system::Command, prelude::*};
+use bevy::{ecs::world::Command, prelude::*};
 use bevy_rapier3d::{
     dynamics::Velocity,
     geometry::{CollisionGroups, Group},
 };
 use rand::Rng;
+use space_game_common::EnemyType;
 
 use crate::{
     components::movement::MaxSpeed,
@@ -13,16 +12,17 @@ use crate::{
         bullet::{BulletSpawnEvent, BulletTarget, BulletType},
         explosion::ExplosionEvent,
         powerup::SpawnPowerup,
+        Enemy,
     },
     states::{game_running, DespawnOnCleanup, ON_GAME_STARTED},
     ui::{
-        game_hud::{ScoreEvent, SpawnEnemyIndicator},
+        game_hud::{ScoreGameEvent, SpawnEnemyIndicator},
         health_bar_3d::SpawnHealthBar,
         minimap::{MinimapAssets, ShowOnMinimap},
     },
     utils::{
         collisions::{BOT_COLLISION_GROUP, CRUISER_COLLISION_GROUP},
-        math,
+        misc::Comparef32,
     },
 };
 
@@ -36,16 +36,13 @@ const COLLISION_GROUPS: CollisionGroups = CollisionGroups::new(
     BOT_COLLISION_GROUP,
     Group::ALL.difference(CRUISER_COLLISION_GROUP),
 );
-const POWERUP_SPAWN_PROBABILITY: f64 = 1.0;
+const POWERUP_SPAWN_PROBABILITY: f64 = 0.3;
 
 #[derive(Component)]
 pub struct EnemyTarget;
 
 #[derive(Component)]
-pub struct Bot {
-    pub state: BotState,
-    // pub current_target: Option<Entity>
-}
+pub struct Bot;
 
 #[derive(Component)]
 pub struct SquadLeader;
@@ -53,12 +50,6 @@ pub struct SquadLeader;
 #[derive(Component)]
 pub struct SquadMember {
     pub leader: Entity,
-}
-
-#[derive(Clone, Copy)]
-pub enum BotState {
-    Chasing,
-    Fleeing,
 }
 
 pub struct SpawnSquad {
@@ -72,7 +63,6 @@ impl Command for SpawnSquad {
             world,
             SpawnBot {
                 pos: self.leader_pos,
-                initial_state: BotState::Chasing,
                 ..default()
             },
         ) else {
@@ -90,7 +80,6 @@ impl Command for SpawnSquad {
 
             SpawnBot {
                 pos,
-                initial_state: BotState::Fleeing,
                 squad_leader: Some(leader),
             }
             .apply(world);
@@ -100,7 +89,6 @@ impl Command for SpawnSquad {
 
 pub struct SpawnBot {
     pub pos: Vec3,
-    pub initial_state: BotState,
     pub squad_leader: Option<Entity>,
 }
 
@@ -108,7 +96,6 @@ impl Default for SpawnBot {
     fn default() -> Self {
         Self {
             pos: Vec3::ZERO,
-            initial_state: BotState::Chasing,
             squad_leader: None,
         }
     }
@@ -124,9 +111,7 @@ fn spawn_bot_from_world(world: &mut World, spawn_bot: SpawnBot) -> Result<Entity
     };
 
     let mut entity_commands = world.spawn((
-        Bot {
-            state: spawn_bot.initial_state,
-        },
+        Bot,
         LastBulletInfo::with_cooldown(0.5),
         SpaceshipBundle {
             collision_groups: COLLISION_GROUPS,
@@ -142,6 +127,7 @@ fn spawn_bot_from_world(world: &mut World, spawn_bot: SpawnBot) -> Result<Entity
             sprite: minimap_assets.enemy_indicator.clone(),
             size: 0.1.into(),
         },
+        Enemy,
         DespawnOnCleanup,
     ));
 
@@ -174,7 +160,7 @@ impl Command for SpawnBot {
 fn bot_death(
     mut commands: Commands,
     mut explosions: EventWriter<ExplosionEvent>,
-    mut scores: EventWriter<ScoreEvent>,
+    mut scores: EventWriter<ScoreGameEvent>,
     bots: Query<(Entity, &GlobalTransform, &Health), (IsBot, Changed<Health>)>,
 ) {
     for (entity, global_transform, health) in &bots {
@@ -190,8 +176,8 @@ fn bot_death(
                 position: transform.translation,
                 radius: 5.0,
             });
-            scores.send(ScoreEvent {
-                score: 300,
+            scores.send(ScoreGameEvent {
+                enemy: EnemyType::Spaceship,
                 world_pos: transform.translation,
             });
             commands.entity(entity).despawn_recursive();
@@ -204,46 +190,21 @@ fn bot_update(
         (
             &mut Velocity,
             &mut Transform,
-            &mut Bot,
-            &Health,
-            Entity,
             &mut LastBulletInfo,
             &Spaceship,
-            Option<&SquadMember>,
         ),
         (IsBot, Without<EnemyTarget>),
     >,
     target_query: Query<(&Transform, Entity), With<EnemyTarget>>,
-
     time: Res<Time>,
-    mut exhaust_particles: EventWriter<ParticleSpawnEvent>,
     mut bullet_spawn_events: EventWriter<BulletSpawnEvent>,
 ) {
-    let mut rng = rand::thread_rng();
-
-    for (
-        mut velocity,
-        mut transform,
-        mut bot,
-        health,
-        entity,
-        mut last_bullet,
-        spaceship,
-        squad_member,
-    ) in &mut bots
-    {
+    for (velocity, transform, mut last_bullet, spaceship) in &mut bots {
         let current_pos = transform.translation;
-        let Some((target_transform, _)) = target_query.iter().min_by(|(t1, _), (t2, _)| {
-            let diff =
-                (t1.translation - current_pos).length() - (t2.translation - current_pos).length();
-            if diff < 0.0 {
-                Ordering::Less
-            } else if diff > 0.0 {
-                Ordering::Greater
-            } else {
-                Ordering::Equal
-            }
-        }) else {
+        let Some((target_transform, _)) = target_query
+            .iter()
+            .min_by_key(|(t, _)| Comparef32((t.translation - current_pos).length()))
+        else {
             continue;
         };
         if !last_bullet.timer.finished() {
@@ -268,98 +229,80 @@ fn bot_update(
             );
             last_bullet.timer.tick(time.delta());
         }
-
-        if squad_member.is_some() {
-            // Squad members are handled seperately in bot_squad_update
-            continue;
-        }
-
-        match bot.state {
-            BotState::Chasing => {
-                let mut sign = angle_between_sign(*transform.forward(), delta);
-
-                if distance < 30.0 {
-                    sign *= -1.0;
-                }
-
-                transform.rotate_y(sign * 3.0 * time.delta_seconds());
-
-                if angle < 0.3 || distance < 20.0 {
-                    velocity.linvel +=
-                        transform.forward().normalize() * time.delta_seconds() * BOT_ACCELERATION;
-                    exhaust_particles.send(ParticleSpawnEvent::main_exhaust(entity));
-                }
-
-                if rng.gen_bool(0.01 * (1. - health.health / health.max_health) as f64) {
-                    bot.state = BotState::Fleeing;
-                }
-            }
-            BotState::Fleeing => {
-                let angle = delta.angle_between(-*transform.forward());
-                if angle > 0.1 {
-                    let cross = (-transform.forward()).cross(delta);
-                    let sign = cross.y.signum();
-                    transform.rotate_y(sign * 3.0 * time.delta_seconds());
-                }
-
-                if angle < 0.3 {
-                    velocity.linvel +=
-                        transform.forward().normalize() * time.delta_seconds() * BOT_ACCELERATION;
-                    exhaust_particles.send(ParticleSpawnEvent::main_exhaust(entity));
-                }
-
-                if rng.gen_bool(0.01) || distance > 100.0 {
-                    bot.state = BotState::Chasing;
-                }
-            }
-        }
     }
 }
 
-fn bot_avoid_collisions(
+fn bot_movement(
+    mut bots: Query<
+        (&mut Transform, &mut Velocity, &Bot, &Spaceship, Entity),
+        Without<SquadMember>,
+    >,
+    enemy_targets: Query<(&Transform, &EnemyTarget), Without<Bot>>,
     spaceship_collisions: Query<(&Transform, &SpaceshipCollisions), Without<Bot>>,
-    mut bots: Query<(&mut Transform, &mut Velocity, Entity), IsBot>,
     time: Res<Time>,
     mut exhaust_particles: EventWriter<ParticleSpawnEvent>,
 ) {
-    let colliders = spaceship_collisions.iter().collect::<Vec<_>>();
-    for (mut transform, mut velocity, entity) in &mut bots {
-        for (other_transform, other_collisions) in &colliders {
-            let delta = other_transform.translation - transform.translation;
-            let distance = delta.length();
+    const C: f32 = 5.0;
 
-            if distance > other_collisions.bound_radius + 20.0 {
-                continue;
-            }
+    for (mut transform, mut velocity, _bot, spaceship, entity) in &mut bots {
+        // Determine target direction by potential field path-planning
+        let Some(target) = enemy_targets
+            .iter()
+            .min_by_key(|(t, _)| Comparef32((t.translation - transform.translation).length()))
+        else {
+            continue;
+        };
+        let distance = (target.0.translation - transform.translation).length();
+        let f_attract = C
+            * (target.0.translation - transform.translation).normalize()
+            * if distance < 20.0 { -1.0 } else { 1.0 };
+        let f_repulse = spaceship_collisions
+            .iter()
+            .map(|(t, collisions)| {
+                let delta = transform.translation - t.translation;
+                let distance = f32::max(distance - collisions.bound_radius, 0.01);
+                if !(0.001..=75.0).contains(&distance) {
+                    return Vec3::ZERO;
+                }
 
-            if math::sphere_intersection(
-                other_transform.translation,
-                other_collisions.bound_radius,
-                transform.translation,
-                velocity.linvel.normalize(),
-            )
-            .is_none()
-            {
-                velocity.linvel +=
-                    transform.forward().normalize() * time.delta_seconds() * BOT_ACCELERATION;
-                exhaust_particles.send(ParticleSpawnEvent::main_exhaust(entity));
-                continue;
-            }
+                let direction = delta.normalize();
+                let magnitude = 1.0 / distance;
+                direction * magnitude
+            })
+            .sum::<Vec3>();
 
-            let sign = angle_between_sign(*transform.forward(), delta);
-            transform.rotate_y(-sign * 4.0 * time.delta_seconds());
+        let f = f_attract + f_repulse;
+
+        let angle = transform.forward().angle_between(f);
+        let sign = angle_between_sign(*transform.forward(), f);
+
+        transform.rotate_y(sign * f32::clamp(angle * 3.0, 1.0, 10.0) * time.delta_seconds());
+
+        if angle < 0.3 {
+            velocity.linvel +=
+                transform.forward().normalize() * time.delta_seconds() * BOT_ACCELERATION;
+            spaceship.main_exhaust(entity, &mut exhaust_particles);
         }
     }
 }
 
 fn bot_squad_update(
-    mut squad_bots: Query<(&mut Velocity, &mut Transform, &SquadMember, Entity), IsBot>,
+    mut squad_bots: Query<
+        (
+            &mut Velocity,
+            &mut Transform,
+            &SquadMember,
+            Entity,
+            &Spaceship,
+        ),
+        IsBot,
+    >,
     leader_query: Query<&Transform, Without<SquadMember>>,
     mut commands: Commands,
     time: Res<Time>,
     mut exhaust_particles: EventWriter<ParticleSpawnEvent>,
 ) {
-    for (mut velocity, mut transform, squad_member, entity) in &mut squad_bots {
+    for (mut velocity, mut transform, squad_member, entity, spaceship) in &mut squad_bots {
         let Ok(leader_transform) = leader_query.get(squad_member.leader) else {
             commands.entity(entity).remove::<SquadMember>();
             continue;
@@ -377,7 +320,7 @@ fn bot_squad_update(
         if angle < 0.6 && distance > 5.0 {
             velocity.linvel +=
                 transform.forward().normalize() * time.delta_seconds() * BOT_ACCELERATION;
-            exhaust_particles.send(ParticleSpawnEvent::main_exhaust(entity));
+            spaceship.main_exhaust(entity, &mut exhaust_particles);
         }
     }
 }
@@ -425,7 +368,8 @@ impl Plugin for BotPlugin {
                 bot_death,
                 bot_repulsion,
                 bot_squad_update,
-                bot_avoid_collisions,
+                bot_movement,
+                // bot_avoid_collisions,
             )
                 .run_if(game_running()),
         )

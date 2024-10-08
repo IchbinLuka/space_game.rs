@@ -16,7 +16,7 @@ use crate::{
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
 pub struct ShieldMaterial {
     #[uniform(0)]
-    pub color: Color,
+    pub color: LinearRgba,
 }
 
 #[derive(Bundle, Default)]
@@ -36,7 +36,7 @@ pub struct ShieldBundle {
 impl Default for ShieldMaterial {
     fn default() -> Self {
         Self {
-            color: Color::hex("6fc1fc").unwrap(),
+            color: Srgba::hex("6fc1fc").unwrap().into(),
         }
     }
 }

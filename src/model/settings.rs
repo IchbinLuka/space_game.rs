@@ -1,11 +1,16 @@
 use core::fmt;
 use std::fmt::Display;
-use std::{fs, io};
+use std::io;
+
+#[cfg(not(target_family = "wasm"))]
+use std::fs;
 
 use bevy::prelude::*;
 use bevy::window::{PresentMode, PrimaryWindow};
 use cfg_if::cfg_if;
 use serde::{Deserialize, Serialize};
+
+use crate::utils::api::Token;
 
 #[cfg(not(target_family = "wasm"))]
 const SETTINGS_PATH: &str = "settings.json";
@@ -16,6 +21,7 @@ pub struct Settings {
     pub lang: String,
     pub antialiasing: AntialiasingSetting,
     pub vsync: VSyncSetting,
+    pub profile: Option<Profile>,
 }
 
 #[derive(Default, Clone, Copy, Serialize, Deserialize, Debug, PartialEq, Eq)]
@@ -23,6 +29,13 @@ pub enum AntialiasingSetting {
     Off,
     #[default]
     On,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Profile {
+    pub name: String,
+    pub id: u32,
+    pub token: Token,
 }
 
 #[derive(Debug, Serialize, Deserialize, Copy, Clone)]
@@ -85,6 +98,7 @@ impl Default for Settings {
             lang: "en".to_string(),
             antialiasing: default(),
             vsync: default(),
+            profile: None,
         }
     }
 }

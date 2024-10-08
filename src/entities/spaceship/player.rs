@@ -7,7 +7,7 @@ use bevy::{
 };
 
 use bevy_mod_outline::OutlineBundle;
-use bevy_rapier3d::dynamics::Velocity;
+use bevy_rapier3d::{dynamics::Velocity, geometry::Collider};
 
 use crate::{
     components::{
@@ -20,8 +20,12 @@ use crate::{
         explosion::ExplosionEvent,
         planet::Planet,
         powerup::PowerUpAssets,
+        turret::Turret,
     },
-    materials::{blink::BlinkMaterial, exhaust, toon::ToonMaterial},
+    materials::{
+        blink::BlinkMaterial,
+        toon::{replace_with_toon_materials, ToonMaterial},
+    },
     states::{game_running, AppState, DespawnOnCleanup, ON_GAME_STARTED},
     ui::{
         fonts::FontsResource,
@@ -43,12 +47,16 @@ pub struct Player;
 #[derive(Resource, Default)]
 pub struct PlayerInventory {
     pub bombs: u32,
+    pub turrets: u32,
 }
 
 #[derive(Component)]
 pub struct Bomb {
     pub timer: Timer,
 }
+
+#[derive(Component)]
+pub struct PlayerTurret;
 
 #[derive(Component, Default, Deref, DerefMut)]
 pub struct LastHit(pub(crate) Option<f32>);
@@ -93,7 +101,7 @@ fn spawn_player(
         Player,
         SpaceshipBundle::new(assets.player_ship.clone(), Vec3::ZERO),
         Health::new(100.0),
-        MaxSpeed { max_speed: 60.0 },
+        MaxSpeed { max_speed: 30.0 },
         LastHit::default(),
         EnemyTarget,
         GravityAffected,
@@ -202,6 +210,30 @@ fn player_input(
                 },
             ));
         }
+
+        if keyboard_input.just_pressed(KeyCode::KeyT) && inventory.turrets > 0 {
+            inventory.turrets -= 1;
+
+            commands.spawn((
+                PlayerTurret,
+                Turret {
+                    bullet_timer: Timer::from_seconds(1.0, TimerMode::Repeating),
+                    bullet_type: BulletType::Player,
+                    base_orientation: Vec3::Z,
+                    rotation_bounds: (f32::NEG_INFINITY, f32::INFINITY),
+                },
+                DespawnOnCleanup,
+                SceneBundle {
+                    transform: Transform::from_translation(transform.translation),
+                    scene: powerup_assets.turret.clone(),
+                    ..default()
+                },
+                OutlineBundle {
+                    outline: default_outline(),
+                    ..default()
+                },
+            ));
+        }
     }
 }
 
@@ -211,6 +243,7 @@ fn bomb_update(
         &mut Health,
         &GlobalTransform,
         &BulletTarget,
+        Option<&Collider>,
         Option<&HasShield>,
     )>,
     time: Res<Time>,
@@ -229,15 +262,25 @@ fn bomb_update(
             parent: None,
         });
 
-        for (mut health, bot_transform, bullet_target, has_shield) in &mut bots {
+        for (mut health, bot_transform, bullet_target, collider, has_shield) in &mut bots {
             if bullet_target.target_type != BulletType::Player {
                 continue;
             }
             let bot_transform = bot_transform.compute_transform();
-            let distance = (bot_transform.translation - transform.translation).length();
+            let distance = if let Some(collider) = collider {
+                collider.distance_to_point(
+                    bot_transform.translation,
+                    bot_transform.rotation,
+                    transform.translation,
+                    true,
+                )
+            } else {
+                let bot_pos = bot_transform.translation;
+                (bot_pos - transform.translation).length()
+            };
 
             if distance < 20.0 && has_shield.is_none() {
-                health.take_damage(1.0 / f32::min(distance * 2.0, 1.0).powi(2) * 20.0);
+                health.take_damage(1.0 / f32::min(distance * 2.0, 1.0).powi(2) * 40.0);
             }
         }
     }
@@ -259,7 +302,7 @@ fn player_trail_setup(
 ) {
     let material = materials.add(StandardMaterial {
         base_color: Color::WHITE,
-        emissive: Color::WHITE,
+        emissive: Color::WHITE.into(),
         double_sided: true,
         ..default()
     });
@@ -284,7 +327,9 @@ fn player_trail_setup(
     ];
 
     for trail in TRAILS {
-        let mesh = Mesh::new(PrimitiveTopology::TriangleStrip, RenderAssetUsages::all());
+        let mut mesh = Mesh::new(PrimitiveTopology::TriangleStrip, RenderAssetUsages::all());
+        mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, Vec::<Vec3>::new());
+        mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, Vec::<Vec3>::new());
 
         let mesh_handle = meshes.add(mesh);
         commands.spawn((
@@ -301,13 +346,28 @@ fn player_trail_setup(
     }
 }
 
+#[derive(Deref, DerefMut)]
+struct TrailUpdateTimer(Timer);
+
+impl Default for TrailUpdateTimer {
+    fn default() -> Self {
+        Self(Timer::from_seconds(0.01666, TimerMode::Repeating))
+    }
+}
+
 fn player_trail_update(
     mut trails: Query<(&mut Handle<Mesh>, &mut PlayerTrail, &mut Transform), Without<Player>>,
     player_query: Query<(&Transform, &Spaceship, &GlobalTransform, Entity), IsPlayer>,
     player_changed: Query<(), Changed<Spaceship>>,
     mut assets: ResMut<Assets<Mesh>>,
+    mut timer: Local<TrailUpdateTimer>,
+    time: Res<Time>,
 ) {
-    const HISTORY_LENGTH: usize = 50;
+    const HISTORY_LENGTH: usize = 100;
+    timer.tick(time.delta());
+    if !timer.just_finished() {
+        return;
+    }
 
     let Ok((player_transform, spaceship, player_global, player_entity)) = player_query.get_single()
     else {
@@ -368,7 +428,7 @@ fn player_line_setup(
 ) {
     let material = materials.add(StandardMaterial {
         base_color: Color::WHITE,
-        emissive: Color::WHITE,
+        emissive: Color::WHITE.into(),
         double_sided: true,
         ..default()
     });
@@ -517,7 +577,7 @@ fn return_to_mission_warning_spawn(
                         justify_content: JustifyContent::Center,
                         ..default()
                     },
-                    background_color: Color::rgba(0., 0., 0., 0.3).into(),
+                    background_color: Color::srgba(0., 0., 0., 0.3).into(),
                     ..default()
                 },
                 ReturnToMissionWarning {
@@ -575,6 +635,7 @@ pub struct PlayerRespawnTimer(pub Timer);
 
 fn player_death(
     players: Query<(Entity, &Health, &Transform), (IsPlayer, Changed<Health>)>,
+    mut trails: Query<&mut PlayerTrail>,
     mut commands: Commands,
     mut explosion_events: EventWriter<ExplosionEvent>,
 ) {
@@ -586,6 +647,9 @@ fn player_death(
                 radius: 10.0,
             });
             commands.entity(entity).despawn_recursive();
+            for mut trail in &mut trails {
+                trail.pos_history.clear();
+            }
             commands.insert_resource(PlayerRespawnTimer(Timer::from_seconds(
                 2.0,
                 TimerMode::Once,
@@ -630,7 +694,7 @@ impl Plugin for PlayerPlugin {
                     }
                     Some(ToonMaterial {
                         color: current.base_color,
-                        filter_scale: 0.0,
+                        disable_outline: true,
                         ..default()
                     })
                 })),
@@ -640,10 +704,16 @@ impl Plugin for PlayerPlugin {
                     }
                     Some(BlinkMaterial {
                         period: 1.0,
-                        color_1: Color::rgb(1.0, 0.0, 0.0),
-                        color_2: Color::rgb(0.5, 0.0, 0.0),
+                        color_1: Color::srgb(1.0, 0.0, 0.0),
+                        color_2: Color::srgb(0.5, 0.0, 0.0),
                     })
                 })),
+                ReplaceMaterialPlugin::<PlayerTurret, _>::new(replace_with_toon_materials(
+                    ToonMaterial {
+                        disable_outline: true,
+                        ..default()
+                    },
+                )),
             ))
             .add_systems(
                 Update,
@@ -655,7 +725,6 @@ impl Plugin for PlayerPlugin {
                     return_to_mission_warning_despawn,
                     player_death,
                     bomb_update,
-                    // bomb_scene_setup,
                     player_respawn.run_if(resource_exists::<PlayerRespawnTimer>),
                 )
                     .run_if(game_running()),

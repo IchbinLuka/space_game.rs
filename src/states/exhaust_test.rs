@@ -1,6 +1,6 @@
 use std::f32::consts::FRAC_PI_2;
 
-use bevy::{prelude::*, render::view::RenderLayers};
+use bevy::{color::palettes::css, prelude::*, render::view::RenderLayers};
 
 use crate::{
     entities::camera::RENDER_LAYER_2D,
@@ -35,7 +35,7 @@ fn setup_shield(
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
     let material = materials.add(ShieldMaterial {
-        color: Color::hex("2ae0ed0f").unwrap(),
+        color: Srgba::hex("2ae0ed0f").unwrap().into(),
     });
     commands.spawn(MaterialMeshBundle {
         mesh: meshes.add(Sphere { radius: 2. }),
@@ -69,7 +69,7 @@ fn init_camera(mut commands: Commands) {
                 ..default()
             }),
             camera: Camera {
-                clear_color: ClearColorConfig::Custom(Color::MIDNIGHT_BLUE),
+                clear_color: ClearColorConfig::Custom(css::MIDNIGHT_BLUE.into()),
                 ..default()
             },
             ..default()

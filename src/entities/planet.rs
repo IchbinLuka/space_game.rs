@@ -53,7 +53,7 @@ pub struct PlanetRes {
     mesh: Handle<Mesh>,
 }
 
-const PLANET_COUNT: usize = 15;
+const PLANET_COUNT: usize = 8;
 const COLLISION_GROUPS: CollisionGroups = CollisionGroups::new(PLANET_COLLISION_GROUP, Group::ALL);
 
 pub struct PlanetSpawnConfig {
@@ -88,9 +88,9 @@ pub fn planet_setup_main_scene(
         // Try 10 times to find a suitable position for the planet, then abort
         for _ in 0..10 {
             let pos = Vec3::new(
-                rng.gen_range(-300.0..300.0),
+                rng.gen_range(-200.0..200.0),
                 0.0,
-                rng.gen_range(-300.0..300.0),
+                rng.gen_range(-200.0..200.0),
             );
             // Planet should not be too close to other planets
             if planets

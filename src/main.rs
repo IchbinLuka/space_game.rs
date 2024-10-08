@@ -16,7 +16,7 @@ use bevy::{
 use bevy_mod_outline::{AutoGenerateOutlineNormalsPlugin, OutlinePlugin};
 use bevy_obj::ObjPlugin;
 use bevy_rapier3d::prelude::*;
-use bevy_round_ui::prelude::RoundUiPlugin;
+use bevy_simple_text_input::TextInputPlugin;
 use cfg_if::cfg_if;
 use components::ComponentsPlugin;
 use entities::EntitiesPlugin;
@@ -27,8 +27,9 @@ use postprocessing::PostprocessingPlugin;
 use states::StatesPlugin;
 
 use ui::UIPlugin;
-use utils::scene::ScenePlugin;
+use utils::{scene::ScenePlugin, UtilsPlugin};
 
+mod api_constants;
 mod components;
 mod entities;
 mod materials;
@@ -64,8 +65,7 @@ const LOG_LEVEL: log::Level = log::Level::ERROR;
 
 fn main() {
     let mut app = App::new();
-    app.insert_resource(AssetMetaCheck::Never)
-        .insert_resource(Msaa::Off)
+    app.insert_resource(Msaa::Off)
         .add_plugins(
             DefaultPlugins
                 .set(LogPlugin {
@@ -80,10 +80,15 @@ fn main() {
                         ..default()
                     }),
                     ..default()
+                })
+                .set(AssetPlugin {
+                    meta_check: AssetMetaCheck::Never,
+                    ..default()
                 }),
         )
         .add_plugins((
             OutlinePlugin,
+            TextInputPlugin,
             AutoGenerateOutlineNormalsPlugin,
             RapierPhysicsPlugin::<NoUserData>::default(),
             ObjPlugin,
@@ -100,7 +105,6 @@ fn main() {
                 bevy_screen_diagnostics::ScreenFrameDiagnosticsPlugin,
                 bevy_screen_diagnostics::ScreenEntityDiagnosticsPlugin,
             ),
-            RoundUiPlugin,
         ))
         .add_systems(Startup, setup_physics)
         .add_plugins((
@@ -113,6 +117,7 @@ fn main() {
             PostprocessingPlugin,
             MaterialsPlugin,
             ModelPlugin,
+            UtilsPlugin,
         ))
         .insert_resource(DirectionalLightShadowMap { size: 4096 });
     cfg_if! {

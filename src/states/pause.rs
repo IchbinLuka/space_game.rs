@@ -1,10 +1,10 @@
 use crate::{
     states::{game_running, AppState},
     ui::{
-        button::TextButtonBundle,
         fonts::FontsResource,
         settings::{SettingsButton, SettingsScreen},
         theme::text_button_style,
+        widgets::TextButtonBundle,
     },
 };
 use bevy::prelude::*;
@@ -40,7 +40,7 @@ fn on_pause(
                     padding: UiRect::all(Val::Px(50.)),
                     ..default()
                 },
-                background_color: Color::rgba(0., 0., 0., 0.5).into(),
+                background_color: Color::srgba(0., 0., 0., 0.5).into(),
                 ..default()
             },
         ))

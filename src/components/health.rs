@@ -81,6 +81,6 @@ pub struct HealthPlugin;
 
 impl Plugin for HealthPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (despawn_on_death, regeneration));
+        app.add_systems(PostUpdate, (despawn_on_death, regeneration));
     }
 }

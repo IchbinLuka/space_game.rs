@@ -1,8 +1,10 @@
 use bevy::{
     prelude::*,
     render::{
+        mesh::MeshVertexBufferLayoutRef,
         render_asset::RenderAssets,
-        render_resource::{AsBindGroup, AsBindGroupShaderType, ShaderRef, ShaderType},
+        render_resource::{AsBindGroup, AsBindGroupShaderType, Face, ShaderRef, ShaderType},
+        texture::GpuImage,
     },
     scene::SceneInstance,
 };
@@ -23,9 +25,9 @@ pub struct PlanetMaterial {
 }
 
 impl AsBindGroupShaderType<ToonMaterialUniform> for PlanetMaterial {
-    fn as_bind_group_shader_type(&self, _images: &RenderAssets<Image>) -> ToonMaterialUniform {
+    fn as_bind_group_shader_type(&self, _images: &RenderAssets<GpuImage>) -> ToonMaterialUniform {
         ToonMaterialUniform {
-            color: self.color,
+            color: self.color.into(),
             use_texture: 1,
             filter_scale: 5.,
             ..default()
@@ -39,7 +41,9 @@ impl Material for PlanetMaterial {
     }
 }
 
-#[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
+#[derive(Asset, AsBindGroup, Reflect, Debug, Clone)]
+#[reflect(Default, Debug)]
+#[bind_group_data(ToonMaterialKey)]
 #[uniform(0, ToonMaterialUniform)]
 pub struct ToonMaterial {
     pub color: Color,
@@ -49,11 +53,16 @@ pub struct ToonMaterial {
     #[dependency]
     pub texture: Option<Handle<Image>>,
 
+    pub disable_outline: bool,
+
     pub filter_scale: f32,
     pub depth_threshold: f32,
     pub normal_threshold: f32,
     pub depth_normal_threshold_scale: f32,
     pub depth_normal_threshold: f32,
+
+    #[reflect(ignore)]
+    pub cull_mode: Option<Face>,
 }
 
 #[derive(Debug, Clone, AsBindGroup, ShaderType)]
@@ -64,11 +73,11 @@ struct ToonMaterialUniform {
     depth_normal_threshold_scale: f32,
     depth_normal_threshold: f32,
     use_texture: u32,
-    color: Color,
+    color: LinearRgba,
 }
 
 impl AsBindGroupShaderType<ToonMaterialUniform> for ToonMaterial {
-    fn as_bind_group_shader_type(&self, _images: &RenderAssets<Image>) -> ToonMaterialUniform {
+    fn as_bind_group_shader_type(&self, _images: &RenderAssets<GpuImage>) -> ToonMaterialUniform {
         ToonMaterialUniform {
             filter_scale: self.filter_scale,
             depth_threshold: self.depth_threshold,
@@ -76,7 +85,7 @@ impl AsBindGroupShaderType<ToonMaterialUniform> for ToonMaterial {
             depth_normal_threshold_scale: self.depth_normal_threshold_scale,
             depth_normal_threshold: self.depth_normal_threshold,
             use_texture: if self.texture.is_some() { 1 } else { 0 },
-            color: self.color,
+            color: self.color.into(),
         }
     }
 }
@@ -98,6 +107,8 @@ impl Default for ToonMaterial {
             normal_threshold: DEFAULT_NORMAL_THRESHOLD,
             depth_normal_threshold_scale: DEFAULT_DEPTH_NORMAL_THRESHOLD_SCALE,
             depth_normal_threshold: DEFAULT_DEPTH_NORMAL_THRESHOLD,
+            cull_mode: None,
+            disable_outline: false,
         }
     }
 }
@@ -111,7 +122,22 @@ impl Default for ToonMaterialUniform {
             depth_normal_threshold_scale: DEFAULT_DEPTH_NORMAL_THRESHOLD_SCALE,
             depth_normal_threshold: DEFAULT_DEPTH_NORMAL_THRESHOLD,
             use_texture: 0,
-            color: DEFAULT_COLOR,
+            color: DEFAULT_COLOR.into(),
+        }
+    }
+}
+
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct ToonMaterialKey {
+    cull_mode: Option<Face>,
+    disable_outline: bool,
+}
+
+impl From<&ToonMaterial> for ToonMaterialKey {
+    fn from(material: &ToonMaterial) -> Self {
+        ToonMaterialKey {
+            cull_mode: material.cull_mode,
+            disable_outline: material.disable_outline,
         }
     }
 }
@@ -124,15 +150,18 @@ impl Material for ToonMaterial {
     fn specialize(
         _pipeline: &bevy::pbr::MaterialPipeline<Self>,
         descriptor: &mut bevy::render::render_resource::RenderPipelineDescriptor,
-        _layout: &bevy::render::mesh::MeshVertexBufferLayout,
-        _key: bevy::pbr::MaterialPipelineKey<Self>,
+        _layout: &MeshVertexBufferLayoutRef,
+        key: bevy::pbr::MaterialPipelineKey<Self>,
     ) -> Result<(), bevy::render::render_resource::SpecializedMeshPipelineError> {
         let fragment = descriptor.fragment.as_mut().unwrap();
         if fragment.shader_defs.contains(&"NORMAL_PREPASS".into())
             && fragment.shader_defs.contains(&"DEPTH_PREPASS".into())
+            && !key.bind_group_data.disable_outline
         {
             fragment.shader_defs.push("DRAW_OUTLINE".into());
         }
+
+        descriptor.primitive.cull_mode = key.bind_group_data.cull_mode;
         Ok(())
     }
 }
@@ -194,14 +223,15 @@ pub struct ToonMaterialPlugin;
 
 impl Plugin for ToonMaterialPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(MaterialPlugin::<ToonMaterial> {
-            prepass_enabled: true,
-            ..default()
-        })
-        .add_plugins(MaterialPlugin::<PlanetMaterial> {
-            prepass_enabled: true,
-            ..default()
-        })
-        .add_systems(PostUpdate, apply_toon_materials);
+        app.register_asset_reflect::<ToonMaterial>()
+            .add_plugins(MaterialPlugin::<ToonMaterial> {
+                prepass_enabled: true,
+                ..default()
+            })
+            .add_plugins(MaterialPlugin::<PlanetMaterial> {
+                prepass_enabled: true,
+                ..default()
+            })
+            .add_systems(PostUpdate, apply_toon_materials);
     }
 }

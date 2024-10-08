@@ -1,6 +1,6 @@
 use std::{f32::consts::FRAC_PI_2, time::Duration};
 
-use bevy::prelude::*;
+use bevy::{app::FixedMain, prelude::*, render::RenderSet};
 use bevy_asset_loader::{
     asset_collection::AssetCollection,
     loading_state::{
@@ -11,13 +11,14 @@ use bevy_asset_loader::{
 use bevy_mod_outline::OutlineBundle;
 use bevy_rapier3d::prelude::*;
 use rand::Rng;
+use space_game_common::EnemyType;
 
 use crate::{
     components::{colliders::VelocityColliderBundle, despawn_after::DespawnTimer},
     entities::bullet::BulletType,
     particles::ParticleMaterial,
-    states::{game_running, AppState, DespawnOnCleanup, ON_GAME_STARTED},
-    ui::game_hud::ScoreEvent,
+    states::{game_running, AppState, DespawnOnCleanup},
+    ui::game_hud::ScoreGameEvent,
     utils::{
         collisions::BULLET_COLLISION_GROUP, materials::default_outline,
         misc::CollidingEntitiesExtension, sets::Set,
@@ -58,7 +59,7 @@ fn spawn_asteroid_field(
             let player_direction = player_velocity.linvel.normalize();
             let cross_direction = player_direction.cross(Vec3::Y) * rng.gen_range(-1.0..1.0);
             let position = player_transform.translation
-                + (player_direction + cross_direction) * rng.gen_range(100.0..150.0);
+                + (player_direction + cross_direction) * rng.gen_range(70.0..120.0);
             commands
                 .spawn((
                     AsteroidField,
@@ -142,7 +143,7 @@ fn asteroid_collisions(
     mut explosions: EventWriter<ExplosionEvent>,
     bullet_query: Query<&Bullet>,
     res: Res<AsteroidRes>,
-    mut score_events: EventWriter<ScoreEvent>,
+    mut score_events: EventWriter<ScoreGameEvent>,
 ) {
     const NUM_DESTRUCTION_PARTICLES: usize = 20;
 
@@ -157,9 +158,9 @@ fn asteroid_collisions(
 
         for bullet in colliding.filter_fulfills_query(&bullet_query) {
             if bullet.bullet_type == BulletType::Player {
-                score_events.send(ScoreEvent {
-                    score: 10,
+                score_events.send(ScoreGameEvent {
                     world_pos: transform.translation,
+                    enemy: EnemyType::Asteroid,
                 });
                 break;
             }
@@ -234,14 +235,14 @@ fn asteroid_setup(
     mut commands: Commands,
 ) {
     let material = standard_materials.add(ToonMaterial {
-        color: Color::hex("665F64").unwrap(),
+        color: Srgba::hex("665F64").unwrap().into(),
         filter_scale: 2.,
         normal_threshold: 1.2,
         ..default()
     });
 
     let particle_material: Handle<ParticleMaterial> = particle_materials.add(ParticleMaterial {
-        color: Color::hex("665F64").unwrap(),
+        color: Srgba::hex("665F64").unwrap().into(),
     });
 
     let particle_mesh = meshes.add(Rectangle::new(0.2, 0.2));
@@ -258,18 +259,27 @@ pub struct AsteroidPlugin;
 impl Plugin for AsteroidPlugin {
     fn build(&self, app: &mut App) {
         app.configure_loading_state(
-            LoadingStateConfig::new(AppState::MainSceneLoading).load_collection::<AsteroidAssets>(),
+            LoadingStateConfig::new(AppState::StartScreenLoading)
+                .load_collection::<AsteroidAssets>(),
         )
-        .add_systems(ON_GAME_STARTED, asteroid_setup)
+        .add_systems(Startup, asteroid_setup)
         .add_systems(
             Update,
             (
                 asteroid_collisions
                     .in_set(Set::ExplosionEvents)
                     .in_set(Set::ScoreEvents),
-                spawn_asteroid_field,
                 despawn_asteroid_field,
             )
+                .run_if(game_running()),
+        );
+
+        // TODO: For some reason this sometimes crashes on wasm (https://github.com/IchbinLuka/space_game.rs/issues/9)
+        #[cfg(not(target_arch = "wasm32"))]
+        app.add_systems(
+            FixedMain,
+            spawn_asteroid_field
+                .after(RenderSet::PrepareResources)
                 .run_if(game_running()),
         );
     }

@@ -8,5 +8,6 @@
 
     },
     "wgsl-analyzer.diagnostics.nagaValidationErrors": false,
-    "wgsl-analyzer.diagnostics.typeErrors": false
+    "wgsl-analyzer.diagnostics.typeErrors": false, 
+    // "rust-analyzer.cargo.target": "wasm32-unknown-unknown",
 }

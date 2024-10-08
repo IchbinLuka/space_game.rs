@@ -3,6 +3,7 @@ use bevy::{
     render::{
         render_asset::RenderAssets,
         render_resource::{AsBindGroup, AsBindGroupShaderType, ShaderRef, ShaderType},
+        texture::GpuImage,
     },
 };
 
@@ -17,16 +18,16 @@ pub struct BlinkMaterial {
 #[derive(Debug, Clone, AsBindGroup, ShaderType)]
 struct BlinkMaterialUniform {
     pub period: f32,
-    pub color_1: Color,
-    pub color_2: Color,
+    pub color_1: LinearRgba,
+    pub color_2: LinearRgba,
 }
 
 impl AsBindGroupShaderType<BlinkMaterialUniform> for BlinkMaterial {
-    fn as_bind_group_shader_type(&self, _images: &RenderAssets<Image>) -> BlinkMaterialUniform {
+    fn as_bind_group_shader_type(&self, _images: &RenderAssets<GpuImage>) -> BlinkMaterialUniform {
         BlinkMaterialUniform {
             period: self.period,
-            color_1: self.color_1,
-            color_2: self.color_2,
+            color_1: self.color_1.into(),
+            color_2: self.color_2.into(),
         }
     }
 }
