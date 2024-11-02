@@ -1,4 +1,4 @@
-use bevy::{color::palettes::css, prelude::*};
+use bevy::{color::palettes::css, prelude::*, ui::FocusPolicy};
 use bevy_simple_text_input::TextInputInactive;
 
 use super::{theme::default_hover_effect, NodeHoverEffect, TextHoverEffect};
@@ -98,6 +98,25 @@ fn check_box_update(
         }
         check_box.state = !check_box.state;
         *hover_effect = check_box.get_hover_effect();
+    }
+}
+
+pub fn screen_overlay() -> NodeBundle {
+    NodeBundle {
+        z_index: ZIndex::Global(10),
+        focus_policy: FocusPolicy::Block,
+        style: Style {
+            position_type: PositionType::Absolute,
+            width: Val::Percent(100.),
+            height: Val::Percent(100.),
+
+            display: Display::Flex,
+            align_content: AlignContent::Center,
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            ..default()
+        },
+        ..default()
     }
 }
 

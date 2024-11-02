@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 
+pub mod controls;
 pub mod fonts;
 pub mod game_hud;
 pub mod game_over;
@@ -97,6 +98,7 @@ impl Plugin for UIPlugin {
             widgets::WidgetsPlugin,
             minimap::MinimapPlugin,
             game_over::GameOverPlugin,
+            controls::ControlsPlugin,
         ));
     }
 }

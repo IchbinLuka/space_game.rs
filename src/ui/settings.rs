@@ -1,4 +1,4 @@
-use bevy::{ecs::world::Command, prelude::*, ui::FocusPolicy, window::PrimaryWindow};
+use bevy::{ecs::world::Command, prelude::*, window::PrimaryWindow};
 
 use crate::model::settings::{AntialiasingSetting, Settings, VSyncSetting};
 
@@ -6,7 +6,7 @@ use super::{
     fonts::FontsResource,
     theme::text_button_style,
     ui_card,
-    widgets::{CheckBox, CheckBoxBundle, TextButtonBundle},
+    widgets::{screen_overlay, CheckBox, CheckBoxBundle, TextButtonBundle},
 };
 
 #[derive(Component)]
@@ -65,25 +65,7 @@ impl Command for OpenSettings {
         let style = text_button_style(font_res);
 
         world
-            .spawn((
-                SettingsScreen,
-                NodeBundle {
-                    z_index: ZIndex::Global(10),
-                    focus_policy: FocusPolicy::Block,
-                    style: Style {
-                        position_type: PositionType::Absolute,
-                        width: Val::Percent(100.),
-                        height: Val::Percent(100.),
-
-                        display: Display::Flex,
-                        align_content: AlignContent::Center,
-                        align_items: AlignItems::Center,
-                        justify_content: JustifyContent::Center,
-                        ..default()
-                    },
-                    ..default()
-                },
-            ))
+            .spawn((SettingsScreen, screen_overlay()))
             .with_children(|c| {
                 c.spawn(NodeBundle {
                     style: Style {

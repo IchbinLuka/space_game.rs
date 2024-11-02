@@ -1,10 +1,7 @@
 use crate::{
     states::{game_running, AppState},
     ui::{
-        fonts::FontsResource,
-        settings::{SettingsButton, SettingsScreen},
-        theme::text_button_style,
-        widgets::TextButtonBundle,
+        controls::ControlsButton, fonts::FontsResource, settings::{SettingsButton, SettingsScreen}, theme::text_button_style, widgets::TextButtonBundle
     },
 };
 use bevy::prelude::*;
@@ -68,6 +65,11 @@ fn on_pause(
             c.spawn((
                 TextButtonBundle::from_section(t!("settings"), text_style.clone()),
                 SettingsButton,
+            ));
+
+            c.spawn((
+                TextButtonBundle::from_section(t!("controls"), text_style.clone()),
+                ControlsButton,
             ));
 
             c.spawn((

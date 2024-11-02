@@ -19,6 +19,7 @@ use crate::{
     model::settings::{Profile, Settings},
     states::{in_start_menu, AppState},
     ui::{
+        controls::ControlsButton,
         fonts::FontsResource,
         leaderboard::{AddLeaderboardExtension, FetchLeaderboardRequest},
         minimap::MinimapAssets,
@@ -119,7 +120,6 @@ fn setup_start_screen(
     );
 }
 
-
 fn setup_startscreen_ui(
     font_res: Res<FontsResource>,
     root: Query<Entity, With<StartScreen>>,
@@ -182,6 +182,15 @@ fn setup_startscreen_ui(
                 ));
             })
             .insert(SettingsButton);
+
+        c.menu_item()
+            .with_children(|c| {
+                c.spawn(TextBundle::from_section(
+                    t!("controls"),
+                    text_button_style(&font_res),
+                ));
+            })
+            .insert(ControlsButton);
 
         c.menu_item()
             .with_children(|c| {
@@ -312,9 +321,9 @@ fn setup_leaderboard_screen(
                 if let Some(profile) = &settings.profile {
                     c.spawn(TextBundle {
                         style: Style {
-                            margin: UiRect::right(Val::Px(5.)), 
+                            margin: UiRect::right(Val::Px(5.)),
                             ..default()
-                        }, 
+                        },
                         ..TextBundle::from_section("Token: ", body_style.clone())
                     });
                     c.spawn(TextBundle::from_section(
