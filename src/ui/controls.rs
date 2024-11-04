@@ -20,12 +20,14 @@ pub struct ShowControls;
 impl Command for ShowControls {
     fn apply(self, world: &mut World) {
         let controls_items = [
+            (t!("pause_game"), "Esc"), 
             (t!("accelerate"), "W"),
             (t!("turn_left"), "A"),
             (t!("turn_right"), "D"),
             (t!("shoot"), "Space"),
             (t!("place_turret"), "T"),
             (t!("place_bomb"), "G"),
+            (t!("toggle_auxiliary_drive"), "Shift"), 
         ];
 
         let font_res = world
