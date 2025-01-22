@@ -1,5 +1,5 @@
 [package]
-name = "test_game"
+name = "space_game"
 version = "0.1.0"
 edition = "2021"
 
